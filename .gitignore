@@ -34,3 +34,5 @@ cfs-tracker-*.json
 *.njsproj
 *.sln
 *.sw?
+
+.vercel

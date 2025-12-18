@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import DailyEntry from './components/DailyEntry'
+import EntryHistory from './components/EntryHistory'
 import './App.css'
 
 function App() {
@@ -37,10 +38,7 @@ function App() {
           <DailyEntry onSave={handleSave} />
         )}
         {view === 'history' && (
-          <div className="placeholder">
-            <p>History view coming soon</p>
-            <button onClick={() => setView('entry')}>Back to Entry</button>
-          </div>
+          <EntryHistory />
         )}
         {view === 'settings' && (
           <div className="placeholder">

@@ -15,7 +15,7 @@ Track completed features and current status here. Update after completing each f
 | 5 | Submit entry API | DONE | Saves entries to Google Sheets |
 | 6 | Secret URL auth | DONE | Token handling in src/utils/auth.js |
 | 7 | Optional fields (collapsible) | DONE | Comments, oxaloacetate, exercise |
-| 8 | Entry history view | TODO | Last 7 days |
+| 8 | Entry history view | DONE | Last 7 days, with smart date formatting |
 | 9 | Offline storage + sync | SCAFFOLD | Code in src/utils/offlineStorage.js |
 | 10 | Auto light/dark theme | DONE | Follows system preference |
 
@@ -40,6 +40,18 @@ Track completed features and current status here. Update after completing each f
 ---
 
 ## Completed Features Log
+
+### 2025-12-17 - Entry History View (Session 3)
+- Created EntryHistory component (src/components/EntryHistory.jsx)
+- Created EntryHistory styles (src/components/EntryHistory.css)
+- Integrated EntryHistory into App.jsx navigation
+- Implemented fetch logic to get last 7 days from Google Sheets API
+- Added loading, error, and empty states
+- Implemented smart date formatting (Today, Yesterday, or "Dec 17" format)
+- Fixed date parsing to handle multiple formats (MM/DD/YYYY, ISO timestamps, formatted strings)
+- Fixed vercel.json configuration (removed problematic rewrites)
+- Set up Vercel CLI for local development
+- Successfully tested with real Google Sheets data
 
 ### 2024-12-17 - Google Sheets Integration (Session 2)
 - Completed Google Cloud setup (project, Sheets API, service account)
@@ -66,24 +78,27 @@ Track completed features and current status here. Update after completing each f
 
 ## Next Up
 
-**Feature #8: Entry History View**
+**Feature #9: Offline Storage + Sync**
 
-Display the last 7 days of entries to help track progress.
+Implement offline storage using IndexedDB so entries can be saved when offline and synced when back online.
 
 **Implementation steps**:
-1. Create an EntryHistory component
-2. Fetch entries from the get-entries API endpoint
-3. Display in a clean, easy-to-read format (date, hours, optional fields)
-4. Add to the main App.jsx below the daily entry form
-5. Handle loading states and empty states
-6. Test with the existing Google Sheets data
+1. Review existing scaffold in src/utils/offlineStorage.js
+2. Complete the IndexedDB storage implementation
+3. Modify DailyEntry component to save to IndexedDB when offline
+4. Implement sync logic to push offline entries when connection returns
+5. Add UI indicators for offline mode and sync status
+6. Test offline functionality thoroughly
+
+**Note**: Scaffold code already exists in src/utils/offlineStorage.js - review and complete it.
 
 ---
 
 ## Blockers / Notes
 
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
-- **Vercel Deployment**: Need to set up Vercel project and add environment variables for production deployment
+- **Vercel Deployment**: Vercel CLI is configured for local dev. Still need to deploy to production and add environment variables
+- **Local Development**: Use `vercel dev` to run both frontend and API functions locally (not `npm run dev`)
 
 ---
 
