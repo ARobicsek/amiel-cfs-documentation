@@ -17,6 +17,10 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Google Cloud service account keys
+*-service-account-*.json
+cfs-tracker-*.json
+
 # Vercel
 .vercel
 
