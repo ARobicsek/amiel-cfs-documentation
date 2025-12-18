@@ -160,6 +160,7 @@ Phase 2 notifications are now complete! Moving to Phase 3 polish features.
 
 ## Blockers / Notes
 
+- **Notification Action Buttons**: Snooze button may not be visible in all browser/OS combinations. Chrome on Windows may not display notification action buttons depending on system settings. This is a browser/OS limitation, not a code issue. Alternative: Add snooze option in app UI as fallback.
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
 - **Vercel Deployment**: Vercel CLI is configured for local dev. Still need to deploy to production and add environment variables
   - Required environment variables for production: GOOGLE_SERVICE_ACCOUNT_KEY, GOOGLE_SHEET_ID, SECRET_TOKEN, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_EMAIL
