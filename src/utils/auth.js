@@ -64,3 +64,10 @@ export function getAuthenticatedUrl() {
   const baseUrl = window.location.origin;
   return `${baseUrl}/?secret=${token}`;
 }
+
+/**
+ * Alias for getSecretToken (for consistency)
+ */
+export function getAuthToken() {
+  return getSecretToken();
+}
