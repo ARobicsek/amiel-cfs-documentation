@@ -16,6 +16,11 @@ const TOKEN_KEY = 'cfs_auth_token';
  * Get the secret token from URL or localStorage
  */
 export function getSecretToken() {
+  // Development bypass for local testing
+  if (import.meta.env.DEV || window.location.hostname === 'localhost') {
+    return localStorage.getItem(TOKEN_KEY) || 'dev-token-for-local-testing';
+  }
+
   // First, check URL for token (initial visit)
   const urlParams = new URLSearchParams(window.location.search);
   const urlToken = urlParams.get('secret');

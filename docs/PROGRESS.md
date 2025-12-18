@@ -16,7 +16,7 @@ Track completed features and current status here. Update after completing each f
 | 6 | Secret URL auth | DONE | Token handling in src/utils/auth.js |
 | 7 | Optional fields (collapsible) | DONE | Comments, oxaloacetate, exercise |
 | 8 | Entry history view | DONE | Last 7 days, with smart date formatting |
-| 9 | Offline storage + sync | SCAFFOLD | Code in src/utils/offlineStorage.js |
+| 9 | Offline storage + sync | DONE | IndexedDB with auto-sync on reconnect |
 | 10 | Auto light/dark theme | DONE | Follows system preference |
 
 ### Phase 2: Notifications
@@ -40,6 +40,18 @@ Track completed features and current status here. Update after completing each f
 ---
 
 ## Completed Features Log
+
+### 2025-12-18 - Offline Storage + Sync (Session 4)
+- Integrated offline storage with App.jsx handleSave function
+- Implemented IndexedDB storage for entries when offline or when API fails
+- Added online/offline status indicator to header
+- Added pending entries count indicator
+- Implemented automatic sync when connection returns
+- Added sync success notification
+- Tested offline functionality with DevTools Network throttling
+- Verified entries persist in IndexedDB and sync triggers on reconnect
+- Added development auth bypass for local testing (auth.js)
+- All offline storage features working as designed
 
 ### 2025-12-17 - Entry History View (Session 3)
 - Created EntryHistory component (src/components/EntryHistory.jsx)
@@ -78,19 +90,22 @@ Track completed features and current status here. Update after completing each f
 
 ## Next Up
 
-**Feature #9: Offline Storage + Sync**
+**Feature #12: Push Subscription Flow**
 
-Implement offline storage using IndexedDB so entries can be saved when offline and synced when back online.
+Implement the frontend integration for web push notifications so users can subscribe to daily reminders.
 
 **Implementation steps**:
-1. Review existing scaffold in src/utils/offlineStorage.js
-2. Complete the IndexedDB storage implementation
-3. Modify DailyEntry component to save to IndexedDB when offline
-4. Implement sync logic to push offline entries when connection returns
-5. Add UI indicators for offline mode and sync status
-6. Test offline functionality thoroughly
+1. Review existing scaffold in api/subscribe.js and api/send-notification.js
+2. Create PushNotification utility module for handling service worker registration
+3. Add push notification permission request in Settings page
+4. Implement subscription flow with backend API
+5. Add UI to show subscription status and allow unsubscribe
+6. Test notification subscription and delivery
 
-**Note**: Scaffold code already exists in src/utils/offlineStorage.js - review and complete it.
+**Prerequisites**:
+- API endpoints already scaffolded
+- Vercel cron job configured in vercel.json
+- Need to set up VAPID keys for web push
 
 ---
 
