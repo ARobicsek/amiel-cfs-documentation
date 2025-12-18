@@ -32,9 +32,10 @@ export default async function handler(req, res) {
 
   // Validate authorization
   const authHeader = req.headers.authorization;
-  const token = authHeader?.replace('Bearer ', '');
+  const receivedToken = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : null;
+  const expectedToken = process.env.SECRET_TOKEN ? process.env.SECRET_TOKEN.trim() : null;
 
-  if (token !== process.env.SECRET_TOKEN) {
+  if (!receivedToken || receivedToken !== expectedToken) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

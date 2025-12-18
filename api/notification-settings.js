@@ -20,11 +20,23 @@ import { google } from 'googleapis';
 export default async function handler(req, res) {
   // Verify authentication
   const authHeader = req.headers.authorization;
-  const token = authHeader?.replace('Bearer ', '');
+  // Handle "Bearer <token>" or just "<token>" case-insensitively, and trim whitespace
+  const receivedToken = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : null;
+  const expectedToken = process.env.SECRET_TOKEN ? process.env.SECRET_TOKEN.trim() : null;
 
-  if (token !== process.env.SECRET_TOKEN) {
+  // For debugging: compare with known value
+  if (!receivedToken || receivedToken !== expectedToken) {
+    console.log('Auth failed.');
+    console.log('Received token:', receivedToken);
+    console.log('Expected token length:', expectedToken?.length);
+    // Don't log the full expected token for security, but maybe the first/last chars if needed for debugging
+    if (expectedToken) {
+        console.log('Expected token starts with:', expectedToken.substring(0, 3) + '...');
+    }
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  console.log('Auth successful');
 
   try {
     // Initialize Google Sheets

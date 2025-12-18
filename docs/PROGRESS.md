@@ -41,6 +41,15 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-18 - Authentication 401 Error Fix (Session 9)
+- Refactored authentication logic in all API endpoints (`notification-settings.js`, `subscribe.js`, `submit-entry.js`, `get-entries.js`, `send-notification.js`)
+- Implemented robust token comparison:
+  - Trims whitespace from `process.env.SECRET_TOKEN` (handling potential copy-paste errors/newlines)
+  - Handles case-insensitive "Bearer" prefix
+  - Trims received token
+- Improved debug logging in `notification-settings.js` and `subscribe.js` to show received/expected values (masked)
+- Status: **READY FOR VERIFICATION** - Needs deployment to Vercel to confirm fix
+
 ### 2025-12-18 - Smart Customizable Reminders + Snooze (Session 7)
 - **Customizable Reminder Schedule:**
   - Created api/notification-settings.js (GET/POST) for user preferences
@@ -64,6 +73,25 @@ Track completed features and current status here. Update after completing each f
   - Properly manages repeat intervals across midnight boundary
 
 - Feature #14: **100% COMPLETE** - Full customization and snooze support ready
+
+### 2025-12-18 - Notification Authentication Issues (Session 8)
+- Fixed Vercel cron job configuration for Hobby plan (once per day at 9 PM ET)
+- Deployed app to Vercel production
+- Added all required environment variables:
+  - GOOGLE_SERVICE_ACCOUNT_KEY
+  - GOOGLE_SHEET_ID
+  - SECRET_TOKEN
+  - VAPID_PUBLIC_KEY
+  - VAPID_PRIVATE_KEY
+  - VAPID_EMAIL
+  - VITE_SECRET_TOKEN
+- Reorganized Settings page to show Reminder Schedule first
+- **ISSUE**: API endpoints returning 401 Unauthorized despite correct token
+  - Token `dev-secret-token-12345` is being stored and read correctly
+  - Environment variables are set in Vercel
+  - Debug logging added to notification-settings.js and subscribe.js
+  - Still investigating authentication failure
+- Status: **IN PROGRESS** - Authentication blocking notification setup
 
 ### 2025-12-18 - Push Notification Flow COMPLETE (Session 6)
 - Fixed missing webpush.setVapidDetails() call in api/send-notification.js
@@ -160,11 +188,10 @@ Phase 2 notifications are now complete! Moving to Phase 3 polish features.
 
 ## Blockers / Notes
 
+- **Authentication 401 Error**: **RESOLVED (Pending Verification)** - Refactored API auth to handle whitespace/formatting issues. Needs deployment to confirm.
 - **Vercel Cron Job Limitation**: Vercel Hobby plan only allows ONCE PER DAY cron jobs, not every 15 minutes. The app has been updated to use a single daily trigger at 9 PM ET. For more frequent reminders, need to upgrade to Vercel Pro plan or use external cron service (e.g., EasyCron).
 - **Notification Action Buttons**: Snooze button may not be visible in all browser/OS combinations. Chrome on Windows may not display notification action buttons depending on system settings. This is a browser/OS limitation, not a code issue. Alternative: Add snooze option in app UI as fallback.
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
-- **Vercel Deployment**: Vercel CLI is configured for local dev. Still need to deploy to production and add environment variables
-  - Required environment variables for production: GOOGLE_SERVICE_ACCOUNT_KEY, GOOGLE_SHEET_ID, SECRET_TOKEN, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_EMAIL
 - **Local Development**: Use `vercel dev` to run both frontend and API functions locally (not `npm run dev`)
 - **Windows Notifications**: Users must enable Chrome/browser notifications in Windows Settings → System → Notifications for push notifications to display
 

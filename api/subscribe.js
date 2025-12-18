@@ -23,11 +23,18 @@ export default async function handler(req, res) {
   }
 
   const authHeader = req.headers.authorization;
-  const token = authHeader?.replace('Bearer ', '');
+  const receivedToken = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : null;
+  const expectedToken = process.env.SECRET_TOKEN ? process.env.SECRET_TOKEN.trim() : null;
 
-  if (token !== process.env.SECRET_TOKEN) {
+  // For debugging
+  if (!receivedToken || receivedToken !== expectedToken) {
+    console.log('Subscribe auth failed.');
+    console.log('Received:', receivedToken);
+    console.log('Expected length:', expectedToken?.length);
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  console.log('Subscribe auth successful');
 
   const subscription = req.body;
 
