@@ -8,13 +8,13 @@
  *   Authorization: Bearer <SECRET_TOKEN>
  *
  * Response:
- *   200: { success: true, joke: string }
+ *   200: { success: true, joke: string, sent: number }
  *   401: { error: "Unauthorized" }
  *   500: { error: "Failed to send notification" }
  */
 
-// TODO: npm install web-push
-// import webpush from 'web-push';
+import webpush from 'web-push';
+import { google } from 'googleapis';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -34,31 +34,84 @@ export default async function handler(req, res) {
     const joke = await jokeResponse.json();
     const jokeText = `${joke.setup} ${joke.punchline}`;
 
-    // TODO: Configure web-push with VAPID keys
-    // webpush.setVapidDetails(
-    //   `mailto:${process.env.VAPID_EMAIL}`,
-    //   process.env.VAPID_PUBLIC_KEY,
-    //   process.env.VAPID_PRIVATE_KEY
-    // );
+    // Configure web-push with VAPID keys
+    webpush.setVapidDetails(
+      process.env.VAPID_EMAIL,
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
 
-    // TODO: Get subscription from storage and send notification
-    // const subscription = await getStoredSubscription();
-    //
-    // await webpush.sendNotification(subscription, JSON.stringify({
-    //   title: 'Time to track your day!',
-    //   body: jokeText,
-    //   icon: '/pwa-192x192.png',
-    //   data: {
-    //     url: '/'
-    //   }
-    // }));
+    // Get subscriptions from Google Sheets
+    const auth = new google.auth.GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
 
-    console.log('Would send notification with joke:', jokeText);
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    let subscriptions = [];
+    try {
+      const getResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: 'Subscriptions!A:D',
+      });
+
+      const rows = getResponse.data.values || [];
+
+      // Skip header row and parse subscriptions
+      if (rows.length > 1) {
+        subscriptions = rows.slice(1).map(row => {
+          try {
+            return JSON.parse(row[3]); // Full subscription is in column D
+          } catch (error) {
+            console.error('Failed to parse subscription:', error);
+            return null;
+          }
+        }).filter(sub => sub !== null);
+      }
+    } catch (error) {
+      console.error('Failed to get subscriptions:', error);
+      // If no subscriptions exist, that's okay
+    }
+
+    if (subscriptions.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No subscriptions found',
+        joke: jokeText,
+        sent: 0
+      });
+    }
+
+    // Send notifications to all subscriptions
+    const payload = JSON.stringify({
+      title: 'Time to track your day!',
+      body: jokeText,
+      icon: '/pwa-192x192.png',
+      badge: '/favicon.svg',
+      data: {
+        url: '/'
+      }
+    });
+
+    let sentCount = 0;
+    const sendPromises = subscriptions.map(async (subscription) => {
+      try {
+        await webpush.sendNotification(subscription, payload);
+        sentCount++;
+      } catch (error) {
+        console.error('Failed to send to subscription:', error);
+        // Could mark subscription as invalid and remove from sheet here
+      }
+    });
+
+    await Promise.all(sendPromises);
 
     return res.status(200).json({
       success: true,
-      message: 'Notification not sent (push not yet configured)',
-      joke: jokeText
+      joke: jokeText,
+      sent: sentCount,
+      total: subscriptions.length
     });
 
   } catch (error) {

@@ -15,7 +15,7 @@
  *   500: { error: "Failed to save subscription" }
  */
 
-// TODO: Store subscription in Google Sheets (separate tab) or JSON file
+import { google } from 'googleapis';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -36,9 +36,60 @@ export default async function handler(req, res) {
   }
 
   try {
-    // TODO: Save subscription to storage
-    // For now, just log it
-    console.log('Push subscription received:', subscription.endpoint);
+    const auth = new google.auth.GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // Get current timestamp
+    const timestamp = new Date().toISOString();
+
+    // Store the subscription in a "Subscriptions" sheet
+    // Format: [Timestamp, Endpoint, Keys (JSON), Full Subscription (JSON)]
+    const subscriptionData = [
+      timestamp,
+      subscription.endpoint,
+      JSON.stringify(subscription.keys),
+      JSON.stringify(subscription)
+    ];
+
+    // First, try to get existing subscriptions to see if we need to update
+    let existingData;
+    try {
+      const getResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: 'Subscriptions!A:D',
+      });
+      existingData = getResponse.data.values || [];
+    } catch (error) {
+      // Sheet probably doesn't exist, we'll create it below
+      existingData = [];
+    }
+
+    // If sheet is empty or doesn't exist, add headers
+    if (existingData.length === 0) {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: 'Subscriptions!A:D',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [['Timestamp', 'Endpoint', 'Keys', 'Full Subscription']]
+        }
+      });
+    }
+
+    // For MVP, we'll just append the new subscription
+    // In the future, we could check for duplicates and update instead
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      range: 'Subscriptions!A:D',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [subscriptionData]
+      }
+    });
 
     return res.status(200).json({ success: true });
 

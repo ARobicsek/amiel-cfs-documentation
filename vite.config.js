@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'sw-custom.js'],
       manifest: {
         name: 'CFS Daily Tracker',
         short_name: 'CFS Track',
@@ -52,7 +52,13 @@ export default defineConfig({
               }
             }
           }
-        ]
+        ],
+        // Import custom push notification handlers
+        importScripts: ['sw-custom.js']
+      },
+      devOptions: {
+        enabled: true,
+        type: 'module'
       }
     })
   ],

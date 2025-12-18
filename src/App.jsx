@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import DailyEntry from './components/DailyEntry'
 import EntryHistory from './components/EntryHistory'
+import Settings from './components/Settings'
 import { submitEntry } from './utils/api'
 import {
   saveOfflineEntry,
@@ -134,10 +135,7 @@ function App() {
           <EntryHistory />
         )}
         {view === 'settings' && (
-          <div className="placeholder">
-            <p>Settings coming soon</p>
-            <button onClick={() => setView('entry')}>Back to Entry</button>
-          </div>
+          <Settings />
         )}
       </main>
 

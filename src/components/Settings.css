@@ -1,0 +1,241 @@
+.settings {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.settings h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--text-primary);
+}
+
+.settings-section {
+  background: var(--card-bg);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.settings-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+
+.settings-description {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.notification-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-primary);
+  border-radius: 0.5rem;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+.status-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.status-value {
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.status-value.success {
+  background: #10b981;
+  color: white;
+}
+
+.status-value.error {
+  background: #ef4444;
+  color: white;
+}
+
+.status-value.warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.status-value.inactive {
+  background: #6b7280;
+  color: white;
+}
+
+.settings-message {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+.settings-message.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.settings-message.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.settings-actions button {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.settings-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.4);
+}
+
+.help-text {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  line-height: 1.6;
+  font-size: 0.875rem;
+}
+
+.help-text.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+.help-text.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.help-text ol {
+  margin: 0.5rem 0 0 1.5rem;
+  padding: 0;
+}
+
+.help-text li {
+  margin: 0.25rem 0;
+}
+
+.settings-version {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  font-style: italic;
+}
+
+.error-message {
+  color: #ef4444;
+  font-weight: 500;
+  padding: 1rem;
+  background: #fee2e2;
+  border-radius: 0.5rem;
+  border: 1px solid #ef4444;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .settings {
+    padding: 1rem 0.5rem;
+  }
+
+  .settings h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .settings-section {
+    padding: 1rem;
+  }
+
+  .status-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .status-value {
+    align-self: stretch;
+    text-align: center;
+  }
+
+  .settings-actions {
+    flex-direction: column;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .settings-section {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .help-text.error,
+  .settings-message.error,
+  .error-message {
+    background: #7f1d1d;
+    color: #fecaca;
+  }
+
+  .help-text.success,
+  .settings-message.success {
+    background: #064e3b;
+    color: #a7f3d0;
+  }
+}
