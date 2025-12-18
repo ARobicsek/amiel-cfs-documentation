@@ -18,7 +18,7 @@ const TOKEN_KEY = 'cfs_auth_token';
 export function getSecretToken() {
   // Development bypass for local testing
   if (import.meta.env.DEV || window.location.hostname === 'localhost') {
-    return localStorage.getItem(TOKEN_KEY) || 'dev-token-for-local-testing';
+    return localStorage.getItem(TOKEN_KEY) || import.meta.env.VITE_SECRET_TOKEN || 'dev-secret-token-12345';
   }
 
   // First, check URL for token (initial visit)
