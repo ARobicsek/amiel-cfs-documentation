@@ -24,9 +24,9 @@ Track completed features and current status here. Update after completing each f
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | 11 | Web Push setup | DONE | VAPID keys generated, web-push installed |
-| 12 | Push subscription flow | IN_PROGRESS | 90% complete - needs "Subscriptions" sheet tab |
+| 12 | Push subscription flow | DONE | Full flow complete, tested end-to-end |
 | 13 | Notification endpoint | DONE | Sends push with jokes from API |
-| 14 | Vercel cron job | SCAFFOLD | Config in vercel.json |
+| 14 | Vercel cron job | TODO | Config in vercel.json |
 | 15 | Settings page | DONE | Enable/disable notifications UI complete |
 
 ### Phase 3: Polish (Future)
@@ -41,6 +41,18 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-18 - Push Notification Flow COMPLETE (Session 6)
+- Fixed missing webpush.setVapidDetails() call in api/send-notification.js
+- Implemented auto-creation of "Subscriptions" sheet tab in api/subscribe.js
+- Added VAPID email validation and mailto: prefix handling
+- Configured Google Sheets credentials in .env files (.env, .env.local, .env.development.local)
+- Tested full subscription flow: Settings → Enable Notifications → Success
+- Verified subscription data saved to Google Sheets (Subscriptions tab auto-created)
+- Tested push notification sending via curl to /api/send-notification endpoint
+- Confirmed notifications received and displayed in browser/Windows notification center
+- Fixed Windows/Chrome notification permissions (required for display)
+- Feature #12: **100% COMPLETE** - Push notifications fully functional end-to-end
+
 ### 2025-12-18 - Push Notification Subscription Flow (Session 5)
 - Generated VAPID keys for web push authentication
 - Installed web-push package (npm)
@@ -54,7 +66,7 @@ Track completed features and current status here. Update after completing each f
 - Fixed authentication token handling (auth.js now uses VITE_SECRET_TOKEN)
 - Updated .env.example with VAPID key documentation
 - Added SECRET_TOKEN and VAPID keys to .env.local
-- Status: **90% complete** - needs "Subscriptions" sheet tab created in Google Sheet
+- Status: **90% complete** - needed "Subscriptions" sheet tab (resolved in Session 6)
 
 ### 2025-12-18 - Offline Storage + Sync (Session 4)
 - Integrated offline storage with App.jsx handleSave function
@@ -105,35 +117,32 @@ Track completed features and current status here. Update after completing each f
 
 ## Next Up
 
-**Complete Feature #12: Push Subscription Flow**
-
-The push notification feature is 90% complete. One blocker remains:
-
-**Required Action**:
-1. **Create "Subscriptions" tab in Google Sheet** - The api/subscribe.js endpoint tries to save subscriptions to a "Subscriptions" sheet tab that doesn't exist yet. Either:
-   - Option A: Manually create a new tab called "Subscriptions" in the Google Sheet
-   - Option B: Update api/subscribe.js to automatically create the sheet if it doesn't exist
-
-**After fixing the sheet tab**:
-2. Test full subscription flow in browser (Settings → Enable Notifications)
-3. Verify subscription is saved to Google Sheets
-4. Test manual notification send with: `curl -X POST http://localhost:3002/api/send-notification -H "Authorization: Bearer dev-secret-token-12345"`
-5. Update status to DONE and commit
-
-**Then move to**:
 **Feature #14: Vercel Cron Job** - Set up scheduled notifications
+
+Now that push notifications are fully working (Feature #12 complete), the next step is to set up automated scheduled notifications using Vercel's cron job functionality.
+
+**Implementation Steps**:
+1. Review vercel.json cron configuration
+2. Create /api/cron-trigger.js endpoint (currently scaffolded)
+3. Configure cron schedule (e.g., hourly notifications between 8 AM - 8 PM)
+4. Test cron job locally if possible, or deploy to Vercel for testing
+5. Verify cron job calls /api/send-notification endpoint
+6. Monitor and validate scheduled notifications are sent
+
+**Prerequisites**:
+- ✅ Push notification infrastructure complete (Feature #12)
+- ✅ /api/send-notification endpoint tested and working
+- Need to configure Vercel environment variables for production deployment
 
 ---
 
 ## Blockers / Notes
 
-- **CRITICAL - Feature #12**: Need to create "Subscriptions" sheet tab in Google Sheet. Current error: `Unable to parse range: Subscriptions!A:D`
-  - The api/subscribe.js endpoint expects a "Subscriptions" tab to exist
-  - Create manually OR update code to auto-create the sheet
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
 - **Vercel Deployment**: Vercel CLI is configured for local dev. Still need to deploy to production and add environment variables
+  - Required environment variables for production: GOOGLE_SERVICE_ACCOUNT_KEY, GOOGLE_SHEET_ID, SECRET_TOKEN, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_EMAIL
 - **Local Development**: Use `vercel dev` to run both frontend and API functions locally (not `npm run dev`)
-- **VAPID Keys**: Generated and stored in .env.local for development. Need to add to Vercel environment variables for production
+- **Windows Notifications**: Users must enable Chrome/browser notifications in Windows Settings → System → Notifications for push notifications to display
 
 ---
 
