@@ -7,6 +7,7 @@ import {
   unsubscribeFromPush,
   isSubscribed
 } from '../utils/pushNotification.js';
+import { getAuthToken } from '../utils/auth.js';
 import './Settings.css';
 
 export default function Settings() {
@@ -16,8 +17,18 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  // Reminder schedule settings
+  const [reminderSettings, setReminderSettings] = useState({
+    firstReminderTime: '20:00',
+    repeatInterval: 60,
+    stopAfterLog: true
+  });
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState({ type: '', text: '' });
+
   useEffect(() => {
     checkPushStatus();
+    fetchReminderSettings();
   }, []);
 
   async function checkPushStatus() {
@@ -30,6 +41,58 @@ export default function Settings() {
 
       const sub = await isSubscribed();
       setSubscribed(sub);
+    }
+  }
+
+  async function fetchReminderSettings() {
+    try {
+      const token = getAuthToken();
+      const response = await fetch('/api/notification-settings', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const settings = await response.json();
+        setReminderSettings(settings);
+      }
+    } catch (error) {
+      console.error('Failed to fetch reminder settings:', error);
+    }
+  }
+
+  async function saveReminderSettings() {
+    setSettingsLoading(true);
+    setSettingsMessage({ type: '', text: '' });
+
+    try {
+      const token = getAuthToken();
+      const response = await fetch('/api/notification-settings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reminderSettings)
+      });
+
+      if (response.ok) {
+        setSettingsMessage({
+          type: 'success',
+          text: 'Reminder settings saved successfully!'
+        });
+      } else {
+        throw new Error('Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Failed to save reminder settings:', error);
+      setSettingsMessage({
+        type: 'error',
+        text: 'Failed to save settings. Please try again.'
+      });
+    } finally {
+      setSettingsLoading(false);
     }
   }
 
@@ -181,11 +244,96 @@ export default function Settings() {
 
         {subscribed && (
           <p className="help-text success">
-            You're all set! You'll receive daily reminder notifications.
-            Notifications are sent every hour between 8 AM and 8 PM.
+            You're all set! You'll receive customized reminder notifications based on your schedule below.
           </p>
         )}
       </div>
+
+      {subscribed && (
+        <div className="settings-section">
+          <h3>Reminder Schedule</h3>
+          <p className="settings-description">
+            Customize when and how often you receive reminders to track your daily health metrics.
+          </p>
+
+          <div className="settings-form">
+            <div className="form-group">
+              <label htmlFor="firstReminderTime">First Reminder Time</label>
+              <input
+                type="time"
+                id="firstReminderTime"
+                value={reminderSettings.firstReminderTime}
+                onChange={(e) => setReminderSettings({
+                  ...reminderSettings,
+                  firstReminderTime: e.target.value
+                })}
+                className="time-input"
+              />
+              <p className="help-text">
+                Set your first daily reminder. If this time has already passed today,
+                the reminder will start tomorrow at this time.
+              </p>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="repeatInterval">Repeat Every</label>
+              <select
+                id="repeatInterval"
+                value={reminderSettings.repeatInterval}
+                onChange={(e) => setReminderSettings({
+                  ...reminderSettings,
+                  repeatInterval: parseInt(e.target.value)
+                })}
+                className="select-input"
+              >
+                <option value="0">Never (one-time only)</option>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="240">4 hours</option>
+              </select>
+              <p className="help-text">
+                How often to repeat the reminder after the first one.
+              </p>
+            </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={reminderSettings.stopAfterLog}
+                  onChange={(e) => setReminderSettings({
+                    ...reminderSettings,
+                    stopAfterLog: e.target.checked
+                  })}
+                />
+                <span>Stop reminders after I log today</span>
+              </label>
+              <p className="help-text">
+                Automatically stop sending reminders once you've tracked your health metrics for the day.
+                Reminders will resume tomorrow.
+              </p>
+            </div>
+          </div>
+
+          {settingsMessage.text && (
+            <div className={`settings-message ${settingsMessage.type}`}>
+              {settingsMessage.text}
+            </div>
+          )}
+
+          <div className="settings-actions">
+            <button
+              onClick={saveReminderSettings}
+              disabled={settingsLoading}
+              className="btn-primary"
+            >
+              {settingsLoading ? 'Saving...' : 'Save Reminder Settings'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="settings-section">
         <h3>About</h3>

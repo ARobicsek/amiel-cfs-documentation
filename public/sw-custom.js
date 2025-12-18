@@ -39,10 +39,45 @@ self.addEventListener('push', (event) => {
 // Listen for notification click events
 self.addEventListener('notificationclick', (event) => {
   console.log('Notification clicked:', event);
+  console.log('Action:', event.action);
 
   event.notification.close();
 
-  // Open the app or focus existing window
+  // Handle snooze action
+  if (event.action === 'snooze') {
+    console.log('Snooze action clicked');
+
+    event.waitUntil(
+      fetch('/api/snooze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${self.SECRET_TOKEN || 'dev-secret-token-12345'}`
+        },
+        body: JSON.stringify({ duration: 60 })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Snooze successful:', data);
+
+        // Show a confirmation notification
+        return self.registration.showNotification('Snoozed for 1 hour', {
+          body: 'You\'ll be reminded again in 1 hour.',
+          icon: '/pwa-192x192.png',
+          badge: '/favicon.svg',
+          tag: 'snooze-confirmation',
+          requireInteraction: false
+        });
+      })
+      .catch(error => {
+        console.error('Snooze failed:', error);
+      })
+    );
+
+    return;
+  }
+
+  // Handle "track" action or default click - open the app
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // Check if there's already a window open
