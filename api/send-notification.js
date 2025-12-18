@@ -35,8 +35,19 @@ export default async function handler(req, res) {
     const jokeText = `${joke.setup} ${joke.punchline}`;
 
     // Configure web-push with VAPID keys
+    let vapidSubject = process.env.VAPID_EMAIL;
+    console.log('VAPID_EMAIL from env:', vapidSubject);
+    if (vapidSubject && !vapidSubject.startsWith('mailto:') && !vapidSubject.startsWith('http')) {
+      vapidSubject = `mailto:${vapidSubject}`;
+    }
+    console.log('Final vapidSubject:', vapidSubject);
+
+    if (!vapidSubject) {
+      throw new Error('VAPID_EMAIL is not defined in environment variables');
+    }
+
     webpush.setVapidDetails(
-      process.env.VAPID_EMAIL,
+      vapidSubject,
       process.env.VAPID_PUBLIC_KEY,
       process.env.VAPID_PRIVATE_KEY
     );

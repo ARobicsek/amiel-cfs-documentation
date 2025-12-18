@@ -43,6 +43,43 @@ export default async function handler(req, res) {
 
     const sheets = google.sheets({ version: 'v4', auth });
 
+    // Get the spreadsheet to check if "Subscriptions" sheet exists
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    });
+
+    const sheetExists = spreadsheet.data.sheets.some(
+      (s) => s.properties.title === 'Subscriptions'
+    );
+
+    if (!sheetExists) {
+      // Create the "Subscriptions" sheet
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: 'Subscriptions',
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      // Add headers to the new sheet
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: 'Subscriptions!A1:D1',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [['Timestamp', 'Endpoint', 'Keys', 'Full Subscription']],
+        },
+      });
+    }
+
     // Get current timestamp
     const timestamp = new Date().toISOString();
 
@@ -54,31 +91,6 @@ export default async function handler(req, res) {
       JSON.stringify(subscription.keys),
       JSON.stringify(subscription)
     ];
-
-    // First, try to get existing subscriptions to see if we need to update
-    let existingData;
-    try {
-      const getResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: 'Subscriptions!A:D',
-      });
-      existingData = getResponse.data.values || [];
-    } catch (error) {
-      // Sheet probably doesn't exist, we'll create it below
-      existingData = [];
-    }
-
-    // If sheet is empty or doesn't exist, add headers
-    if (existingData.length === 0) {
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: 'Subscriptions!A:D',
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [['Timestamp', 'Endpoint', 'Keys', 'Full Subscription']]
-        }
-      });
-    }
 
     // For MVP, we'll just append the new subscription
     // In the future, we could check for duplicates and update instead
