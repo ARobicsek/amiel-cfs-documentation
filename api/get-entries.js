@@ -15,8 +15,7 @@
  *   500: { error: "Failed to fetch entries" }
  */
 
-// TODO: npm install @googleapis/sheets
-// import { google } from '@googleapis/sheets';
+import { google } from 'googleapis';
 
 export default async function handler(req, res) {
   // Only allow GET
@@ -36,47 +35,33 @@ export default async function handler(req, res) {
   const limit = Math.min(parseInt(req.query.limit) || 7, 30);
 
   try {
-    // TODO: Implement Google Sheets integration
-    //
-    // const auth = new google.auth.GoogleAuth({
-    //   credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
-    //   scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-    // });
-    //
-    // const sheets = google.sheets({ version: 'v4', auth });
-    //
-    // const response = await sheets.spreadsheets.values.get({
-    //   spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    //   range: 'Sheet1!A:F',
-    // });
-    //
-    // const rows = response.data.values || [];
-    // const headers = rows[0];
-    // const dataRows = rows.slice(1);
-    //
-    // // Get last N entries
-    // const recentRows = dataRows.slice(-limit).reverse();
-    //
-    // const entries = recentRows.map(row => ({
-    //   timestamp: row[0],
-    //   date: row[1],
-    //   hours: parseFloat(row[2]),
-    //   comments: row[3] || null,
-    //   oxaloacetate: row[4] ? parseFloat(row[4]) : null,
-    //   exercise: row[5] ? parseInt(row[5]) : null,
-    // }));
+    const auth = new google.auth.GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    });
 
-    // Placeholder response until Google Sheets is configured
-    const entries = [
-      {
-        timestamp: new Date().toISOString(),
-        date: new Date().toISOString(),
-        hours: 6,
-        comments: 'Sample entry - Google Sheets not yet configured',
-        oxaloacetate: null,
-        exercise: null
-      }
-    ];
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      range: 'Sheet1!A:F',
+    });
+
+    const rows = response.data.values || [];
+    const headers = rows[0];
+    const dataRows = rows.slice(1);
+
+    // Get last N entries
+    const recentRows = dataRows.slice(-limit).reverse();
+
+    const entries = recentRows.map(row => ({
+      timestamp: row[0],
+      date: row[1],
+      hours: parseFloat(row[2]),
+      comments: row[3] || null,
+      oxaloacetate: row[4] ? parseFloat(row[4]) : null,
+      exercise: row[5] ? parseInt(row[5]) : null,
+    }));
 
     return res.status(200).json({ entries });
 

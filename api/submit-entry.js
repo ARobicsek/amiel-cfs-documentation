@@ -22,8 +22,7 @@
  *   500: { error: "Failed to save entry" }
  */
 
-// TODO: npm install @googleapis/sheets
-// import { google } from '@googleapis/sheets';
+import { google } from 'googleapis';
 
 export default async function handler(req, res) {
   // Only allow POST
@@ -51,41 +50,55 @@ export default async function handler(req, res) {
   }
 
   try {
-    // TODO: Implement Google Sheets integration
-    //
-    // const auth = new google.auth.GoogleAuth({
-    //   credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
-    //   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    // });
-    //
-    // const sheets = google.sheets({ version: 'v4', auth });
-    //
-    // const response = await sheets.spreadsheets.values.append({
-    //   spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    //   range: 'Sheet1!A:F',
-    //   valueInputOption: 'USER_ENTERED',
-    //   requestBody: {
-    //     values: [[
-    //       new Date().toISOString(),           // Timestamp
-    //       date || new Date().toISOString(),   // Date
-    //       hours,                              // Hours (required)
-    //       comments || '',                     // Comments
-    //       oxaloacetate || '',                 // Oxaloacetate (g)
-    //       exercise || ''                      // Exercise (min)
-    //     ]]
-    //   }
-    // });
-    //
-    // const updatedRange = response.data.updates.updatedRange;
-    // const rowNumber = parseInt(updatedRange.match(/\d+/)[0]);
+    const auth = new google.auth.GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
 
-    // Placeholder response until Google Sheets is configured
-    console.log('Entry received:', { date, hours, comments, oxaloacetate, exercise });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // Get current time in US Eastern Time
+    const now = new Date();
+    const easternTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const timestamp = easternTime.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    const dateOnly = easternTime.toLocaleDateString('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      range: 'Sheet1!A:F',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[
+          timestamp,                          // Timestamp (Eastern Time)
+          date || dateOnly,                   // Date
+          hours,                              // Hours (required)
+          comments || '',                     // Comments
+          oxaloacetate || '',                 // Oxaloacetate (g)
+          exercise || ''                      // Exercise (min)
+        ]]
+      }
+    });
+
+    const updatedRange = response.data.updates.updatedRange;
+    const rowNumber = parseInt(updatedRange.match(/\d+/)[0]);
 
     return res.status(200).json({
       success: true,
-      message: 'Entry received (Google Sheets not yet configured)',
-      data: { date, hours, comments, oxaloacetate, exercise }
+      row: rowNumber
     });
 
   } catch (error) {

@@ -11,8 +11,8 @@ Track completed features and current status here. Update after completing each f
 | 1 | Project setup (Vite + React) | DONE | Basic scaffolding complete |
 | 2 | PWA configuration | DONE | manifest.json, service worker |
 | 3 | Hours slider UI | DONE | Half-hour increments, default 6h |
-| 4 | Google Sheets integration | TODO | Requires Google Cloud setup first |
-| 5 | Submit entry API | SCAFFOLD | Code written, needs Google Sheets wiring |
+| 4 | Google Sheets integration | DONE | Writes to Google Sheet with Eastern Time |
+| 5 | Submit entry API | DONE | Saves entries to Google Sheets |
 | 6 | Secret URL auth | DONE | Token handling in src/utils/auth.js |
 | 7 | Optional fields (collapsible) | DONE | Comments, oxaloacetate, exercise |
 | 8 | Entry history view | TODO | Last 7 days |
@@ -41,6 +41,16 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2024-12-17 - Google Sheets Integration (Session 2)
+- Completed Google Cloud setup (project, Sheets API, service account)
+- Created Google Sheet with proper column headers (Timestamp, Date, Hours, Comments, Oxaloacetate, Exercise)
+- Installed googleapis package
+- Completed Google Sheets integration in api/submit-entry.js
+- Completed Google Sheets integration in api/get-entries.js
+- Configured timestamps to use US Eastern Time
+- Created .env and .env.local files for local development
+- Successfully tested API integration with Google Sheets
+
 ### 2024-12-17 - Initial Scaffolding (Session 1)
 - Initialized Vite + React project with PWA plugin
 - Created documentation structure (README, PROGRESS, SETUP-GUIDE, ARCHITECTURE)
@@ -56,29 +66,24 @@ Track completed features and current status here. Update after completing each f
 
 ## Next Up
 
-**Feature #4: Google Sheets Integration**
+**Feature #8: Entry History View**
 
-This is the critical next step. Before coding:
+Display the last 7 days of entries to help track progress.
 
-1. **Google Cloud Setup** (see `docs/SETUP-GUIDE.md`)
-   - Create Google Cloud project
-   - Enable Google Sheets API
-   - Create service account and download JSON key
-   - Create Google Sheet with columns: Timestamp, Date, Hours, Comments, Oxaloacetate (g), Exercise (min)
-   - Share sheet with service account email
-
-2. **Then implement**:
-   - Install `@googleapis/sheets` package
-   - Uncomment and complete the Google Sheets code in `api/submit-entry.js`
-   - Test with `vercel dev` locally
+**Implementation steps**:
+1. Create an EntryHistory component
+2. Fetch entries from the get-entries API endpoint
+3. Display in a clean, easy-to-read format (date, hours, optional fields)
+4. Add to the main App.jsx below the daily entry form
+5. Handle loading states and empty states
+6. Test with the existing Google Sheets data
 
 ---
 
 ## Blockers / Notes
 
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
-- **Google Cloud Setup**: Required before API work can begin
-- **Local API Testing**: Need Vercel CLI (`npm install -g vercel`) to test API locally
+- **Vercel Deployment**: Need to set up Vercel project and add environment variables for production deployment
 
 ---
 
