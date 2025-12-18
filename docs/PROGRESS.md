@@ -26,7 +26,7 @@ Track completed features and current status here. Update after completing each f
 | 11 | Web Push setup | DONE | VAPID keys generated, web-push installed |
 | 12 | Push subscription flow | DONE | Full flow complete, tested end-to-end |
 | 13 | Notification endpoint | DONE | Sends push with jokes from API |
-| 14 | Vercel cron job | DONE | Hourly notifications 8 AM - 8 PM ET |
+| 14 | Vercel cron job | DONE | Customizable schedule + snooze feature |
 | 15 | Settings page | DONE | Enable/disable notifications UI complete |
 
 ### Phase 3: Polish (Future)
@@ -41,15 +41,29 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
-### 2025-12-18 - Vercel Cron Job COMPLETE (Session 7)
-- Implemented api/cron-trigger.js endpoint to handle scheduled notifications
-- Configured cron schedule in vercel.json (runs hourly: "0 * * * *")
-- Set notification window to 8 AM - 8 PM Eastern Time (13 notifications per day)
-- Implemented direct handler call (imports send-notification handler for efficiency)
-- Added timezone-aware hour detection using America/New_York timezone
-- Tested locally with vercel dev server - confirmed working
-- Returns detailed response: triggered status, current hour, timezone, and notification results
-- Feature #14: **100% COMPLETE** - Automated notifications ready for production
+### 2025-12-18 - Smart Customizable Reminders + Snooze (Session 7)
+- **Customizable Reminder Schedule:**
+  - Created api/notification-settings.js (GET/POST) for user preferences
+  - Added Settings UI with time picker and repeat interval selector (15min/30min/1hr/2hr/4hr/never)
+  - Updated cron to run every 15 minutes for more flexible scheduling
+  - Smart "skip to tomorrow" logic when setting past times (Option B behavior)
+  - "Stop after logging" checkbox to auto-stop reminders once user logs for the day
+  - Settings stored in Google Sheets UserSettings tab
+
+- **Snooze Functionality:**
+  - Created api/snooze.js to handle one-time snooze requests
+  - Added "Snooze 1 Hour" action button to push notifications
+  - Updated service worker (sw-custom.js) to handle snooze clicks
+  - Cron-trigger checks for active snooze and skips reminders during snooze period
+  - Auto-clears snooze when expired and resumes normal reminder schedule
+  - Shows confirmation notification after snoozing
+
+- **Cross-Date Support:**
+  - Handles reminders that span across days (e.g., 1 AM next morning)
+  - Calculates next reminder time with "today" or "tomorrow" labels
+  - Properly manages repeat intervals across midnight boundary
+
+- Feature #14: **100% COMPLETE** - Full customization and snooze support ready
 
 ### 2025-12-18 - Push Notification Flow COMPLETE (Session 6)
 - Fixed missing webpush.setVapidDetails() call in api/send-notification.js
