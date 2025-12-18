@@ -160,6 +160,7 @@ Phase 2 notifications are now complete! Moving to Phase 3 polish features.
 
 ## Blockers / Notes
 
+- **Vercel Cron Job Limitation**: Vercel Hobby plan only allows ONCE PER DAY cron jobs, not every 15 minutes. The app has been updated to use a single daily trigger at 9 PM ET. For more frequent reminders, need to upgrade to Vercel Pro plan or use external cron service (e.g., EasyCron).
 - **Notification Action Buttons**: Snooze button may not be visible in all browser/OS combinations. Chrome on Windows may not display notification action buttons depending on system settings. This is a browser/OS limitation, not a code issue. Alternative: Add snooze option in app UI as fallback.
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
 - **Vercel Deployment**: Vercel CLI is configured for local dev. Still need to deploy to production and add environment variables

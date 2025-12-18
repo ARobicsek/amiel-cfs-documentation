@@ -1,0 +1,32 @@
+Note: When the instructions say to run /start-session, please read the file .claude/commands/start-session.md and follow the instructions inside it.
+
+Welcome to the CFS Tracker project! This project uses Claude Code with session management to keep development on track. Golden Rules:
+Always type /start-session when you begin working
+Always type /end-session when you stop working
+Never skip these - they ensure proper documentation
+Getting Started:
+
+cd "Amiel CFS documentation app"
+npm install
+npm run dev
+Then type /start-session to begin your first session. Key files to know:
+docs/PROGRESS.md - shows what's done and what's next
+docs/SETUP-GUIDE.md - how to set up Google Cloud
+README.md - project overview
+
+
+
+───────────────────────────────────────────────┐
+│           CFS TRACKER - DEV COMMANDS            │
+├─────────────────────────────────────────────────┤
+│  /start-session    Begin working (ALWAYS)       │
+│  /end-session      Stop working (ALWAYS)        │
+│  /status           Check progress               │
+│  /next             Get task guidance            │
+├─────────────────────────────────────────────────┤
+│  npm run dev       Start dev server             │
+│  npm run build     Build for production         │
+│  vercel dev        Test API locally             │
+└─────────────────────────────────────────────────┘
+
+

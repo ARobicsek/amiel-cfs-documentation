@@ -175,11 +175,101 @@ export default function Settings() {
     <div className="settings">
       <h2>Settings</h2>
 
+      {/* Reminder Schedule Section - Moved to Top */}
+      <div className="settings-section">
+        <h3>Reminder Schedule</h3>
+        <p className="settings-description">
+          Customize when and how often you receive reminders to track your daily health metrics.
+          <br /><br />
+          <strong>Note:</strong> With the current Vercel Hobby plan, notifications are limited to once per day at 9 PM ET.
+          The settings below will take effect if you upgrade to Pro plan for more frequent notifications.
+        </p>
+
+        <div className="settings-form">
+          <div className="form-group">
+            <label htmlFor="firstReminderTime">First Reminder Time</label>
+            <input
+              type="time"
+              id="firstReminderTime"
+              value={reminderSettings.firstReminderTime}
+              onChange={(e) => setReminderSettings({
+                ...reminderSettings,
+                firstReminderTime: e.target.value
+              })}
+              className="time-input"
+            />
+            <p className="help-text">
+              Set your first daily reminder. If this time has already passed today,
+              the reminder will start tomorrow at this time.
+            </p>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="repeatInterval">Repeat Every</label>
+            <select
+              id="repeatInterval"
+              value={reminderSettings.repeatInterval}
+              onChange={(e) => setReminderSettings({
+                ...reminderSettings,
+                repeatInterval: parseInt(e.target.value)
+              })}
+              className="select-input"
+            >
+              <option value="0">Never (one-time only)</option>
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="120">2 hours</option>
+              <option value="240">4 hours</option>
+            </select>
+            <p className="help-text">
+              How often to repeat the reminder after the first one.
+            </p>
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={reminderSettings.stopAfterLog}
+                onChange={(e) => setReminderSettings({
+                  ...reminderSettings,
+                  stopAfterLog: e.target.checked
+                })}
+              />
+              <span>Stop reminders after I log today</span>
+            </label>
+            <p className="help-text">
+              Automatically stop sending reminders once you've tracked your health metrics for the day.
+              Reminders will resume tomorrow.
+            </p>
+          </div>
+        </div>
+
+        {settingsMessage.text && (
+          <div className={`settings-message ${settingsMessage.type}`}>
+            {settingsMessage.text}
+          </div>
+        )}
+
+        <div className="settings-actions">
+          <button
+            onClick={saveReminderSettings}
+            disabled={settingsLoading}
+            className="btn-primary"
+          >
+            {settingsLoading ? 'Saving...' : 'Save Reminder Settings'}
+          </button>
+        </div>
+      </div>
+
+      {/* Push Notifications Section */}
       <div className="settings-section">
         <h3>Push Notifications</h3>
         <p className="settings-description">
           Get daily reminders with a joke to track your health metrics.
-          Notifications will be sent once per hour.
+          {subscribed && ' Notifications are currently active.'}
+          {!subscribed && ' Enable notifications below to start receiving reminders.'}
         </p>
 
         <div className="notification-status">
@@ -244,97 +334,12 @@ export default function Settings() {
 
         {subscribed && (
           <p className="help-text success">
-            You're all set! You'll receive customized reminder notifications based on your schedule below.
+            You're all set! You'll receive customized reminder notifications based on your schedule above.
           </p>
         )}
       </div>
 
-      {subscribed && (
-        <div className="settings-section">
-          <h3>Reminder Schedule</h3>
-          <p className="settings-description">
-            Customize when and how often you receive reminders to track your daily health metrics.
-          </p>
-
-          <div className="settings-form">
-            <div className="form-group">
-              <label htmlFor="firstReminderTime">First Reminder Time</label>
-              <input
-                type="time"
-                id="firstReminderTime"
-                value={reminderSettings.firstReminderTime}
-                onChange={(e) => setReminderSettings({
-                  ...reminderSettings,
-                  firstReminderTime: e.target.value
-                })}
-                className="time-input"
-              />
-              <p className="help-text">
-                Set your first daily reminder. If this time has already passed today,
-                the reminder will start tomorrow at this time.
-              </p>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="repeatInterval">Repeat Every</label>
-              <select
-                id="repeatInterval"
-                value={reminderSettings.repeatInterval}
-                onChange={(e) => setReminderSettings({
-                  ...reminderSettings,
-                  repeatInterval: parseInt(e.target.value)
-                })}
-                className="select-input"
-              >
-                <option value="0">Never (one-time only)</option>
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="60">1 hour</option>
-                <option value="120">2 hours</option>
-                <option value="240">4 hours</option>
-              </select>
-              <p className="help-text">
-                How often to repeat the reminder after the first one.
-              </p>
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={reminderSettings.stopAfterLog}
-                  onChange={(e) => setReminderSettings({
-                    ...reminderSettings,
-                    stopAfterLog: e.target.checked
-                  })}
-                />
-                <span>Stop reminders after I log today</span>
-              </label>
-              <p className="help-text">
-                Automatically stop sending reminders once you've tracked your health metrics for the day.
-                Reminders will resume tomorrow.
-              </p>
-            </div>
-          </div>
-
-          {settingsMessage.text && (
-            <div className={`settings-message ${settingsMessage.type}`}>
-              {settingsMessage.text}
-            </div>
-          )}
-
-          <div className="settings-actions">
-            <button
-              onClick={saveReminderSettings}
-              disabled={settingsLoading}
-              className="btn-primary"
-            >
-              {settingsLoading ? 'Saving...' : 'Save Reminder Settings'}
-            </button>
-          </div>
-        </div>
-      )}
-
+      {/* About Section */}
       <div className="settings-section">
         <h3>About</h3>
         <p className="settings-description">
