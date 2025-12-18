@@ -3,7 +3,7 @@
  * Handles push notification subscription and management
  */
 
-import { getToken } from './auth.js';
+import { getSecretToken } from './auth.js';
 
 // Convert VAPID key from base64 string to Uint8Array
 function urlBase64ToUint8Array(base64String) {
@@ -104,7 +104,7 @@ export async function subscribeToPush() {
     });
 
     // Send subscription to backend
-    const token = getToken();
+    const token = getSecretToken();
     const response = await fetch('/api/subscribe', {
       method: 'POST',
       headers: {
