@@ -1,0 +1,155 @@
+# Architecture Overview
+
+## System Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         iPhone                                   │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                    PWA (React)                             │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │  │
+│  │  │ DailyEntry  │  │   History   │  │    Settings     │   │  │
+│  │  │  (slider)   │  │  (7 days)   │  │  (reminders)    │   │  │
+│  │  └──────┬──────┘  └──────┬──────┘  └────────┬────────┘   │  │
+│  │         │                │                   │            │  │
+│  │         └────────────────┴───────────────────┘            │  │
+│  │                          │                                 │  │
+│  │              ┌───────────┴───────────┐                    │  │
+│  │              │    Service Worker     │                    │  │
+│  │              │  (offline + push)     │                    │  │
+│  │              └───────────┬───────────┘                    │  │
+│  │                          │                                 │  │
+│  │              ┌───────────┴───────────┐                    │  │
+│  │              │      IndexedDB        │                    │  │
+│  │              │   (offline queue)     │                    │  │
+│  │              └───────────────────────┘                    │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ HTTPS
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Vercel (Backend)                             │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                 Serverless Functions                       │  │
+│  │                                                            │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │  │
+│  │  │ submit-entry │  │ get-entries  │  │  subscribe   │    │  │
+│  │  │    POST      │  │    GET       │  │    POST      │    │  │
+│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘    │  │
+│  │         │                 │                  │            │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │  │
+│  │  │ cron-trigger │  │send-notif    │  │  schedules   │    │  │
+│  │  │  (hourly)    │  │ + jokes API  │  │    CRUD      │    │  │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘    │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ Google Sheets API
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Google Sheets                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Sheet 1: Entries                                          │  │
+│  │  ┌──────────┬──────┬───────┬──────────┬───────┬─────────┐ │  │
+│  │  │Timestamp │ Date │ Hours │ Comments │ Oxa(g)│ Ex(min) │ │  │
+│  │  ├──────────┼──────┼───────┼──────────┼───────┼─────────┤ │  │
+│  │  │ ...      │ ...  │ 6.5   │ ...      │ 100   │ 15      │ │  │
+│  │  └──────────┴──────┴───────┴──────────┴───────┴─────────┘ │  │
+│  │                                                            │  │
+│  │  Sheet 2: Subscriptions (for push notifications)           │  │
+│  │  Sheet 3: Schedules (reminder times)                       │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Data Flow
+
+### Daily Entry Submission
+
+```
+1. User slides hours slider → taps Save
+2. App checks online status
+   ├── Online: POST to /api/submit-entry
+   │   └── Vercel function appends row to Google Sheet
+   └── Offline: Save to IndexedDB
+       └── Service Worker syncs when online
+3. Show success feedback (animation/haptic)
+```
+
+### Push Notification Flow
+
+```
+1. Vercel cron runs every hour
+2. Check if current time matches any scheduled reminder
+3. If match:
+   a. Fetch joke from jokes API
+   b. Send push notification with joke
+4. User taps notification → opens app at entry form
+```
+
+## Key Design Decisions
+
+### Why PWA instead of Native?
+- No App Store approval needed
+- Same codebase for web and "native" feel
+- Easier to update (just deploy)
+- Still installable with home screen icon
+
+### Why Google Sheets instead of Database?
+- Zero cost
+- Data immediately viewable/exportable
+- No database management
+- Easy to share with caregiver
+- Good enough for single user
+
+### Why Secret URL instead of Login?
+- Zero friction (critical for CFS patient)
+- Token stored locally after first visit
+- Simple to implement
+- Adequate security for personal health app
+
+### Why Vercel?
+- Free tier is generous
+- Serverless = no server management
+- Built-in cron jobs
+- Automatic HTTPS
+- Easy deployment from GitHub
+
+## File Responsibilities
+
+| File | Purpose |
+|------|---------|
+| `src/App.jsx` | Main router, theme provider |
+| `src/components/DailyEntry.jsx` | Hours slider, submit button |
+| `src/components/OptionalFields.jsx` | Collapsible extra fields |
+| `src/components/History.jsx` | Past entries list |
+| `src/components/Settings.jsx` | Notification schedule |
+| `src/utils/auth.js` | Token management |
+| `src/utils/api.js` | API calls with auth |
+| `src/utils/offlineStorage.js` | IndexedDB operations |
+| `api/submit-entry.js` | Save to Google Sheets |
+| `api/get-entries.js` | Fetch from Google Sheets |
+| `api/subscribe.js` | Save push subscription |
+| `api/send-notification.js` | Send push with joke |
+| `api/cron-trigger.js` | Check schedules, trigger notifications |
+
+## Security Model
+
+```
+┌─────────────────────────────────────────────┐
+│              Security Layers                 │
+├─────────────────────────────────────────────┤
+│ 1. HTTPS (enforced by Vercel)               │
+│ 2. Secret token in URL/localStorage         │
+│ 3. Token validated on every API call        │
+│ 4. Service account has Sheets-only access   │
+│ 5. No sensitive PII stored                  │
+└─────────────────────────────────────────────┘
+```
+
+The secret URL approach is appropriate because:
+- Single known user
+- Non-critical data (hours tracking)
+- Private URL not shared publicly
+- Token rotatable if compromised
