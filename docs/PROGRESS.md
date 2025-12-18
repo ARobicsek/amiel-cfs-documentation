@@ -23,11 +23,11 @@ Track completed features and current status here. Update after completing each f
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 11 | Web Push setup | SCAFFOLD | API endpoint ready |
-| 12 | Push subscription flow | TODO | Need frontend integration |
-| 13 | Notification endpoint | SCAFFOLD | With jokes API integration |
+| 11 | Web Push setup | DONE | VAPID keys generated, web-push installed |
+| 12 | Push subscription flow | IN_PROGRESS | 90% complete - needs "Subscriptions" sheet tab |
+| 13 | Notification endpoint | DONE | Sends push with jokes from API |
 | 14 | Vercel cron job | SCAFFOLD | Config in vercel.json |
-| 15 | Settings page | TODO | Configure reminder times |
+| 15 | Settings page | DONE | Enable/disable notifications UI complete |
 
 ### Phase 3: Polish (Future)
 
@@ -40,6 +40,21 @@ Track completed features and current status here. Update after completing each f
 ---
 
 ## Completed Features Log
+
+### 2025-12-18 - Push Notification Subscription Flow (Session 5)
+- Generated VAPID keys for web push authentication
+- Installed web-push package (npm)
+- Implemented subscription storage in api/subscribe.js (saves to Google Sheets)
+- Completed api/send-notification.js with web-push library integration
+- Created src/utils/pushNotification.js for frontend subscription management
+- Built Settings component (src/components/Settings.jsx) with notification toggle UI
+- Created Settings.css with responsive design and dark mode support
+- Added custom service worker (public/sw-custom.js) for push event handling
+- Integrated Settings page into App.jsx navigation
+- Fixed authentication token handling (auth.js now uses VITE_SECRET_TOKEN)
+- Updated .env.example with VAPID key documentation
+- Added SECRET_TOKEN and VAPID keys to .env.local
+- Status: **90% complete** - needs "Subscriptions" sheet tab created in Google Sheet
 
 ### 2025-12-18 - Offline Storage + Sync (Session 4)
 - Integrated offline storage with App.jsx handleSave function
@@ -90,30 +105,35 @@ Track completed features and current status here. Update after completing each f
 
 ## Next Up
 
-**Feature #12: Push Subscription Flow**
+**Complete Feature #12: Push Subscription Flow**
 
-Implement the frontend integration for web push notifications so users can subscribe to daily reminders.
+The push notification feature is 90% complete. One blocker remains:
 
-**Implementation steps**:
-1. Review existing scaffold in api/subscribe.js and api/send-notification.js
-2. Create PushNotification utility module for handling service worker registration
-3. Add push notification permission request in Settings page
-4. Implement subscription flow with backend API
-5. Add UI to show subscription status and allow unsubscribe
-6. Test notification subscription and delivery
+**Required Action**:
+1. **Create "Subscriptions" tab in Google Sheet** - The api/subscribe.js endpoint tries to save subscriptions to a "Subscriptions" sheet tab that doesn't exist yet. Either:
+   - Option A: Manually create a new tab called "Subscriptions" in the Google Sheet
+   - Option B: Update api/subscribe.js to automatically create the sheet if it doesn't exist
 
-**Prerequisites**:
-- API endpoints already scaffolded
-- Vercel cron job configured in vercel.json
-- Need to set up VAPID keys for web push
+**After fixing the sheet tab**:
+2. Test full subscription flow in browser (Settings → Enable Notifications)
+3. Verify subscription is saved to Google Sheets
+4. Test manual notification send with: `curl -X POST http://localhost:3002/api/send-notification -H "Authorization: Bearer dev-secret-token-12345"`
+5. Update status to DONE and commit
+
+**Then move to**:
+**Feature #14: Vercel Cron Job** - Set up scheduled notifications
 
 ---
 
 ## Blockers / Notes
 
+- **CRITICAL - Feature #12**: Need to create "Subscriptions" sheet tab in Google Sheet. Current error: `Unable to parse range: Subscriptions!A:D`
+  - The api/subscribe.js endpoint expects a "Subscriptions" tab to exist
+  - Create manually OR update code to auto-create the sheet
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
 - **Vercel Deployment**: Vercel CLI is configured for local dev. Still need to deploy to production and add environment variables
 - **Local Development**: Use `vercel dev` to run both frontend and API functions locally (not `npm run dev`)
+- **VAPID Keys**: Generated and stored in .env.local for development. Need to add to Vercel environment variables for production
 
 ---
 
