@@ -51,24 +51,21 @@ export async function requestNotificationPermission() {
 }
 
 /**
- * Register service worker if not already registered
+ * Get or wait for service worker registration
+ * The Vite PWA plugin handles registration, we just need to wait for it
  */
-async function registerServiceWorker() {
+async function getServiceWorkerRegistration() {
   if (!('serviceWorker' in navigator)) {
     throw new Error('Service workers are not supported');
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/'
-    });
-
-    // Wait for service worker to be ready
-    await navigator.serviceWorker.ready;
-
+    // Wait for the service worker to be ready
+    // The Vite PWA plugin automatically registers the service worker
+    const registration = await navigator.serviceWorker.ready;
     return registration;
   } catch (error) {
-    console.error('Service worker registration failed:', error);
+    console.error('Failed to get service worker registration:', error);
     throw error;
   }
 }
@@ -88,8 +85,8 @@ export async function subscribeToPush() {
   }
 
   try {
-    // Register service worker
-    const registration = await registerServiceWorker();
+    // Get service worker registration (managed by Vite PWA plugin)
+    const registration = await getServiceWorkerRegistration();
 
     // Get VAPID public key from environment
     const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
