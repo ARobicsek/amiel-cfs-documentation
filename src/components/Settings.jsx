@@ -126,6 +126,40 @@ export default function Settings() {
     }
   }
 
+  async function handleTestNotification() {
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const token = getAuthToken();
+      const response = await fetch('/api/send-notification', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessage({
+          type: 'success',
+          text: `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`
+        });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send test notification');
+      }
+    } catch (error) {
+      console.error('Failed to send test notification:', error);
+      setMessage({
+        type: 'error',
+        text: `Error: ${error.message}`
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleEnableNotifications() {
     setLoading(true);
     setMessage({ type: '', text: '' });
@@ -382,13 +416,23 @@ export default function Settings() {
               {loading ? 'Enabling...' : 'Enable Notifications'}
             </button>
           ) : (
-            <button
-              onClick={handleDisableNotifications}
-              disabled={loading}
-              className="btn-secondary"
-            >
-              {loading ? 'Disabling...' : 'Disable Notifications'}
-            </button>
+            <div className="subscribed-actions">
+              <button
+                onClick={handleDisableNotifications}
+                disabled={loading}
+                className="btn-secondary"
+              >
+                {loading ? 'Disabling...' : 'Disable Notifications'}
+              </button>
+              <button
+                onClick={handleTestNotification}
+                disabled={loading}
+                className="btn-primary"
+                style={{ marginLeft: '10px' }}
+              >
+                {loading ? 'Sending...' : 'Send Test Notification'}
+              </button>
+            </div>
           )}
         </div>
 

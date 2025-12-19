@@ -41,6 +41,16 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-18 - iPhone Notification Testing (Session 12)
+- **Added Test Notification Feature**:
+  - Implemented "Send Test Notification" button in Settings page (visible when subscribed)
+  - Creates an immediate loop-back test:
+    1. Client triggers `/api/send-notification`
+    2. Server reads ALL subscriptions from Google Sheet
+    3. Server broadcasts push notification to all devices
+  - Perfect for verifying iPhone PWA configuration without waiting for scheduled time
+- **Status**: **READY FOR TESTING** - awaiting user verification on iPhone
+
 ### 2025-12-18 - iPhone PWA Debugging & Token Fix (Session 11)
 - **Fixed iPhone PWA Token Issue**: **RESOLVED**
   - Root cause: Safari browser and iOS PWA have separate localStorage storage
