@@ -29,10 +29,6 @@ export function isPushSupported() {
   const hasPush = 'PushManager' in window;
   const hasNotif = 'Notification' in window;
   
-  if (!hasSW || !hasPush || !hasNotif) {
-    console.log('Push Support Debug:', { hasSW, hasPush, hasNotif });
-  }
-  
   return hasSW && hasPush && hasNotif;
 }
 

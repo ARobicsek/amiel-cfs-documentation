@@ -45,7 +45,8 @@ export default async function handler(req, res) {
       sheetId: process.env.GOOGLE_SHEET_ID ? process.env.GOOGLE_SHEET_ID.substring(0, 5) + '...' : 'missing',
       rowsFound: 0,
       rowsContent: [],
-      parseErrors: []
+      parseErrors: [],
+      appleJwtDebug: null  // Will be populated for Apple endpoints
     };
     let subscriptions = [];
 
@@ -333,6 +334,61 @@ export default async function handler(req, res) {
                       // Log which endpoint we're sending to
                       const isApple = subscription.endpoint.includes('apple.com');
                       console.log(`Sending to ${isApple ? 'Apple' : 'FCM'}: ${subscription.endpoint.substring(0, 50)}...`);
+
+                      // DEBUG: For Apple endpoints, log the actual JWT being generated
+                      if (isApple) {
+                        try {
+                          const requestDetails = webpush.generateRequestDetails(cleanSub, payload, options);
+                          const authHeader = requestDetails.headers.Authorization;
+                          console.log('=== APPLE JWT DEBUG ===');
+                          console.log('Full Authorization header:', authHeader);
+
+                          // Decode the JWT to inspect claims (it's the part after "vapid t=")
+                          if (authHeader && authHeader.includes('t=')) {
+                            const jwtToken = authHeader.split('t=')[1].split(',')[0];
+                            const jwtParts = jwtToken.split('.');
+                            if (jwtParts.length >= 2) {
+                              // Decode the payload (second part of JWT)
+                              const payloadBase64 = jwtParts[1];
+                              // Add padding if needed for base64 decoding
+                              const padded = payloadBase64 + '='.repeat((4 - payloadBase64.length % 4) % 4);
+                              const decoded = Buffer.from(padded, 'base64').toString('utf8');
+                              console.log('JWT Payload (decoded):', decoded);
+
+                              const claims = JSON.parse(decoded);
+                              console.log('JWT aud claim:', claims.aud);
+                              console.log('JWT sub claim:', claims.sub);
+                              console.log('JWT exp claim:', claims.exp, '(expires:', new Date(claims.exp * 1000).toISOString(), ')');
+
+                              // Check if exp is more than 24 hours from now
+                              const now = Math.floor(Date.now() / 1000);
+                              const expDiff = claims.exp - now;
+                              const expHours = (expDiff / 3600).toFixed(2);
+                              console.log('JWT exp is', expDiff, 'seconds from now (', expHours, 'hours)');
+
+                              // Store in debugInfo for API response
+                              debugInfo.appleJwtDebug = {
+                                aud: claims.aud,
+                                sub: claims.sub,
+                                exp: claims.exp,
+                                expISO: new Date(claims.exp * 1000).toISOString(),
+                                expHoursFromNow: parseFloat(expHours),
+                                expOver24Hours: expDiff > 86400,
+                                cryptoKeyHeader: requestDetails.headers['Crypto-Key'] ? requestDetails.headers['Crypto-Key'].substring(0, 50) + '...' : null
+                              };
+
+                              if (expDiff > 86400) {
+                                console.log('WARNING: exp claim is MORE than 24 hours! Apple will reject this.');
+                              }
+                            }
+                          }
+                          console.log('Crypto-Key header:', requestDetails.headers['Crypto-Key']);
+                          console.log('=== END APPLE JWT DEBUG ===');
+                        } catch (debugErr) {
+                          console.log('JWT debug error:', debugErr.message);
+                          debugInfo.appleJwtDebug = { error: debugErr.message };
+                        }
+                      }
 
                       await webpush.sendNotification(cleanSub, payload, options);
                       sentCount++;
