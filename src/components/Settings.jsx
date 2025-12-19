@@ -17,6 +17,10 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  // Auth token settings
+  const [authToken, setAuthToken] = useState('');
+  const [tokenMessage, setTokenMessage] = useState({ type: '', text: '' });
+
   // Reminder schedule settings
   const [reminderSettings, setReminderSettings] = useState({
     firstReminderTime: '20:00',
@@ -29,7 +33,33 @@ export default function Settings() {
   useEffect(() => {
     checkPushStatus();
     fetchReminderSettings();
+
+    // Load current auth token
+    const currentToken = getAuthToken();
+    setAuthToken(currentToken || '');
   }, []);
+
+  function saveAuthToken() {
+    const trimmedToken = authToken.trim();
+    if (!trimmedToken) {
+      setTokenMessage({
+        type: 'error',
+        text: 'Please enter a valid token'
+      });
+      return;
+    }
+
+    localStorage.setItem('cfs_auth_token', trimmedToken);
+    setTokenMessage({
+      type: 'success',
+      text: 'Token saved! Please reload the app to apply changes.'
+    });
+
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      setTokenMessage({ type: '', text: '' });
+    }, 5000);
+  }
 
   async function checkPushStatus() {
     const supported = isPushSupported();
@@ -174,6 +204,47 @@ export default function Settings() {
   return (
     <div className="settings">
       <h2>Settings</h2>
+
+      {/* Authentication Token Section */}
+      <div className="settings-section">
+        <h3>Authentication Token</h3>
+        <p className="settings-description">
+          Enter your authentication token to enable syncing with Google Sheets.
+          The token should be: <code>dev-secret-token-12345</code>
+        </p>
+
+        <div className="settings-form">
+          <div className="form-group">
+            <label htmlFor="authToken">Token</label>
+            <input
+              type="text"
+              id="authToken"
+              value={authToken}
+              onChange={(e) => setAuthToken(e.target.value)}
+              placeholder="dev-secret-token-12345"
+              className="text-input"
+            />
+            <p className="help-text">
+              Current token: {authToken ? `${authToken.substring(0, 20)}...` : 'NOT SET'}
+            </p>
+          </div>
+        </div>
+
+        {tokenMessage.text && (
+          <div className={`settings-message ${tokenMessage.type}`}>
+            {tokenMessage.text}
+          </div>
+        )}
+
+        <div className="settings-actions">
+          <button
+            onClick={saveAuthToken}
+            className="btn-primary"
+          >
+            Save Token
+          </button>
+        </div>
+      </div>
 
       {/* Reminder Schedule Section - Moved to Top */}
       <div className="settings-section">

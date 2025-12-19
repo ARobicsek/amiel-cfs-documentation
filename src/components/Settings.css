@@ -32,6 +32,16 @@
   line-height: 1.6;
 }
 
+.settings-description code {
+  background: var(--bg-primary);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
 .notification-status {
   display: flex;
   flex-direction: column;
@@ -270,7 +280,8 @@
 }
 
 .time-input,
-.select-input {
+.select-input,
+.text-input {
   padding: 0.75rem;
   border-radius: 0.5rem;
   border: 2px solid var(--border-color);
@@ -282,7 +293,8 @@
 }
 
 .time-input:focus,
-.select-input:focus {
+.select-input:focus,
+.text-input:focus {
   outline: none;
   border-color: var(--color-primary);
 }
@@ -309,7 +321,8 @@
 
 @media (max-width: 640px) {
   .time-input,
-  .select-input {
+  .select-input,
+  .text-input {
     font-size: 16px; /* Prevent zoom on iOS */
   }
 }
