@@ -29,17 +29,98 @@ Track completed features and current status here. Update after completing each f
 | 14 | Vercel cron job | DONE | Customizable schedule + snooze feature |
 | 15 | Settings page | DONE | Enable/disable notifications UI complete |
 
-### Phase 3: Polish (Future)
+### Phase 3: Polish (ON HOLD)
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 16 | ECG integration | TODO | Phase 2 - photo upload |
-| 17 | Data trends/charts | TODO | 7-day visualization |
-| 18 | Streak animations | TODO | Motivation feature |
+| 16 | ECG integration | TODO | ON HOLD - photo upload |
+| 17 | Data trends/charts | TODO | ON HOLD - 7-day visualization |
+| 18 | Streak animations | TODO | ON HOLD - Motivation feature |
 
 ---
 
 ## Completed Features Log
+
+### 2025-12-19 - iOS Push Notification FIX + UI Improvements (Session 16)
+
+#### **iOS PUSH NOTIFICATIONS: ROOT CAUSE FOUND AND FIXED**
+
+**The Problem:**
+- iOS (Apple Push Notification Service / APNs) consistently returned `403 Forbidden` with `{"reason":"BadJwtToken"}`
+- Desktop Chrome (FCM) worked perfectly with the exact same VAPID keys
+- This issue persisted through multiple debugging sessions and key regenerations
+
+**Root Cause: Trailing Newline in VAPID_EMAIL Environment Variable**
+
+The `VAPID_EMAIL` environment variable in Vercel had an invisible trailing newline character (`\n`). When the JWT was generated for the VAPID authentication, the `sub` (subject) claim contained:
+```
+"sub": "mailto:ari.robicsek@gmail.com\n"
+```
+Instead of the correct:
+```
+"sub": "mailto:ari.robicsek@gmail.com"
+```
+
+**Why Chrome Worked but Apple Didn't:**
+- Google's FCM is lenient and ignores/trims whitespace in JWT claims
+- Apple's APNs is strict and rejects any malformed JWT, including those with trailing whitespace
+
+**The Fix:**
+Added `.trim()` when reading the `VAPID_EMAIL` environment variable in `api/send-notification.js`:
+```javascript
+let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : null;
+```
+
+**How We Found It:**
+1. Added JWT debugging code to log the actual Authorization header being sent
+2. Used `webpush.generateRequestDetails()` to inspect the JWT before sending
+3. Decoded the JWT payload (base64) to see the actual claims
+4. Discovered the `\n` in the `sub` claim in the logs:
+   ```
+   JWT Payload (decoded): {"aud":"https://web.push.apple.com","exp":1766216805,"sub":"mailto:ari.robicsek@gmail.com\n"}
+   ```
+
+**Prevention for Future:**
+- ALWAYS `.trim()` environment variables that go into JWT claims
+- The JWT debug logging is still in place (`=== APPLE JWT DEBUG ===`) for future troubleshooting
+- Consider adding a startup validation that checks for whitespace in critical env vars
+
+---
+
+#### **Other Changes This Session:**
+
+**UI Improvements:**
+- **Fixed button visibility in Settings page**: Buttons were white-on-white in light mode. Changed CSS from undefined `var(--color-primary)` to `var(--accent, #3b82f6)` with fallback
+- **Reorganized Settings page sections**:
+  1. Reminder Schedule (removed Vercel hobby plan note)
+  2. Push Notifications
+  3. Authentication Token
+  4. About
+
+**New Feature - Productive Brain Time:**
+- Added "Productive brain time (hours)" field in DailyEntry +details section
+- Updated `api/submit-entry.js` to save to Google Sheets column G
+- Field allows 0.5 hour increments, 0-24 range
+- **Note:** User needs to add "Brain Time" header to column G in Google Sheets
+
+**Snooze Button Enabled:**
+- Uncommented notification action buttons in `send-notification.js`
+- Added auth token to notification data payload for service worker to use
+- Updated `sw-custom.js` to read token from notification data
+- iOS notification action buttons may require long-press/expand to see
+
+**Files Modified:**
+- `api/send-notification.js` - JWT fix, snooze action, debug logging
+- `api/submit-entry.js` - Added brainTime column
+- `src/components/Settings.jsx` - Reorganized sections
+- `src/components/Settings.css` - Fixed button colors
+- `src/components/DailyEntry.jsx` - Added brainTime field
+- `public/sw-custom.js` - Token from notification data
+
+**Known Issue:**
+- Desktop notifications not working at session end (not investigated yet)
+
+---
 
 ### 2025-12-19 - Layout Fix & iPhone Notification Debugging (Session 15)
 - **Layout Issue FIXED**:
@@ -302,46 +383,68 @@ Track completed features and current status here. Update after completing each f
 
 ## Next Up
 
-**iPhone PWA Notifications** (Priority for Next Session)
-- Enable notifications in the iPhone PWA (Settings → Notifications)
-- Grant iOS notification permissions when prompted
-- Configure notification schedule and timing
-- Test notification receipt on iPhone lock screen
-- Verify snooze functionality works on iPhone
+**Immediate:**
+- Add "Brain Time" header to Google Sheets column G
+- Test snooze button on iOS (long-press/expand notification)
+- Investigate desktop notifications not working (may be subscription issue)
 
-**Future Enhancements**:
-- Connect Vercel to GitHub for automatic deployments
-- **Feature #16: ECG Integration** - Photo upload for ECG tracking
-
-Phase 2 notifications are now complete! Moving to Phase 3 polish features.
-
-**Implementation Steps**:
-1. Design UI for ECG photo upload
-2. Add photo capture/upload in DailyEntry component
-3. Store photos in cloud storage (e.g., Google Drive, Cloudinary, or similar)
-4. Display ECG photos in entry history
-5. Add delete functionality for photos
-
-**Prerequisites**:
-- Need to choose cloud storage solution
-- May need additional Google Cloud permissions for Drive API
+**Phase 3 is ON HOLD** - Core functionality complete. Future polish features:
+- Feature #16: ECG Integration (photo upload)
+- Feature #17: Data trends/charts (7-day visualization)
+- Feature #18: Streak animations (motivation feature)
 
 ---
 
 ## Blockers / Notes
 
+### iOS Push Notification Troubleshooting Guide
+
+If iOS notifications fail with `403 BadJwtToken`, check these in order:
+
+1. **Environment Variable Whitespace** (MOST LIKELY)
+   - Vercel environment variables can have hidden newlines
+   - Check `VAPID_EMAIL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`
+   - Solution: Ensure all are `.trim()`ed before use
+   - The fix is in `api/send-notification.js` line ~56
+
+2. **JWT Debug Logging**
+   - Send a test notification and check Vercel logs
+   - Look for `=== APPLE JWT DEBUG ===` section
+   - Decode the JWT payload and check for:
+     - `sub` claim should be exactly `mailto:email@example.com` (no `\n`)
+     - `aud` claim should be `https://web.push.apple.com`
+     - `exp` claim should be < 24 hours from now
+
+3. **Apple vs Chrome Strictness**
+   - Chrome/FCM is lenient with JWT format
+   - Apple/APNs rejects ANY malformed JWT
+   - If Chrome works but Apple doesn't, it's almost always a formatting issue
+
+4. **VAPID Key Mismatch**
+   - Frontend `VITE_VAPID_PUBLIC_KEY` must match backend `VAPID_PUBLIC_KEY`
+   - The test notification response shows if keys match
+   - If mismatched, user must re-enable notifications to get new subscription
+
+5. **Subscription Corruption**
+   - Clear the Subscriptions sheet in Google Sheets
+   - Have user disable then re-enable notifications
+   - This forces a fresh subscription with current keys
+
+### Other Notes
+
 - **Authentication & Configuration**: **RESOLVED** - Fixed whitespace handling in both Auth Token and Sheet ID.
-- **Pending Entries Issue**: **RESOLVED** - Fixed auth token trimming, added visible error feedback, and manual retry button. Users can now see and resolve sync failures.
-- **Vercel Cron Job Limitation**: **RESOLVED** - Replaced with Google Apps Script triggering endpoint every 5 minutes (adjustable to 15 min). Free solution using existing Google infrastructure, no Vercel Pro upgrade needed.
-- **Production API URL**: **RESOLVED** - Created .env.production file to ensure relative URLs in production builds.
-- **Timestamp Timezone Issues**: **RESOLVED** - Fixed all timestamp formatting to use Eastern Time correctly across submit-entry.js and subscribe.js.
-- **VAPID Key Padding Error**: **RESOLVED** - Added automatic trimming and padding removal for VAPID keys to handle whitespace and base64 padding characters.
-- **Notification System**: **FULLY OPERATIONAL** - End-to-end tested and working in production!
-- **Notification Action Buttons**: Snooze button may not be visible in all browser/OS combinations. Chrome on Windows may not display notification action buttons depending on system settings. This is a browser/OS limitation, not a code issue. Alternative: Add snooze option in app UI as fallback.
+- **Pending Entries Issue**: **RESOLVED** - Fixed auth token trimming, added visible error feedback, and manual retry button.
+- **Vercel Cron Job Limitation**: **RESOLVED** - Replaced with Google Apps Script triggering endpoint every 5 minutes.
+- **Production API URL**: **RESOLVED** - Created .env.production file for relative URLs.
+- **Timestamp Timezone Issues**: **RESOLVED** - All timestamps use Eastern Time.
+- **VAPID Key Padding Error**: **RESOLVED** - Added automatic trimming and padding removal.
+- **iOS Push Notifications**: **RESOLVED** - Fixed trailing newline in VAPID_EMAIL (Session 16).
+- **Notification Action Buttons**: Snooze button may not be visible in all browser/OS combinations. iOS may require long-press/expand.
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
 - **Local Development**: Use `vercel dev` to run both frontend and API functions locally (not `npm run dev`)
-- **Windows Notifications**: Users must enable Chrome/browser notifications in Windows Settings → System → Notifications for push notifications to display
+- **Windows Notifications**: Users must enable Chrome/browser notifications in Windows Settings → System → Notifications
 - **Google Apps Script Trigger**: Currently set to 5 minutes for testing. Change to 15 minutes after verification.
+- **Desktop Notifications**: May not be working as of Session 16 end - needs investigation.
 
 ---
 
