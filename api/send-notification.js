@@ -59,9 +59,9 @@ export default async function handler(req, res) {
       throw new Error('VAPID_PRIVATE_KEY is not defined in environment variables');
     }
 
-    // Strip padding from VAPID keys (web-push requires URL-safe base64 without padding)
-    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY.replace(/=+$/, '');
-    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY.replace(/=+$/, '');
+    // Strip padding and whitespace from VAPID keys (web-push requires URL-safe base64 without padding)
+    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY.trim().replace(/=+$/, '');
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY.trim().replace(/=+$/, '');
 
     webpush.setVapidDetails(
       vapidSubject,
