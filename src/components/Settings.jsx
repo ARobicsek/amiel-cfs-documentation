@@ -495,7 +495,7 @@ export default function Settings() {
       <div className="settings-section">
         <h3>Authentication Token</h3>
         <p className="settings-description">
-          Enter your authentication token to enable syncing with Google Sheets.
+          Enter your authentication token to enable syncing with Google Sheets. Hint: dev-secret-token-12345.
         </p>
 
         <div className="settings-form">
