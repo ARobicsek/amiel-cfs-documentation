@@ -143,6 +143,27 @@ export default function Settings() {
         const data = await response.json();
         let successMsg = `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
         
+        if (data.debug_info && data.debug_info.vapid) {
+            const serverKeyPrefix = data.debug_info.vapid.serverKeyPrefix;
+            const clientKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
+            const clientKeyPrefix = clientKey.trim().substring(0, 15) + '...';
+            
+            console.log('VAPID Check:', { server: serverKeyPrefix, client: clientKeyPrefix });
+            
+            if (serverKeyPrefix && clientKeyPrefix && serverKeyPrefix !== clientKeyPrefix) {
+                successMsg += `\n\n⚠️ CRITICAL CONFIG ERROR ⚠️\nVAPID Key Mismatch!`;
+                successMsg += `\nClient uses: ${clientKeyPrefix}`;
+                successMsg += `\nServer uses: ${serverKeyPrefix}`;
+                successMsg += `\nCheck your Vercel Environment Variables. VITE_VAPID_PUBLIC_KEY and VAPID_PUBLIC_KEY must be identical.`;
+            } else {
+                successMsg += `\n(Keys match: ${serverKeyPrefix})`;
+            }
+            
+            if (data.debug_info.vapid.subject) {
+                 successMsg += `\nSubject: ${data.debug_info.vapid.subject}`;
+            }
+        }
+
         if (data.cleaned_up && data.cleaned_up > 0) {
            successMsg += `\n\nNote: ${data.cleaned_up} expired subscription(s) were removed.`;
            // If we failed to send AND cleaned up, it likely means OUR subscription was the bad one.
