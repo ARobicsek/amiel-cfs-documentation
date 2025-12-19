@@ -143,14 +143,20 @@ export default function Settings() {
         const data = await response.json();
         let successMsg = `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
         
-        if (data.sent === 0 && data.debug_info) {
-          console.log('Debug Info:', data.debug_info);
-          successMsg += `\n\nDebug: Found ${data.debug_info.rowsFound} rows.`;
-          if (data.debug_info.parseErrors && data.debug_info.parseErrors.length > 0) {
-             const firstError = data.debug_info.parseErrors[0];
-             successMsg += `\nError 1: ${firstError.error}`;
-             if (firstError.missing) successMsg += ` (${firstError.missing.join(', ')})`;
-          }
+        if (data.sent === 0) {
+           if (data.send_errors && data.send_errors.length > 0) {
+             const firstSendError = data.send_errors[0];
+             successMsg += `\n\nDelivery Failed: ${firstSendError.error}`;
+             if (firstSendError.statusCode) successMsg += ` (Status: ${firstSendError.statusCode})`;
+           } else if (data.debug_info) {
+              console.log('Debug Info:', data.debug_info);
+              successMsg += `\n\nDebug: Found ${data.debug_info.rowsFound} rows.`;
+              if (data.debug_info.parseErrors && data.debug_info.parseErrors.length > 0) {
+                 const firstError = data.debug_info.parseErrors[0];
+                 successMsg += `\nError 1: ${firstError.error}`;
+                 if (firstError.missing) successMsg += ` (${firstError.missing.join(', ')})`;
+              }
+           }
         }
         
         setMessage({

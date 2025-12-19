@@ -196,13 +196,19 @@ export default async function handler(req, res) {
     });
 
     let sentCount = 0;
+    const sendErrors = [];
+
     const sendPromises = subscriptions.map(async (subscription) => {
       try {
         await webpush.sendNotification(subscription, payload);
         sentCount++;
       } catch (error) {
         console.error('Failed to send to subscription:', error);
-        // Could mark subscription as invalid and remove from sheet here
+        sendErrors.push({
+          endpoint: subscription.endpoint ? subscription.endpoint.substring(0, 50) + '...' : 'unknown',
+          error: error.message,
+          statusCode: error.statusCode
+        });
       }
     });
 
@@ -212,7 +218,9 @@ export default async function handler(req, res) {
       success: true,
       joke: jokeText,
       sent: sentCount,
-      total: subscriptions.length
+      total: subscriptions.length,
+      debug_info: debugInfo,
+      send_errors: sendErrors
     });
 
   } catch (error) {
