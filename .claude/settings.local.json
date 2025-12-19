@@ -14,7 +14,10 @@
       "Bash(del:*)",
       "SlashCommand(/start-session)",
       "Bash(git add:*)",
-      "Bash(git clean:*)"
+      "Bash(git clean:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

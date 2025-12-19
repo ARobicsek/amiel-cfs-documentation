@@ -9,6 +9,7 @@ function DailyEntry({ onSave }) {
   const [exercise, setExercise] = useState('')
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleSliderChange = (e) => {
     // Convert to half-hour increments (0, 0.5, 1, 1.5, etc.)
@@ -47,7 +48,8 @@ function DailyEntry({ onSave }) {
       setShowOptional(false)
     } catch (error) {
       console.error('Failed to save:', error)
-      alert('Failed to save. Please try again.')
+      setError(error.message || 'Failed to save. Please try again.')
+      setTimeout(() => setError(null), 5000)
     } finally {
       setSaving(false)
     }
@@ -57,6 +59,9 @@ function DailyEntry({ onSave }) {
     <div className="daily-entry">
       {showSuccess && (
         <div className="success-feedback">Saved!</div>
+      )}
+      {error && (
+        <div className="error-feedback">{error}</div>
       )}
 
       <div className="hours-section">

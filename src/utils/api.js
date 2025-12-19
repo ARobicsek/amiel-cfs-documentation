@@ -7,7 +7,11 @@
 
 import { getSecretToken } from './auth';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+// Use VITE_API_URL for local dev, otherwise use relative URLs
+// In production (Vercel), relative URLs automatically hit the same domain's /api endpoints
+const API_BASE = import.meta.env.DEV && import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL
+  : '';
 
 /**
  * Make an authenticated API request
@@ -31,10 +35,12 @@ async function apiRequest(endpoint, options = {}) {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
     const errorMessage = errorData.details || errorData.error || 'Request failed';
-    console.error('API Error Details:', errorData);
-    // Temporary alert for debugging
-    alert(`Error: ${errorMessage}`);
-    throw new Error(errorMessage);
+    console.error('API Error Details:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorData
+    });
+    throw new Error(`${response.status}: ${errorMessage}`);
   }
 
   return response.json();

@@ -84,11 +84,17 @@ export async function syncPendingEntries(submitFn) {
 
   for (const entry of entries) {
     try {
+      console.log('Syncing entry:', { id: entry.id, date: entry.date });
       await submitFn(entry);
       await deletePendingEntry(entry.id);
+      console.log('Successfully synced entry:', entry.id);
       synced++;
     } catch (error) {
-      console.error('Failed to sync entry:', error);
+      console.error('Failed to sync entry:', {
+        id: entry.id,
+        error: error.message,
+        status: error.status
+      });
       failed++;
     }
   }

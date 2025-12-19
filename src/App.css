@@ -356,3 +356,46 @@ html, body {
   80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
 }
+
+/* Error states */
+.sync-error {
+  font-size: 0.75rem;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.pending-indicator.clickable {
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+
+.pending-indicator.clickable:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.pending-indicator.clickable:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-feedback {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ef4444;
+  color: white;
+  padding: 1.5rem 2rem;
+  border-radius: 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  animation: fadeInOut 5s ease-in-out;
+  z-index: 1000;
+  max-width: 80%;
+  text-align: center;
+}

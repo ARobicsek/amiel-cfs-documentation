@@ -18,7 +18,8 @@ const TOKEN_KEY = 'cfs_auth_token';
 export function getSecretToken() {
   // Development bypass for local testing
   if (import.meta.env.DEV || window.location.hostname === 'localhost') {
-    return localStorage.getItem(TOKEN_KEY) || import.meta.env.VITE_SECRET_TOKEN || 'dev-secret-token-12345';
+    const devToken = localStorage.getItem(TOKEN_KEY) || import.meta.env.VITE_SECRET_TOKEN || 'dev-secret-token-12345';
+    return devToken ? devToken.trim() : devToken;
   }
 
   // First, check URL for token (initial visit)
@@ -26,21 +27,23 @@ export function getSecretToken() {
   const urlToken = urlParams.get('secret');
 
   if (urlToken) {
-    // Store token and clean up URL
-    localStorage.setItem(TOKEN_KEY, urlToken);
-    console.log('Token stored from URL:', urlToken);
+    // Store token and clean up URL (trim to prevent whitespace issues)
+    const trimmedToken = urlToken.trim();
+    localStorage.setItem(TOKEN_KEY, trimmedToken);
+    console.log('Token stored from URL:', trimmedToken);
 
     // Remove token from URL without page reload
     const cleanUrl = window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
 
-    return urlToken;
+    return trimmedToken;
   }
 
-  // Otherwise, get from localStorage
+  // Otherwise, get from localStorage (trim to prevent whitespace issues)
   const storedToken = localStorage.getItem(TOKEN_KEY);
-  console.log('Token from localStorage:', storedToken);
-  return storedToken;
+  const trimmedToken = storedToken ? storedToken.trim() : storedToken;
+  console.log('Token from localStorage:', trimmedToken);
+  return trimmedToken;
 }
 
 /**

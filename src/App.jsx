@@ -7,7 +7,8 @@ import {
   saveOfflineEntry,
   setupOfflineSync,
   hasPendingEntries,
-  getPendingEntries
+  getPendingEntries,
+  syncPendingEntries
 } from './utils/offlineStorage'
 import './App.css'
 
@@ -17,6 +18,7 @@ function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [pendingCount, setPendingCount] = useState(0)
   const [syncStatus, setSyncStatus] = useState(null) // 'syncing' | 'success' | 'error' | null
+  const [syncError, setSyncError] = useState(null) // Error message for failed syncs
 
   // Check if we already have an entry for today
   useEffect(() => {
@@ -58,8 +60,19 @@ function App() {
       async (result) => {
         // Sync complete callback
         console.log('Sync complete:', result)
-        setSyncStatus('success')
-        setTimeout(() => setSyncStatus(null), 3000)
+
+        if (result.failed > 0) {
+          setSyncStatus('error')
+          setSyncError(`Failed to sync ${result.failed} of ${result.synced + result.failed} entries`)
+        } else {
+          setSyncStatus('success')
+          setSyncError(null)
+        }
+
+        setTimeout(() => {
+          setSyncStatus(null)
+          setSyncError(null)
+        }, 5000)
 
         // Update pending count
         const entries = await getPendingEntries()
@@ -69,6 +82,41 @@ function App() {
 
     return cleanup
   }, [])
+
+  const handleManualSync = async () => {
+    if (pendingCount === 0) return
+
+    setSyncStatus('syncing')
+    try {
+      const result = await syncPendingEntries(async (entry) => {
+        await submitEntry(entry)
+      })
+
+      // Use same callback logic as auto-sync
+      if (result.failed > 0) {
+        setSyncStatus('error')
+        setSyncError(`Failed to sync ${result.failed} entries`)
+      } else {
+        setSyncStatus('success')
+        setSyncError(null)
+      }
+
+      setTimeout(() => {
+        setSyncStatus(null)
+        setSyncError(null)
+      }, 5000)
+
+      const entries = await getPendingEntries()
+      setPendingCount(entries.length)
+    } catch (error) {
+      setSyncStatus('error')
+      setSyncError(error.message)
+      setTimeout(() => {
+        setSyncStatus(null)
+        setSyncError(null)
+      }, 5000)
+    }
+  }
 
   const handleSave = async (data) => {
     const today = new Date().toDateString()
@@ -117,12 +165,20 @@ function App() {
             <span className="offline-indicator">Offline</span>
           )}
           {pendingCount > 0 && (
-            <span className="pending-indicator">
-              {pendingCount} pending
-            </span>
+            <button
+              className="pending-indicator clickable"
+              onClick={handleManualSync}
+              disabled={syncStatus === 'syncing'}
+              title="Click to retry sync"
+            >
+              {syncStatus === 'syncing' ? 'Syncing...' : `${pendingCount} pending`}
+            </button>
           )}
           {syncStatus === 'success' && (
             <span className="sync-success">Synced!</span>
+          )}
+          {syncStatus === 'error' && (
+            <span className="sync-error" title={syncError}>Sync failed</span>
           )}
         </div>
       </header>
