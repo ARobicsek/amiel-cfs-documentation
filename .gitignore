@@ -16,7 +16,7 @@ dist-ssr
 .env
 .env.local
 .env.*.local
-.env.production
+# Note: .env.production is now tracked to ensure correct production builds
 
 # Google Cloud service account keys
 *-service-account-*.json
