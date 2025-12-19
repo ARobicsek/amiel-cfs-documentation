@@ -71,11 +71,19 @@ export default async function handler(req, res) {
     // Strip padding and whitespace from VAPID keys (web-push requires URL-safe base64 without padding)
     const vapidPublicKey = process.env.VAPID_PUBLIC_KEY.trim().replace(/=+$/, '');
     const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY.trim().replace(/=+$/, '');
-    
+
+    // Debug: Log full key info to verify they match expected values
+    console.log('VAPID Public Key:', vapidPublicKey);
+    console.log('VAPID Public Key length:', vapidPublicKey.length);
+    console.log('VAPID Private Key length:', vapidPrivateKey.length);
+    console.log('VAPID Private Key (first 10 chars):', vapidPrivateKey.substring(0, 10));
+
     // Add VAPID debug info
     debugInfo.vapid = {
         subject: vapidSubject,
-        serverKeyPrefix: vapidPublicKey.substring(0, 15) + '...'
+        serverKeyPrefix: vapidPublicKey.substring(0, 15) + '...',
+        publicKeyLength: vapidPublicKey.length,
+        privateKeyLength: vapidPrivateKey.length
     };
 
     webpush.setVapidDetails(
