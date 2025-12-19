@@ -93,11 +93,19 @@ export default function Settings() {
   }
 
   async function saveReminderSettings() {
+    const token = getAuthToken();
+    if (!token) {
+        setSettingsMessage({
+            type: 'error',
+            text: 'Please enter and save your Authentication Token first.'
+        });
+        return;
+    }
+
     setSettingsLoading(true);
     setSettingsMessage({ type: '', text: '' });
 
     try {
-      const token = getAuthToken();
       const response = await fetch('/api/notification-settings', {
         method: 'POST',
         headers: {
@@ -127,11 +135,19 @@ export default function Settings() {
   }
 
   async function handleTestNotification() {
+    const token = getAuthToken();
+    if (!token) {
+        setMessage({
+            type: 'error',
+            text: 'Please enter and save your Authentication Token first.'
+        });
+        return;
+    }
+
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
-      const token = getAuthToken();
       const response = await fetch('/api/send-notification', {
         method: 'POST',
         headers: {
@@ -219,6 +235,15 @@ export default function Settings() {
   }
 
   async function handleEnableNotifications() {
+    const token = getAuthToken();
+    if (!token) {
+        setMessage({
+            type: 'error',
+            text: 'Please enter and save your Authentication Token first.'
+        });
+        return;
+    }
+
     setLoading(true);
     setMessage({ type: '', text: '' });
 
