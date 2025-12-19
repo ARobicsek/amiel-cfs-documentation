@@ -41,6 +41,38 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-18 - Timestamp & Notification Fixes (Session 11)
+- **Fixed Timestamp Timezone Issues**: **RESOLVED**
+  - Fixed api/submit-entry.js to use correct Eastern Time formatting (was showing 15:40 instead of 20:40)
+  - Fixed api/subscribe.js timestamp to use Eastern Time instead of UTC (was showing Dec 19 instead of Dec 18)
+  - All timestamps now correctly display in Eastern Time zone
+
+- **Fixed VAPID Key Padding Error**: **RESOLVED**
+  - Root cause: VAPID public/private keys had `=` padding and whitespace that web-push library rejects
+  - Added automatic padding removal with `.replace(/=+$/, '')` in api/send-notification.js
+  - Added `.trim()` to strip whitespace/newlines from VAPID keys (same issue as GOOGLE_SHEET_ID)
+  - Notifications now send successfully!
+
+- **Enhanced Error Logging**: **COMPLETE**
+  - Added comprehensive console logging throughout send-notification.js
+  - Step-by-step logging: joke fetch, VAPID config, subscription retrieval, sending
+  - Better error messages with stack traces for debugging
+  - Helps diagnose issues quickly without guesswork
+
+- **Documentation Created**:
+  - Created docs/NOTIFICATION-TESTING-GUIDE.md with complete testing procedures
+  - Created docs/IOS-PWA-SETUP.md for iPhone PWA installation and notification setup
+  - Documents iOS 16.4+ requirement and known limitations
+  - Provides Vercel environment variable management instructions
+
+- **Notification System**: **FULLY OPERATIONAL** ✅
+  - End-to-end testing successful
+  - Notifications sending with jokes from API
+  - Google Apps Script cron trigger working
+  - Customizable schedule, repeat intervals, and snooze all functional
+
+- Status: **DEPLOYED & VERIFIED** - Notifications working in production!
+
 ### 2025-12-18 - GitHub Setup + Pending Entries Fix + Google Apps Script Cron (Session 10)
 - **GitHub Repository Setup (Feature #19)**: **COMPLETE**
   - Added GitHub remote: https://github.com/ARobicsek/amiel-cfs-documentation.git
@@ -203,14 +235,15 @@ Track completed features and current status here. Update after completing each f
 
 ## Next Up
 
-**Testing & Verification** (Priority for Next Session)
-- Test timestamp fix: Verify entries show Eastern Time (8:XX PM not 1:XX AM)
-- Test pending entries fix: Verify entries save directly without going to pending
-- Test manual retry: Verify clicking pending count successfully syncs entries
-- Test Google Apps Script: Verify notifications send every 5 minutes (change to 15 min after testing)
-- Consider connecting Vercel to GitHub for automatic deployments
+**iPhone PWA Experience** (Priority for Next Session)
+- Improve PWA to feel like a native app on iPhone home screen
+- Enhance app icon and splash screens
+- Optimize UI/UX for iOS PWA installation
+- Test and refine iOS notification experience
 
-**Feature #16: ECG Integration** - Photo upload for ECG tracking
+**Future Enhancements**:
+- Connect Vercel to GitHub for automatic deployments
+- **Feature #16: ECG Integration** - Photo upload for ECG tracking
 
 Phase 2 notifications are now complete! Moving to Phase 3 polish features.
 
@@ -233,6 +266,9 @@ Phase 2 notifications are now complete! Moving to Phase 3 polish features.
 - **Pending Entries Issue**: **RESOLVED** - Fixed auth token trimming, added visible error feedback, and manual retry button. Users can now see and resolve sync failures.
 - **Vercel Cron Job Limitation**: **RESOLVED** - Replaced with Google Apps Script triggering endpoint every 5 minutes (adjustable to 15 min). Free solution using existing Google infrastructure, no Vercel Pro upgrade needed.
 - **Production API URL**: **RESOLVED** - Created .env.production file to ensure relative URLs in production builds.
+- **Timestamp Timezone Issues**: **RESOLVED** - Fixed all timestamp formatting to use Eastern Time correctly across submit-entry.js and subscribe.js.
+- **VAPID Key Padding Error**: **RESOLVED** - Added automatic trimming and padding removal for VAPID keys to handle whitespace and base64 padding characters.
+- **Notification System**: **FULLY OPERATIONAL** - End-to-end tested and working in production!
 - **Notification Action Buttons**: Snooze button may not be visible in all browser/OS combinations. Chrome on Windows may not display notification action buttons depending on system settings. This is a browser/OS limitation, not a code issue. Alternative: Add snooze option in app UI as fallback.
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
 - **Local Development**: Use `vercel dev` to run both frontend and API functions locally (not `npm run dev`)
