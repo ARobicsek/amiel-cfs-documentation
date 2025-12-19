@@ -41,6 +41,30 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-19 - Layout Fix & iPhone Notification Debugging (Session 15)
+- **Layout Issue FIXED**:
+  - Root cause: `#root` element in `src/App.css` only had `height: 100%` but no `width: 100%`
+  - Fix: Added `width: 100%` to `#root` selector
+  - Result: PWA now displays full-width on iPhone (no longer squeezed to left)
+
+- **iPhone Push Notification Debugging (IN PROGRESS)**:
+  - **Confirmed**: iOS 16.4+, PWA added to Home Screen, subscription saves correctly with `web.push.apple.com` endpoint
+  - **Error**: Apple returns `403 Forbidden` with `{"reason":"BadJwtToken"}`
+  - **Attempted fixes**:
+    1. Changed `VAPID_EMAIL` from `admin@cfs-tracker.local` to real email - still 403
+    2. Regenerated fresh VAPID keys - still 403
+    3. Added TTL and urgency options to sendNotification - still 403
+  - **Current state**: Added detailed key logging to verify VAPID keys match expected values
+  - **Expected key values**:
+    - Public Key: `BPGqn0LtT6P75SqiEY2l8YsB-Zv1qtNnHJS7qwRKtxbnTl33iqmeyHL3RHYS8B0dyzaX8Ur4tX6NdTe_A1WUrik` (87 chars)
+    - Private Key length: 43 chars, starts with `sAYiUZ-lYH`
+  - **Next step**: Check Vercel logs after redeploy to verify keys match, then investigate further
+
+- **Code improvements**:
+  - Added detailed error reporting for partial notification failures (shows errors even when some devices succeed)
+  - Stopped auto-deleting 403 subscriptions (only delete 410/404) to allow debugging
+  - Added TTL and urgency options to web-push sendNotification call
+
 ### 2025-12-18 - iPhone Notification Troubleshooting (Session 14)
 - **Investigation**:
   - Confirmed duplicate notifications on Desktop (Localhost vs Production).
