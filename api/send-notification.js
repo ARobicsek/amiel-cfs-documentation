@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     let subscriptions = [];
     try {
       const getResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        spreadsheetId: process.env.GOOGLE_SHEET_ID.trim(),
         range: 'Subscriptions!A:D',
       });
 
