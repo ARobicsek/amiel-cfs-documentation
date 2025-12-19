@@ -181,6 +181,7 @@ export default function Settings() {
              successMsg += `\n${idx + 1}. ${err.error}`;
              if (err.statusCode) successMsg += ` (Status: ${err.statusCode})`;
              if (err.endpoint) successMsg += `\n   Endpoint: ${err.endpoint}`;
+             if (err.body) successMsg += `\n   Response: ${err.body}`;
            });
         }
 

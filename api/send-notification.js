@@ -309,61 +309,45 @@ export default async function handler(req, res) {
               
       
                   const sendPromises = subscriptions.map(async (subscription) => {
-      
                     try {
-      
                       // Create a clean subscription object for web-push (remove internal _rowIndex)
-      
-                      const cleanSub = { 
-      
-                          endpoint: subscription.endpoint, 
-      
-                          keys: subscription.keys 
-      
+                      const cleanSub = {
+                          endpoint: subscription.endpoint,
+                          keys: subscription.keys
                       };
-      
-                      await webpush.sendNotification(cleanSub, payload);
-      
+
+                      // Add options that Apple may require
+                      const options = {
+                        TTL: 86400, // 24 hours in seconds
+                        urgency: 'normal'
+                      };
+
+                      // Log which endpoint we're sending to
+                      const isApple = subscription.endpoint.includes('apple.com');
+                      console.log(`Sending to ${isApple ? 'Apple' : 'FCM'}: ${subscription.endpoint.substring(0, 50)}...`);
+
+                      await webpush.sendNotification(cleanSub, payload, options);
                       sentCount++;
-      
+                      console.log(`Success: ${isApple ? 'Apple' : 'FCM'}`);
                     } catch (error) {
-      
                       console.error('Failed to send to subscription:', error);
-      
-                      
-      
-                                            // Track 410 Gone / 404 Not Found / 403 Forbidden for cleanup
-      
-                      
-      
-                                            if (error.statusCode === 410 || error.statusCode === 404 || error.statusCode === 403) {
-      
-                      
-      
-                                               console.log(`Marking invalid subscription at row ${subscription._rowIndex} for deletion.`);
-      
-                      
-      
-                                               rowsToDelete.push(subscription._rowIndex);
-      
-                      
-      
-                                            }
-      
-              
-      
+                      console.error('Error body:', error.body);
+                      console.error('Error headers:', error.headers);
+
+                      // Only auto-delete 410 Gone (truly expired) - keep 403 for debugging
+                      if (error.statusCode === 410 || error.statusCode === 404) {
+                         console.log(`Marking expired subscription at row ${subscription._rowIndex} for deletion.`);
+                         rowsToDelete.push(subscription._rowIndex);
+                      }
+
                       sendErrors.push({
-      
                         endpoint: subscription.endpoint ? subscription.endpoint.substring(0, 50) + '...' : 'unknown',
-      
                         error: error.message,
-      
-                        statusCode: error.statusCode
-      
+                        statusCode: error.statusCode,
+                        body: error.body, // Include full error body from push service
+                        headers: error.headers ? JSON.stringify(error.headers) : undefined
                       });
-      
                     }
-      
                   });
       
               
