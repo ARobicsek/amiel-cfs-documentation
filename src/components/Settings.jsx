@@ -174,19 +174,23 @@ export default function Settings() {
            }
         }
         
-        if (data.sent === 0) {
-           if (data.send_errors && data.send_errors.length > 0) {
-             const firstSendError = data.send_errors[0];
-             successMsg += `\n\nDelivery Failed: ${firstSendError.error}`;
-             if (firstSendError.statusCode) successMsg += ` (Status: ${firstSendError.statusCode})`;
-           } else if (data.debug_info) {
-              console.log('Debug Info:', data.debug_info);
-              successMsg += `\n\nDebug: Found ${data.debug_info.rowsFound} rows.`;
-              if (data.debug_info.parseErrors && data.debug_info.parseErrors.length > 0) {
-                 const firstError = data.debug_info.parseErrors[0];
-                 successMsg += `\nError 1: ${firstError.error}`;
-                 if (firstError.missing) successMsg += ` (${firstError.missing.join(', ')})`;
-              }
+        // Always show send errors if any occurred (even if some succeeded)
+        if (data.send_errors && data.send_errors.length > 0) {
+           successMsg += `\n\n⚠️ ${data.send_errors.length} device(s) failed:`;
+           data.send_errors.forEach((err, idx) => {
+             successMsg += `\n${idx + 1}. ${err.error}`;
+             if (err.statusCode) successMsg += ` (Status: ${err.statusCode})`;
+             if (err.endpoint) successMsg += `\n   Endpoint: ${err.endpoint}`;
+           });
+        }
+
+        if (data.sent === 0 && data.debug_info) {
+           console.log('Debug Info:', data.debug_info);
+           successMsg += `\n\nDebug: Found ${data.debug_info.rowsFound} rows.`;
+           if (data.debug_info.parseErrors && data.debug_info.parseErrors.length > 0) {
+              const firstError = data.debug_info.parseErrors[0];
+              successMsg += `\nError 1: ${firstError.error}`;
+              if (firstError.missing) successMsg += ` (${firstError.missing.join(', ')})`;
            }
         }
         
