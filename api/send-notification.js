@@ -31,11 +31,17 @@ export default async function handler(req, res) {
 
   try {
     // Fetch a joke from the free API
+    console.log('Fetching joke from API...');
     const jokeResponse = await fetch('https://official-joke-api.appspot.com/random_joke');
+    if (!jokeResponse.ok) {
+      throw new Error(`Joke API returned ${jokeResponse.status}`);
+    }
     const joke = await jokeResponse.json();
     const jokeText = `${joke.setup} ${joke.punchline}`;
+    console.log('Joke fetched successfully');
 
     // Configure web-push with VAPID keys
+    console.log('Configuring VAPID...');
     let vapidSubject = process.env.VAPID_EMAIL;
     console.log('VAPID_EMAIL from env:', vapidSubject);
     if (vapidSubject && !vapidSubject.startsWith('mailto:') && !vapidSubject.startsWith('http')) {
@@ -46,14 +52,26 @@ export default async function handler(req, res) {
     if (!vapidSubject) {
       throw new Error('VAPID_EMAIL is not defined in environment variables');
     }
+    if (!process.env.VAPID_PUBLIC_KEY) {
+      throw new Error('VAPID_PUBLIC_KEY is not defined in environment variables');
+    }
+    if (!process.env.VAPID_PRIVATE_KEY) {
+      throw new Error('VAPID_PRIVATE_KEY is not defined in environment variables');
+    }
+
+    // Strip padding from VAPID keys (web-push requires URL-safe base64 without padding)
+    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY.replace(/=+$/, '');
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY.replace(/=+$/, '');
 
     webpush.setVapidDetails(
       vapidSubject,
-      process.env.VAPID_PUBLIC_KEY,
-      process.env.VAPID_PRIVATE_KEY
+      vapidPublicKey,
+      vapidPrivateKey
     );
+    console.log('VAPID configured successfully');
 
     // Get subscriptions from Google Sheets
+    console.log('Fetching subscriptions from Google Sheets...');
     const auth = new google.auth.GoogleAuth({
       credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
@@ -69,6 +87,7 @@ export default async function handler(req, res) {
       });
 
       const rows = getResponse.data.values || [];
+      console.log(`Found ${rows.length} rows in Subscriptions tab (including header)`);
 
       // Skip header row and parse subscriptions
       if (rows.length > 1) {
@@ -81,12 +100,15 @@ export default async function handler(req, res) {
           }
         }).filter(sub => sub !== null);
       }
+      console.log(`Parsed ${subscriptions.length} valid subscriptions`);
     } catch (error) {
-      console.error('Failed to get subscriptions:', error);
+      console.error('Failed to get subscriptions from Google Sheets:', error);
+      console.error('Error details:', error.message);
       // If no subscriptions exist, that's okay
     }
 
     if (subscriptions.length === 0) {
+      console.log('No subscriptions found - returning success with sent=0');
       return res.status(200).json({
         success: true,
         message: 'No subscriptions found',
@@ -140,6 +162,11 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Failed to send notification:', error);
-    return res.status(500).json({ error: 'Failed to send notification' });
+    console.error('Error stack:', error.stack);
+    return res.status(500).json({
+      error: 'Failed to send notification',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 }

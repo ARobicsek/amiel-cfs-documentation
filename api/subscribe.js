@@ -112,8 +112,18 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get current timestamp
-    const timestamp = new Date().toISOString();
+    // Get current timestamp in Eastern Time
+    const now = new Date();
+    const timestamp = now.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
 
     // Store the subscription in a "Subscriptions" sheet
     // Format: [Timestamp, Endpoint, Keys (JSON), Full Subscription (JSON)]

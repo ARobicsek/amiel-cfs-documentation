@@ -61,8 +61,7 @@ export default async function handler(req, res) {
 
     // Get current time in US Eastern Time
     const now = new Date();
-    const easternTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const timestamp = easternTime.toLocaleString('en-US', {
+    const timestamp = now.toLocaleString('en-US', {
       timeZone: 'America/New_York',
       year: 'numeric',
       month: '2-digit',
@@ -72,7 +71,7 @@ export default async function handler(req, res) {
       second: '2-digit',
       hour12: false
     });
-    const dateOnly = easternTime.toLocaleDateString('en-US', {
+    const dateOnly = now.toLocaleDateString('en-US', {
       timeZone: 'America/New_York',
       year: 'numeric',
       month: '2-digit',
