@@ -232,6 +232,10 @@ export default function Settings() {
         }
       }
 
+      // Force fresh subscription: Unsubscribe first to clear any potential stale subscription (wrong keys)
+      // This is critical if the VAPID keys have changed on the server.
+      await unsubscribeFromPush();
+
       // Subscribe to push notifications
       await subscribeToPush();
       setSubscribed(true);

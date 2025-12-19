@@ -332,15 +332,23 @@ export default async function handler(req, res) {
       
                       
       
-                      // Track 410 Gone / 404 Not Found for cleanup
+                                            // Track 410 Gone / 404 Not Found / 403 Forbidden for cleanup
       
-                      if (error.statusCode === 410 || error.statusCode === 404) {
+                      
       
-                         console.log(`Marking invalid subscription at row ${subscription._rowIndex} for deletion.`);
+                                            if (error.statusCode === 410 || error.statusCode === 404 || error.statusCode === 403) {
       
-                         rowsToDelete.push(subscription._rowIndex);
+                      
       
-                      }
+                                               console.log(`Marking invalid subscription at row ${subscription._rowIndex} for deletion.`);
+      
+                      
+      
+                                               rowsToDelete.push(subscription._rowIndex);
+      
+                      
+      
+                                            }
       
               
       
