@@ -42,27 +42,52 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid subscription object' });
   }
 
+  let credentials;
+  try {
+    credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+  } catch (parseError) {
+    console.error('Configuration Error: GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON', parseError);
+    return res.status(500).json({ 
+      error: 'Server Configuration Error', 
+      details: 'GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON. Check Vercel environment variables.' 
+    });
+  }
+
   try {
     const auth = new google.auth.GoogleAuth({
-      credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
+      credentials,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // Get the spreadsheet to check if "Subscriptions" sheet exists
-    const spreadsheet = await sheets.spreadsheets.get({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-    });
+    // Step 1: Check if Spreadsheet exists (validates ID)
+    let spreadsheet;
+    const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
+    try {
+      console.log('Fetching spreadsheet metadata for ID:', spreadsheetId);
+      const response = await sheets.spreadsheets.get({
+        spreadsheetId,
+      });
+      spreadsheet = response.data;
+      console.log('Spreadsheet found. Title:', spreadsheet.properties.title);
+    } catch (sheetError) {
+      console.error('Failed to find spreadsheet:', sheetError.message);
+      return res.status(404).json({ 
+        error: 'Google Sheet Not Found', 
+        details: `Could not find spreadsheet with ID: ${process.env.GOOGLE_SHEET_ID}. Check permissions or ID.` 
+      });
+    }
 
-    const sheetExists = spreadsheet.data.sheets.some(
+    // Step 2: Check for "Subscriptions" tab
+    const sheetExists = spreadsheet.sheets.some(
       (s) => s.properties.title === 'Subscriptions'
     );
 
     if (!sheetExists) {
       // Create the "Subscriptions" sheet
       await sheets.spreadsheets.batchUpdate({
-        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        spreadsheetId,
         requestBody: {
           requests: [
             {
@@ -78,7 +103,7 @@ export default async function handler(req, res) {
 
       // Add headers to the new sheet
       await sheets.spreadsheets.values.update({
-        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        spreadsheetId,
         range: 'Subscriptions!A1:D1',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
@@ -102,7 +127,7 @@ export default async function handler(req, res) {
     // For MVP, we'll just append the new subscription
     // In the future, we could check for duplicates and update instead
     await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      spreadsheetId,
       range: 'Subscriptions!A:D',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
@@ -114,6 +139,10 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Failed to save subscription:', error);
-    return res.status(500).json({ error: 'Failed to save subscription' });
+    return res.status(500).json({ 
+      error: 'Failed to save subscription',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 }

@@ -29,8 +29,12 @@ async function apiRequest(endpoint, options = {}) {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || 'Request failed');
+    const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+    const errorMessage = errorData.details || errorData.error || 'Request failed';
+    console.error('API Error Details:', errorData);
+    // Temporary alert for debugging
+    alert(`Error: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 
   return response.json();

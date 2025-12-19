@@ -1,9 +1,4 @@
 {
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "21f1b9aabf5e45b2aa775e1240baf5dc.FUhY1QG2PA62kn1r",
-    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-    "API_TIMEOUT_MS": "3000000"
-  },
   "permissions": {
     "allow": [
       "Bash(git push:*)",
@@ -17,11 +12,9 @@
       "Bash(where:*)",
       "Bash(copy:*)",
       "Bash(del:*)",
-      "Bash(npm run dev)",
-      "Bash(vercel ls:*)",
-      "Bash(vercel:*)",
+      "SlashCommand(/start-session)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git clean:*)"
     ],
     "deny": [],
     "ask": []

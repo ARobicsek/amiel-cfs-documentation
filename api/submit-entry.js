@@ -57,6 +57,7 @@ export default async function handler(req, res) {
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
+    const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
 
     // Get current time in US Eastern Time
     const now = new Date();
@@ -79,7 +80,7 @@ export default async function handler(req, res) {
     });
 
     const response = await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      spreadsheetId,
       range: 'Sheet1!A:F',
       valueInputOption: 'USER_ENTERED',
       requestBody: {

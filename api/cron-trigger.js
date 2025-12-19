@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+    const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
 
     // Get current time in Eastern Time
     const now = new Date();

@@ -28,6 +28,7 @@ export function getSecretToken() {
   if (urlToken) {
     // Store token and clean up URL
     localStorage.setItem(TOKEN_KEY, urlToken);
+    console.log('Token stored from URL:', urlToken);
 
     // Remove token from URL without page reload
     const cleanUrl = window.location.pathname;
@@ -37,7 +38,9 @@ export function getSecretToken() {
   }
 
   // Otherwise, get from localStorage
-  return localStorage.getItem(TOKEN_KEY);
+  const storedToken = localStorage.getItem(TOKEN_KEY);
+  console.log('Token from localStorage:', storedToken);
+  return storedToken;
 }
 
 /**

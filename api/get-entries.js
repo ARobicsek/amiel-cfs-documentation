@@ -42,9 +42,10 @@ export default async function handler(req, res) {
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
+    const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
 
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      spreadsheetId,
       range: 'Sheet1!A:F',
     });
 

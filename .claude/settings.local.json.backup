@@ -16,7 +16,15 @@
       "Bash(cmd:*)",
       "Bash(where:*)",
       "Bash(copy:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(npm run dev)",
+      "Bash(vercel ls:*)",
+      "Bash(vercel:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

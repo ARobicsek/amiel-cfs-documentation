@@ -41,14 +41,14 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
-### 2025-12-18 - Authentication 401 Error Fix (Session 9)
-- Refactored authentication logic in all API endpoints (`notification-settings.js`, `subscribe.js`, `submit-entry.js`, `get-entries.js`, `send-notification.js`)
-- Implemented robust token comparison:
-  - Trims whitespace from `process.env.SECRET_TOKEN` (handling potential copy-paste errors/newlines)
-  - Handles case-insensitive "Bearer" prefix
-  - Trims received token
-- Improved debug logging in `notification-settings.js` and `subscribe.js` to show received/expected values (masked)
-- Status: **READY FOR VERIFICATION** - Needs deployment to Vercel to confirm fix
+### 2025-12-18 - Authentication & Configuration Fixes (Session 9)
+- **Fixed 401 Unauthorized Error**: Refactored auth logic to robustly handle whitespace/newlines in `SECRET_TOKEN`.
+- **Fixed 500/404 Google Sheets Error**:
+  - Identified issue: `GOOGLE_SHEET_ID` env variable contained a hidden newline character.
+  - Updated all API endpoints (`subscribe`, `submit-entry`, `get-entries`, `cron-trigger`, `notification-settings`) to strictly `.trim()` the Sheet ID.
+  - Improved error reporting: Added detailed JSON error responses and frontend alerts for debugging.
+- **Verification**: Successfully enabled notifications on production (Vercel).
+- Status: **VERIFIED & DEPLOYED**
 
 ### 2025-12-18 - Smart Customizable Reminders + Snooze (Session 7)
 - **Customizable Reminder Schedule:**
@@ -169,7 +169,12 @@ Track completed features and current status here. Update after completing each f
 
 ## Next Up
 
-**Feature #16: ECG Integration** - Photo upload for ECG tracking
+**Feature #19: GitHub Repository Setup**
+- Initialize proper remote repository
+- Push local code to GitHub
+- Connect Vercel to GitHub for automatic deployments
+
+**Feature #16: ECG Integration** - Photo upload for ECG tracking (Deferred to after GitHub setup)
 
 Phase 2 notifications are now complete! Moving to Phase 3 polish features.
 
@@ -188,7 +193,7 @@ Phase 2 notifications are now complete! Moving to Phase 3 polish features.
 
 ## Blockers / Notes
 
-- **Authentication 401 Error**: **RESOLVED (Pending Verification)** - Refactored API auth to handle whitespace/formatting issues. Needs deployment to confirm.
+- **Authentication & Configuration**: **RESOLVED** - Fixed whitespace handling in both Auth Token and Sheet ID.
 - **Vercel Cron Job Limitation**: Vercel Hobby plan only allows ONCE PER DAY cron jobs, not every 15 minutes. The app has been updated to use a single daily trigger at 9 PM ET. For more frequent reminders, need to upgrade to Vercel Pro plan or use external cron service (e.g., EasyCron).
 - **Notification Action Buttons**: Snooze button may not be visible in all browser/OS combinations. Chrome on Windows may not display notification action buttons depending on system settings. This is a browser/OS limitation, not a code issue. Alternative: Add snooze option in app UI as fallback.
 - **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
