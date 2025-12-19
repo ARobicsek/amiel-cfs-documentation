@@ -41,6 +41,33 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-19 - UI Fixes & Midodrine Tracking (Session 17)
+
+**Bug Fixes:**
+- Fixed overlapping "Disable Notifications" and "Send Test Notification" buttons in Settings page
+- Added `.subscribed-actions` CSS class with proper flex-wrap for responsive button layout
+
+**UI Improvements:**
+- Reordered +details fields: Brain time (top), Comments, Exercise, Oxaloacetate, Midodrine (new)
+- Changed oxaloacetate placeholder from "100" to "2" (more realistic dosage)
+
+**New Feature - Midodrine Tracking:**
+- Added "Midodrine (mg)" input field in DailyEntry +details section
+- Updated `api/submit-entry.js` to save midodrine to Google Sheets column H
+- Field allows 0.5 mg increments
+- **Note:** User needs to add "Midodrine" header to column H in Google Sheets
+
+**Verified:**
+- Schedule changes do NOT require re-enabling notifications (schedule is stored separately from push subscription)
+
+**Files Modified:**
+- `src/components/Settings.css` - Added `.subscribed-actions` styles
+- `src/components/Settings.jsx` - Removed inline margin style
+- `src/components/DailyEntry.jsx` - Reordered fields, added midodrine
+- `api/submit-entry.js` - Added midodrine to column H
+
+---
+
 ### 2025-12-19 - iOS Push Notification FIX + UI Improvements (Session 16)
 
 #### **iOS PUSH NOTIFICATIONS: ROOT CAUSE FOUND AND FIXED**
@@ -383,8 +410,9 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 
 ## Next Up
 
-**Immediate:**
+**Immediate (Manual Tasks):**
 - Add "Brain Time" header to Google Sheets column G
+- Add "Midodrine" header to Google Sheets column H
 - Test snooze button on iOS (long-press/expand notification)
 - Investigate desktop notifications not working (may be subscription issue)
 
