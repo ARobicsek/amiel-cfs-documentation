@@ -141,7 +141,8 @@ export default function Settings() {
 
       if (response.ok) {
         const data = await response.json();
-        let successMsg = `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
+        // CACHE BUSTER: 2024-12-19-FIX-01
+        let successMsg = `Test notification sent! (0 devices)`;
         
         if (data.debug_info && data.debug_info.vapid) {
             const serverKeyPrefix = data.debug_info.vapid.serverKeyPrefix;

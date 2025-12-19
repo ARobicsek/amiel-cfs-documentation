@@ -13,7 +13,9 @@
       "Bash(copy:*)",
       "Bash(del:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "SlashCommand(/start-session)",
+      "Bash(npx web-push generate-vapid-keys)"
     ],
     "deny": [],
     "ask": []
