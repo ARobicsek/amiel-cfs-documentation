@@ -463,7 +463,6 @@ export default function Settings() {
                     onClick={handleTestNotification}
                     disabled={loading}
                     className="btn-primary"
-                    style={{ marginLeft: '10px' }}
                   >
                     {loading ? 'Sending...' : 'Send Test Notification'}
                   </button>

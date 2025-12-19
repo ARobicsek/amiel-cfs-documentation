@@ -8,6 +8,7 @@ function DailyEntry({ onSave }) {
   const [oxaloacetate, setOxaloacetate] = useState('')
   const [exercise, setExercise] = useState('')
   const [brainTime, setBrainTime] = useState('')
+  const [midodrine, setMidodrine] = useState('')
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [error, setError] = useState(null)
@@ -27,7 +28,8 @@ function DailyEntry({ onSave }) {
       comments: comments || null,
       oxaloacetate: oxaloacetate ? parseFloat(oxaloacetate) : null,
       exercise: exercise ? parseInt(exercise) : null,
-      brainTime: brainTime ? parseFloat(brainTime) : null
+      brainTime: brainTime ? parseFloat(brainTime) : null,
+      midodrine: midodrine ? parseFloat(midodrine) : null
     }
 
     try {
@@ -48,6 +50,7 @@ function DailyEntry({ onSave }) {
       setOxaloacetate('')
       setExercise('')
       setBrainTime('')
+      setMidodrine('')
       setShowOptional(false)
     } catch (error) {
       console.error('Failed to save:', error)
@@ -94,25 +97,26 @@ function DailyEntry({ onSave }) {
       {showOptional && (
         <div className="optional-fields">
           <div className="field-group">
+            <label htmlFor="brainTime">Productive brain time (hours)</label>
+            <input
+              id="brainTime"
+              type="number"
+              step="0.5"
+              min="0"
+              max="24"
+              value={brainTime}
+              onChange={(e) => setBrainTime(e.target.value)}
+              placeholder="e.g., 2"
+            />
+          </div>
+
+          <div className="field-group">
             <label htmlFor="comments">Comments</label>
             <textarea
               id="comments"
               value={comments}
               onChange={(e) => setComments(e.target.value)}
               placeholder="How are you feeling?"
-            />
-          </div>
-
-          <div className="field-group">
-            <label htmlFor="oxaloacetate">Oxaloacetate (grams)</label>
-            <input
-              id="oxaloacetate"
-              type="number"
-              step="0.1"
-              min="0"
-              value={oxaloacetate}
-              onChange={(e) => setOxaloacetate(e.target.value)}
-              placeholder="e.g., 100"
             />
           </div>
 
@@ -129,16 +133,28 @@ function DailyEntry({ onSave }) {
           </div>
 
           <div className="field-group">
-            <label htmlFor="brainTime">Productive brain time (hours)</label>
+            <label htmlFor="oxaloacetate">Oxaloacetate (grams)</label>
             <input
-              id="brainTime"
+              id="oxaloacetate"
+              type="number"
+              step="0.1"
+              min="0"
+              value={oxaloacetate}
+              onChange={(e) => setOxaloacetate(e.target.value)}
+              placeholder="e.g., 2"
+            />
+          </div>
+
+          <div className="field-group">
+            <label htmlFor="midodrine">Midodrine (mg)</label>
+            <input
+              id="midodrine"
               type="number"
               step="0.5"
               min="0"
-              max="24"
-              value={brainTime}
-              onChange={(e) => setBrainTime(e.target.value)}
-              placeholder="e.g., 2"
+              value={midodrine}
+              onChange={(e) => setMidodrine(e.target.value)}
+              placeholder="e.g., 5"
             />
           </div>
         </div>
