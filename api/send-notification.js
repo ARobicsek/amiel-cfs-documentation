@@ -52,7 +52,8 @@ export default async function handler(req, res) {
 
     // Configure web-push with VAPID keys
     console.log('Configuring VAPID...');
-    let vapidSubject = process.env.VAPID_EMAIL;
+    // IMPORTANT: .trim() removes trailing newlines that break Apple's JWT validation
+    let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : null;
     console.log('VAPID_EMAIL from env:', vapidSubject);
     if (vapidSubject && !vapidSubject.startsWith('mailto:') && !vapidSubject.startsWith('http')) {
       vapidSubject = `mailto:${vapidSubject}`;
