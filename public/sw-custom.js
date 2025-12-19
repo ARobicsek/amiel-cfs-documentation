@@ -5,34 +5,42 @@
 self.addEventListener('push', (event) => {
   console.log('Push event received:', event);
 
-  let data = {
-    title: 'CFS Tracker',
+  let title = 'CFS Tracker';
+  let options = {
     body: 'You have a new notification',
     icon: '/pwa-192x192.png',
-    badge: '/favicon.svg'
+    badge: '/favicon.svg',
+    tag: 'cfs-notification',
+    requireInteraction: true // Keep it visible until user interacts
   };
 
   if (event.data) {
     try {
-      data = event.data.json();
+      const json = event.data.json();
+      title = json.title || title;
+      options.body = json.body || options.body;
+      options.icon = json.icon || options.icon;
+      options.badge = json.badge || options.badge;
+      if (json.data) options.data = json.data;
+      if (json.actions) options.actions = json.actions;
     } catch (error) {
-      console.error('Failed to parse push data:', error);
-      data.body = event.data.text();
+      console.error('Failed to parse push data as JSON:', error);
+      // Fallback to text if JSON parsing fails
+      options.body = event.data.text() || options.body;
     }
   }
 
-  const options = {
-    body: data.body,
-    icon: data.icon || '/pwa-192x192.png',
-    badge: data.badge || '/favicon.svg',
-    data: data.data || {},
-    vibrate: [200, 100, 200],
-    requireInteraction: false,
-    actions: data.actions || []
-  };
+  // Ensure paths are absolute (helps on some devices)
+  const origin = self.location.origin;
+  if (options.icon && !options.icon.startsWith('http')) {
+    options.icon = origin + (options.icon.startsWith('/') ? '' : '/') + options.icon;
+  }
+  if (options.badge && !options.badge.startsWith('http')) {
+    options.badge = origin + (options.badge.startsWith('/') ? '' : '/') + options.badge;
+  }
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(title, options)
   );
 });
 

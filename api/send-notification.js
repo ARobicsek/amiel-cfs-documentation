@@ -80,6 +80,13 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
 
     let subscriptions = [];
+    let debugInfo = {
+      sheetId: process.env.GOOGLE_SHEET_ID ? process.env.GOOGLE_SHEET_ID.substring(0, 5) + '...' : 'missing',
+      rowsFound: 0,
+      rowsContent: [],
+      parseErrors: []
+    };
+
     try {
       const getResponse = await sheets.spreadsheets.values.get({
         spreadsheetId: process.env.GOOGLE_SHEET_ID.trim(),
@@ -87,15 +94,39 @@ export default async function handler(req, res) {
       });
 
       const rows = getResponse.data.values || [];
-      console.log(`Found ${rows.length} rows in Subscriptions tab (including header)`);
+      debugInfo.rowsFound = rows.length;
+      console.log(`Found ${rows.length} rows in Subscriptions tab`);
 
-      // Skip header row and parse subscriptions
-      if (rows.length > 1) {
-        subscriptions = rows.slice(1).map(row => {
+      // Robust parsing: Iterate ALL rows to find valid subscriptions
+      // This handles cases where header is missing or rows are messy
+      if (rows.length > 0) {
+        // Capture a sample for debugging
+        debugInfo.rowsContent = rows.slice(0, 5).map(r => ({
+           colCount: r.length,
+           hasFullSub: !!r[3],
+           fullSubPreview: r[3] ? r[3].substring(0, 50) + '...' : 'undefined'
+        }));
+
+        subscriptions = rows.map((row, index) => {
           try {
-            return JSON.parse(row[3]); // Full subscription is in column D
+            // We expect the full subscription JSON in column D (index 3)
+            if (!row[3]) {
+              return null;
+            }
+            
+            const sub = JSON.parse(row[3]);
+            
+            // Validate it has the essential fields of a PushSubscription
+            if (!sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+               // This might be the header row ("Full Subscription" is not valid JSON)
+               // or a malformed entry
+               return null;
+            }
+            
+            return sub;
           } catch (error) {
-            console.error('Failed to parse subscription:', error);
+            // JSON parse error - expected for the header row
+            // or invalid data. We silently skip.
             return null;
           }
         }).filter(sub => sub !== null);
@@ -104,6 +135,7 @@ export default async function handler(req, res) {
     } catch (error) {
       console.error('Failed to get subscriptions from Google Sheets:', error);
       console.error('Error details:', error.message);
+      debugInfo.error = error.message;
       // If no subscriptions exist, that's okay
     }
 
@@ -113,7 +145,8 @@ export default async function handler(req, res) {
         success: true,
         message: 'No subscriptions found',
         joke: jokeText,
-        sent: 0
+        sent: 0,
+        debug_info: debugInfo
       });
     }
 

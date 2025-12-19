@@ -141,9 +141,19 @@ export default function Settings() {
 
       if (response.ok) {
         const data = await response.json();
+        let successMsg = `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
+        
+        if (data.sent === 0 && data.debug_info) {
+          console.log('Debug Info:', data.debug_info);
+          successMsg += `\n\nDebug: Found ${data.debug_info.rowsFound} rows. Check console for details.`;
+          if (data.debug_info.parseErrors && data.debug_info.parseErrors.length > 0) {
+             successMsg += `\nErrors: ${data.debug_info.parseErrors.length} parse errors.`;
+          }
+        }
+        
         setMessage({
           type: 'success',
-          text: `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`
+          text: successMsg
         });
       } else {
         const errorData = await response.json();

@@ -41,6 +41,26 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-18 - iPhone Notification Troubleshooting (Session 14)
+- **Investigation**:
+  - Confirmed duplicate notifications on Desktop (Localhost vs Production).
+  - Identified that iPhone PWA "Saved successfully" message didn't initially create a subscription row in Google Sheets.
+  - Clearing the "Subscriptions" sheet allowed a new subscription to be created from iPhone.
+  - "Send Test Notification" reported "Sent to 0 devices" despite the subscription existing.
+- **Findings**:
+  - There might be an issue with how the subscription object is serialized or stored for iOS devices, or how the backend filters "valid" subscriptions.
+  - The "0 devices" message implies the backend logic filtered out the iPhone subscription.
+- **Next Steps**:
+  - Debug `api/send-notification.js` to see why it might be skipping the iPhone subscription.
+  - Check the format of the subscription object sent from the iPhone.
+
+### 2025-12-18 - iPhone PWA Notification Fix (Session 13)
+- **Fixed Notification Sending Logic**: **RESOLVED**
+  - Root cause: `api/send-notification.js` assumed a header row always existed in Google Sheets. If the user deleted all rows (including header), the API would fail to find any subscriptions because it blindly skipped the first row.
+  - Implemented robust row parsing: Iterates ALL rows, ignores invalid ones (like headers), and captures valid subscriptions regardless of row position.
+  - Handled missing header row gracefully.
+- **Status**: **READY FOR TESTING** - Code updated, awaiting deployment and user verification.
+
 ### 2025-12-18 - iPhone Notification Testing (Session 12)
 - **Added Test Notification Feature**:
   - Implemented "Send Test Notification" button in Settings page (visible when subscribed)
