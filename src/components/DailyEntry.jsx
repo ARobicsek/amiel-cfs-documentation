@@ -7,6 +7,7 @@ function DailyEntry({ onSave }) {
   const [comments, setComments] = useState('')
   const [oxaloacetate, setOxaloacetate] = useState('')
   const [exercise, setExercise] = useState('')
+  const [brainTime, setBrainTime] = useState('')
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [error, setError] = useState(null)
@@ -25,7 +26,8 @@ function DailyEntry({ onSave }) {
       hours,
       comments: comments || null,
       oxaloacetate: oxaloacetate ? parseFloat(oxaloacetate) : null,
-      exercise: exercise ? parseInt(exercise) : null
+      exercise: exercise ? parseInt(exercise) : null,
+      brainTime: brainTime ? parseFloat(brainTime) : null
     }
 
     try {
@@ -45,6 +47,7 @@ function DailyEntry({ onSave }) {
       setComments('')
       setOxaloacetate('')
       setExercise('')
+      setBrainTime('')
       setShowOptional(false)
     } catch (error) {
       console.error('Failed to save:', error)
@@ -122,6 +125,20 @@ function DailyEntry({ onSave }) {
               value={exercise}
               onChange={(e) => setExercise(e.target.value)}
               placeholder="e.g., 15"
+            />
+          </div>
+
+          <div className="field-group">
+            <label htmlFor="brainTime">Productive brain time (hours)</label>
+            <input
+              id="brainTime"
+              type="number"
+              step="0.5"
+              min="0"
+              max="24"
+              value={brainTime}
+              onChange={(e) => setBrainTime(e.target.value)}
+              placeholder="e.g., 2"
             />
           </div>
         </div>

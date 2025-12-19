@@ -310,55 +310,11 @@ export default function Settings() {
     <div className="settings">
       <h2>Settings</h2>
 
-      {/* Authentication Token Section */}
-      <div className="settings-section">
-        <h3>Authentication Token</h3>
-        <p className="settings-description">
-          Enter your authentication token to enable syncing with Google Sheets.
-          The token should be: <code>dev-secret-token-12345</code>
-        </p>
-
-        <div className="settings-form">
-          <div className="form-group">
-            <label htmlFor="authToken">Token</label>
-            <input
-              type="text"
-              id="authToken"
-              value={authToken}
-              onChange={(e) => setAuthToken(e.target.value)}
-              placeholder="dev-secret-token-12345"
-              className="text-input"
-            />
-            <p className="help-text">
-              Current token: {authToken ? `${authToken.substring(0, 20)}...` : 'NOT SET'}
-            </p>
-          </div>
-        </div>
-
-        {tokenMessage.text && (
-          <div className={`settings-message ${tokenMessage.type}`}>
-            {tokenMessage.text}
-          </div>
-        )}
-
-        <div className="settings-actions">
-          <button
-            onClick={saveAuthToken}
-            className="btn-primary"
-          >
-            Save Token
-          </button>
-        </div>
-      </div>
-
-      {/* Reminder Schedule Section - Moved to Top */}
+      {/* Reminder Schedule Section */}
       <div className="settings-section">
         <h3>Reminder Schedule</h3>
         <p className="settings-description">
           Customize when and how often you receive reminders to track your daily health metrics.
-          <br /><br />
-          <strong>Note:</strong> With the current Vercel Hobby plan, notifications are limited to once per day at 9 PM ET.
-          The settings below will take effect if you upgrade to Pro plan for more frequent notifications.
         </p>
 
         <div className="settings-form">
@@ -533,6 +489,46 @@ export default function Settings() {
             )}
           </>
         )}
+      </div>
+
+      {/* Authentication Token Section */}
+      <div className="settings-section">
+        <h3>Authentication Token</h3>
+        <p className="settings-description">
+          Enter your authentication token to enable syncing with Google Sheets.
+        </p>
+
+        <div className="settings-form">
+          <div className="form-group">
+            <label htmlFor="authToken">Token</label>
+            <input
+              type="text"
+              id="authToken"
+              value={authToken}
+              onChange={(e) => setAuthToken(e.target.value)}
+              placeholder="Enter your token"
+              className="text-input"
+            />
+            <p className="help-text">
+              Current token: {authToken ? `${authToken.substring(0, 20)}...` : 'NOT SET'}
+            </p>
+          </div>
+        </div>
+
+        {tokenMessage.text && (
+          <div className={`settings-message ${tokenMessage.type}`}>
+            {tokenMessage.text}
+          </div>
+        )}
+
+        <div className="settings-actions">
+          <button
+            onClick={saveAuthToken}
+            className="btn-primary"
+          >
+            Save Token
+          </button>
+        </div>
       </div>
 
       {/* About Section */}

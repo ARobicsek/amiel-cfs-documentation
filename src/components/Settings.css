@@ -133,12 +133,12 @@
 }
 
 .btn-primary {
-  background: var(--color-primary);
+  background: var(--accent, #3b82f6);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--accent-hover, #2563eb);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }

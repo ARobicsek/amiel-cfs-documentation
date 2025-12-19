@@ -9,7 +9,8 @@
  *   hours: number (required, 0-24),
  *   comments: string | null,
  *   oxaloacetate: number | null (grams),
- *   exercise: number | null (minutes)
+ *   exercise: number | null (minutes),
+ *   brainTime: number | null (hours of productive brain time)
  * }
  *
  * Headers:
@@ -40,7 +41,7 @@ export default async function handler(req, res) {
   }
 
   // Parse and validate body
-  const { date, hours, comments, oxaloacetate, exercise } = req.body;
+  const { date, hours, comments, oxaloacetate, exercise, brainTime } = req.body;
 
   if (hours === undefined || hours === null) {
     return res.status(400).json({ error: 'Missing required field: hours' });
@@ -80,7 +81,7 @@ export default async function handler(req, res) {
 
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: 'Sheet1!A:F',
+      range: 'Sheet1!A:G',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
@@ -89,7 +90,8 @@ export default async function handler(req, res) {
           hours,                              // Hours (required)
           comments || '',                     // Comments
           oxaloacetate || '',                 // Oxaloacetate (g)
-          exercise || ''                      // Exercise (min)
+          exercise || '',                     // Exercise (min)
+          brainTime || ''                     // Productive brain time (hours)
         ]]
       }
     });
