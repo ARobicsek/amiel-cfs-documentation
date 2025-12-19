@@ -145,9 +145,11 @@ export default function Settings() {
         
         if (data.sent === 0 && data.debug_info) {
           console.log('Debug Info:', data.debug_info);
-          successMsg += `\n\nDebug: Found ${data.debug_info.rowsFound} rows. Check console for details.`;
+          successMsg += `\n\nDebug: Found ${data.debug_info.rowsFound} rows.`;
           if (data.debug_info.parseErrors && data.debug_info.parseErrors.length > 0) {
-             successMsg += `\nErrors: ${data.debug_info.parseErrors.length} parse errors.`;
+             const firstError = data.debug_info.parseErrors[0];
+             successMsg += `\nError 1: ${firstError.error}`;
+             if (firstError.missing) successMsg += ` (${firstError.missing.join(', ')})`;
           }
         }
         

@@ -97,41 +97,63 @@ export default async function handler(req, res) {
       debugInfo.rowsFound = rows.length;
       console.log(`Found ${rows.length} rows in Subscriptions tab`);
 
-      // Robust parsing: Iterate ALL rows to find valid subscriptions
-      // This handles cases where header is missing or rows are messy
-      if (rows.length > 0) {
-        // Capture a sample for debugging
-        debugInfo.rowsContent = rows.slice(0, 5).map(r => ({
-           colCount: r.length,
-           hasFullSub: !!r[3],
-           fullSubPreview: r[3] ? r[3].substring(0, 50) + '...' : 'undefined'
-        }));
-
-        subscriptions = rows.map((row, index) => {
-          try {
-            // We expect the full subscription JSON in column D (index 3)
-            if (!row[3]) {
-              return null;
-            }
-            
-            const sub = JSON.parse(row[3]);
-            
-            // Validate it has the essential fields of a PushSubscription
-            if (!sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
-               // This might be the header row ("Full Subscription" is not valid JSON)
-               // or a malformed entry
-               return null;
-            }
-            
-            return sub;
-          } catch (error) {
-            // JSON parse error - expected for the header row
-            // or invalid data. We silently skip.
-            return null;
-          }
-        }).filter(sub => sub !== null);
-      }
-      console.log(`Parsed ${subscriptions.length} valid subscriptions`);
+              // Robust parsing: Iterate ALL rows to find valid subscriptions
+            // This handles cases where header is missing or rows are messy
+            if (rows.length > 0) {
+              // Capture a sample for debugging
+              debugInfo.rowsContent = rows.slice(0, 5).map(r => ({
+                 colCount: r.length,
+                 hasFullSub: !!r[3],
+                 fullSubPreview: r[3] ? r[3].substring(0, 50) + '...' : 'undefined'
+              }));
+      
+              subscriptions = rows.map((row, index) => {
+                try {
+                  // We expect the full subscription JSON in column D (index 3)
+                  if (!row[3]) {
+                    debugInfo.parseErrors.push({ index, error: 'Empty column D' });
+                    return null;
+                  }
+                  
+                  let sub;
+                  try {
+                    sub = JSON.parse(row[3]);
+                  } catch (e) {
+                    // Ignore header row which is likely "Full Subscription"
+                    if (row[3] === "Full Subscription" || (index === 0 && !row[3].startsWith('{'))) {
+                       return null;
+                    }
+                    debugInfo.parseErrors.push({ 
+                      index, 
+                      error: 'JSON parse error', 
+                      contentPreview: row[3].substring(0, 20) + '...' 
+                    });
+                    return null;
+                  }
+                  
+                  // Validate it has the essential fields of a PushSubscription
+                  const missing = [];
+                  if (!sub.endpoint) missing.push('endpoint');
+                  if (!sub.keys) missing.push('keys');
+                  else {
+                      if (!sub.keys.p256dh) missing.push('keys.p256dh');
+                      if (!sub.keys.auth) missing.push('keys.auth');
+                  }
+      
+                  if (missing.length > 0) {
+                     debugInfo.parseErrors.push({ index, error: 'Missing fields', missing });
+                     return null;
+                  }
+                  
+                  return sub;
+                } catch (error) {
+                  // JSON parse error - expected for the header row
+                  // or invalid data. We silently skip.
+                  debugInfo.parseErrors.push({ index, error: 'Unexpected error', message: error.message });
+                  return null;
+                }
+              }).filter(sub => sub !== null);
+            }      console.log(`Parsed ${subscriptions.length} valid subscriptions`);
     } catch (error) {
       console.error('Failed to get subscriptions from Google Sheets:', error);
       console.error('Error details:', error.message);
