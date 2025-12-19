@@ -277,34 +277,16 @@ export default async function handler(req, res) {
                     badge: '/favicon.svg',
       
                     data: {
-      
-                      url: '/'
-      
+                      url: '/',
+                      token: expectedToken  // Pass token for snooze action
                     },
-      
-                    // actions: [
-      
-                    //   {
-      
-                    //     action: 'track',
-      
-                    //     title: 'Track Now',
-      
-                    //     icon: '/pwa-192x192.png'
-      
-                    //   },
-      
-                    //   {
-      
-                    //     action: 'snooze',
-      
-                    //     title: 'Snooze 1 Hour',
-      
-                    //     icon: '/pwa-192x192.png'
-      
-                    //   }
-      
-                    // ]
+
+                    actions: [
+                      {
+                        action: 'snooze',
+                        title: 'Snooze 1 Hour'
+                      }
+                    ]
       
                   });
       

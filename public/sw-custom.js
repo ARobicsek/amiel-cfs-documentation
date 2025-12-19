@@ -55,12 +55,15 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'snooze') {
     console.log('Snooze action clicked');
 
+    // Get token from notification data
+    const token = event.notification.data?.token || 'dev-secret-token-12345';
+
     event.waitUntil(
       fetch('/api/snooze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${self.SECRET_TOKEN || 'dev-secret-token-12345'}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ duration: 60 })
       })
