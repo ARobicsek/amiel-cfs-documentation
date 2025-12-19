@@ -126,18 +126,18 @@ export default async function handler(req, res) {
       data: {
         url: '/'
       },
-      actions: [
-        {
-          action: 'track',
-          title: 'Track Now',
-          icon: '/pwa-192x192.png'
-        },
-        {
-          action: 'snooze',
-          title: 'Snooze 1 Hour',
-          icon: '/pwa-192x192.png'
-        }
-      ]
+      // actions: [
+      //   {
+      //     action: 'track',
+      //     title: 'Track Now',
+      //     icon: '/pwa-192x192.png'
+      //   },
+      //   {
+      //     action: 'snooze',
+      //     title: 'Snooze 1 Hour',
+      //     icon: '/pwa-192x192.png'
+      //   }
+      // ]
     });
 
     let sentCount = 0;
