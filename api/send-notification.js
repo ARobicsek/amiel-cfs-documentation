@@ -40,6 +40,14 @@ export default async function handler(req, res) {
     const jokeText = `${joke.setup} ${joke.punchline}`;
     console.log('Joke fetched successfully');
 
+    // Initialize debugInfo early so we can add VAPID info
+    let debugInfo = {
+      sheetId: process.env.GOOGLE_SHEET_ID ? process.env.GOOGLE_SHEET_ID.substring(0, 5) + '...' : 'missing',
+      rowsFound: 0,
+      rowsContent: [],
+      parseErrors: []
+    };
+
     // Configure web-push with VAPID keys
     console.log('Configuring VAPID...');
     let vapidSubject = process.env.VAPID_EMAIL;
@@ -84,14 +92,6 @@ export default async function handler(req, res) {
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
-
-    let subscriptions = [];
-    let debugInfo = {
-      sheetId: process.env.GOOGLE_SHEET_ID ? process.env.GOOGLE_SHEET_ID.substring(0, 5) + '...' : 'missing',
-      rowsFound: 0,
-      rowsContent: [],
-      parseErrors: []
-    };
 
     try {
       const getResponse = await sheets.spreadsheets.values.get({

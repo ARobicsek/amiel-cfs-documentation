@@ -196,7 +196,10 @@ export default function Settings() {
         });
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send test notification');
+        const errorMessage = errorData.details 
+          ? `${errorData.error}: ${errorData.details}`
+          : (errorData.error || 'Failed to send test notification');
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Failed to send test notification:', error);
