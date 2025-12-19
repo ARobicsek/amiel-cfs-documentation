@@ -47,6 +47,7 @@ export default async function handler(req, res) {
       rowsContent: [],
       parseErrors: []
     };
+    let subscriptions = [];
 
     // Configure web-push with VAPID keys
     console.log('Configuring VAPID...');
