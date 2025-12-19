@@ -143,6 +143,16 @@ export default function Settings() {
         const data = await response.json();
         let successMsg = `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
         
+        if (data.cleaned_up && data.cleaned_up > 0) {
+           successMsg += `\n\nNote: ${data.cleaned_up} expired subscription(s) were removed.`;
+           // If we failed to send AND cleaned up, it likely means OUR subscription was the bad one.
+           // Reset UI to allow re-subscribing.
+           if (data.sent === 0) {
+              setSubscribed(false);
+              successMsg += `\nYour subscription was expired. Please click "Enable Notifications" to re-subscribe.`;
+           }
+        }
+        
         if (data.sent === 0) {
            if (data.send_errors && data.send_errors.length > 0) {
              const firstSendError = data.send_errors[0];

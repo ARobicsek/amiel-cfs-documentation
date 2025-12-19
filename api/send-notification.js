@@ -107,121 +107,381 @@ export default async function handler(req, res) {
                  fullSubPreview: r[3] ? r[3].substring(0, 50) + '...' : 'undefined'
               }));
       
-              subscriptions = rows.map((row, index) => {
-                try {
-                  // We expect the full subscription JSON in column D (index 3)
-                  if (!row[3]) {
-                    debugInfo.parseErrors.push({ index, error: 'Empty column D' });
-                    return null;
-                  }
-                  
-                  let sub;
-                  try {
-                    sub = JSON.parse(row[3]);
-                  } catch (e) {
-                    // Ignore header row which is likely "Full Subscription"
-                    if (row[3] === "Full Subscription" || (index === 0 && !row[3].startsWith('{'))) {
-                       return null;
+                      subscriptions = rows.map((row, index) => {
+      
+                        try {
+      
+                          // We expect the full subscription JSON in column D (index 3)
+      
+                          if (!row[3]) {
+      
+                            debugInfo.parseErrors.push({ index, error: 'Empty column D' });
+      
+                            return null;
+      
+                          }
+      
+                          
+      
+                          let sub;
+      
+                          try {
+      
+                            sub = JSON.parse(row[3]);
+      
+                          } catch (e) {
+      
+                            // Ignore header row which is likely "Full Subscription"
+      
+                            if (row[3] === "Full Subscription" || (index === 0 && !row[3].startsWith('{'))) {
+      
+                               return null;
+      
+                            }
+      
+                            debugInfo.parseErrors.push({ 
+      
+                              index, 
+      
+                              error: 'JSON parse error', 
+      
+                              contentPreview: row[3].substring(0, 20) + '...' 
+      
+                            });
+      
+                            return null;
+      
+                          }
+      
+                          
+      
+                          // Validate it has the essential fields of a PushSubscription
+      
+                          const missing = [];
+      
+                          if (!sub.endpoint) missing.push('endpoint');
+      
+                          if (!sub.keys) missing.push('keys');
+      
+                          else {
+      
+                              if (!sub.keys.p256dh) missing.push('keys.p256dh');
+      
+                              if (!sub.keys.auth) missing.push('keys.auth');
+      
+                          }
+      
+              
+      
+                          if (missing.length > 0) {
+      
+                             debugInfo.parseErrors.push({ index, error: 'Missing fields', missing });
+      
+                             return null;
+      
+                          }
+      
+                          
+      
+                          // Attach the original row index for cleanup (index 0 is the first row returned)
+      
+                          // The Google Sheets API uses 0-based index for the whole sheet.
+      
+                          // Since we grabbed 'A:D', rows[0] is truly row 0 of the sheet.
+      
+                          sub._rowIndex = index;
+      
+                          return sub;
+      
+                        } catch (error) {
+      
+                          // JSON parse error - expected for the header row
+      
+                          // or invalid data. We silently skip.
+      
+                          debugInfo.parseErrors.push({ index, error: 'Unexpected error', message: error.message });
+      
+                          return null;
+      
+                        }
+      
+                      }).filter(sub => sub !== null);
+      
                     }
-                    debugInfo.parseErrors.push({ 
-                      index, 
-                      error: 'JSON parse error', 
-                      contentPreview: row[3].substring(0, 20) + '...' 
-                    });
-                    return null;
-                  }
-                  
-                  // Validate it has the essential fields of a PushSubscription
-                  const missing = [];
-                  if (!sub.endpoint) missing.push('endpoint');
-                  if (!sub.keys) missing.push('keys');
-                  else {
-                      if (!sub.keys.p256dh) missing.push('keys.p256dh');
-                      if (!sub.keys.auth) missing.push('keys.auth');
+      
+                    console.log(`Parsed ${subscriptions.length} valid subscriptions`);
+      
+                  } catch (error) {
+      
+                    console.error('Failed to get subscriptions from Google Sheets:', error);
+      
+                    console.error('Error details:', error.message);
+      
+                    debugInfo.error = error.message;
+      
+                    // If no subscriptions exist, that's okay
+      
                   }
       
-                  if (missing.length > 0) {
-                     debugInfo.parseErrors.push({ index, error: 'Missing fields', missing });
-                     return null;
+              
+      
+                  if (subscriptions.length === 0) {
+      
+                    console.log('No subscriptions found - returning success with sent=0');
+      
+                    return res.status(200).json({
+      
+                      success: true,
+      
+                      message: 'No subscriptions found',
+      
+                      joke: jokeText,
+      
+                      sent: 0,
+      
+                      debug_info: debugInfo
+      
+                    });
+      
                   }
+      
+              
+      
+                  // Send notifications to all subscriptions
+      
+                  const payload = JSON.stringify({
+      
+                    title: 'Time to track your day!',
+      
+                    body: jokeText,
+      
+                    icon: '/pwa-192x192.png',
+      
+                    badge: '/favicon.svg',
+      
+                    data: {
+      
+                      url: '/'
+      
+                    },
+      
+                    // actions: [
+      
+                    //   {
+      
+                    //     action: 'track',
+      
+                    //     title: 'Track Now',
+      
+                    //     icon: '/pwa-192x192.png'
+      
+                    //   },
+      
+                    //   {
+      
+                    //     action: 'snooze',
+      
+                    //     title: 'Snooze 1 Hour',
+      
+                    //     icon: '/pwa-192x192.png'
+      
+                    //   }
+      
+                    // ]
+      
+                  });
+      
+              
+      
+                  let sentCount = 0;
+      
+                  const sendErrors = [];
+      
+                  const rowsToDelete = [];
+      
+              
+      
+                  const sendPromises = subscriptions.map(async (subscription) => {
+      
+                    try {
+      
+                      // Create a clean subscription object for web-push (remove internal _rowIndex)
+      
+                      const cleanSub = { 
+      
+                          endpoint: subscription.endpoint, 
+      
+                          keys: subscription.keys 
+      
+                      };
+      
+                      await webpush.sendNotification(cleanSub, payload);
+      
+                      sentCount++;
+      
+                    } catch (error) {
+      
+                      console.error('Failed to send to subscription:', error);
+      
+                      
+      
+                      // Track 410 Gone / 404 Not Found for cleanup
+      
+                      if (error.statusCode === 410 || error.statusCode === 404) {
+      
+                         console.log(`Marking invalid subscription at row ${subscription._rowIndex} for deletion.`);
+      
+                         rowsToDelete.push(subscription._rowIndex);
+      
+                      }
+      
+              
+      
+                      sendErrors.push({
+      
+                        endpoint: subscription.endpoint ? subscription.endpoint.substring(0, 50) + '...' : 'unknown',
+      
+                        error: error.message,
+      
+                        statusCode: error.statusCode
+      
+                      });
+      
+                    }
+      
+                  });
+      
+              
+      
+                  await Promise.all(sendPromises);
+      
                   
-                  return sub;
-                } catch (error) {
-                  // JSON parse error - expected for the header row
-                  // or invalid data. We silently skip.
-                  debugInfo.parseErrors.push({ index, error: 'Unexpected error', message: error.message });
-                  return null;
-                }
-              }).filter(sub => sub !== null);
-            }      console.log(`Parsed ${subscriptions.length} valid subscriptions`);
-    } catch (error) {
-      console.error('Failed to get subscriptions from Google Sheets:', error);
-      console.error('Error details:', error.message);
-      debugInfo.error = error.message;
-      // If no subscriptions exist, that's okay
-    }
-
-    if (subscriptions.length === 0) {
-      console.log('No subscriptions found - returning success with sent=0');
-      return res.status(200).json({
-        success: true,
-        message: 'No subscriptions found',
-        joke: jokeText,
-        sent: 0,
-        debug_info: debugInfo
-      });
-    }
-
-    // Send notifications to all subscriptions
-    const payload = JSON.stringify({
-      title: 'Time to track your day!',
-      body: jokeText,
-      icon: '/pwa-192x192.png',
-      badge: '/favicon.svg',
-      data: {
-        url: '/'
-      },
-      // actions: [
-      //   {
-      //     action: 'track',
-      //     title: 'Track Now',
-      //     icon: '/pwa-192x192.png'
-      //   },
-      //   {
-      //     action: 'snooze',
-      //     title: 'Snooze 1 Hour',
-      //     icon: '/pwa-192x192.png'
-      //   }
-      // ]
-    });
-
-    let sentCount = 0;
-    const sendErrors = [];
-
-    const sendPromises = subscriptions.map(async (subscription) => {
-      try {
-        await webpush.sendNotification(subscription, payload);
-        sentCount++;
-      } catch (error) {
-        console.error('Failed to send to subscription:', error);
-        sendErrors.push({
-          endpoint: subscription.endpoint ? subscription.endpoint.substring(0, 50) + '...' : 'unknown',
-          error: error.message,
-          statusCode: error.statusCode
-        });
-      }
-    });
-
-    await Promise.all(sendPromises);
-
-    return res.status(200).json({
-      success: true,
-      joke: jokeText,
-      sent: sentCount,
-      total: subscriptions.length,
-      debug_info: debugInfo,
-      send_errors: sendErrors
-    });
+      
+                  // Clean up invalid subscriptions
+      
+                  let cleanedUp = 0;
+      
+                  if (rowsToDelete.length > 0) {
+      
+                      try {
+      
+                          // Sort descending to delete from bottom up
+      
+                          rowsToDelete.sort((a, b) => b - a);
+      
+                          
+      
+                          const requests = rowsToDelete.map(rowIndex => ({
+      
+                              deleteDimension: {
+      
+                                  range: {
+      
+                                      sheetId: 0, // Assuming Subscriptions is the first sheet? DANGEROUS.
+      
+                                      // We need the specific sheetId for "Subscriptions".
+      
+                                      // Let's assume we need to fetch it first or use a smarter way.
+      
+                                      // Actually, 'deleteDimension' requires sheetId (integer), NOT the name.
+      
+                                      // This is tricky without fetching metadata.
+      
+                                      
+      
+                                      // ALTERNATIVE: Just clear the content of the row. It's safer and easier.
+      
+                                      // We can filter out empty rows in future reads.
+      
+                                      dimension: "ROWS",
+      
+                                      startIndex: rowIndex,
+      
+                                      endIndex: rowIndex + 1
+      
+                                  }
+      
+                              }
+      
+                          }));
+      
+                          
+      
+                          // Getting Sheet ID for "Subscriptions"
+      
+                          // We already have 'sheets' client.
+      
+                          const spreadsheet = await sheets.spreadsheets.get({
+      
+                              spreadsheetId: process.env.GOOGLE_SHEET_ID.trim()
+      
+                          });
+      
+                          const subSheet = spreadsheet.data.sheets.find(s => s.properties.title === 'Subscriptions');
+      
+                          
+      
+                          if (subSheet) {
+      
+                              const sheetId = subSheet.properties.sheetId;
+      
+                              
+      
+                              // Update requests with correct sheetId
+      
+                              requests.forEach(req => req.deleteDimension.range.sheetId = sheetId);
+      
+                              
+      
+                              await sheets.spreadsheets.batchUpdate({
+      
+                                  spreadsheetId: process.env.GOOGLE_SHEET_ID.trim(),
+      
+                                  requestBody: { requests }
+      
+                              });
+      
+                              cleanedUp = rowsToDelete.length;
+      
+                              console.log(`Successfully deleted ${cleanedUp} invalid subscription rows.`);
+      
+                          } else {
+      
+                              console.error('Could not find "Subscriptions" sheet ID for cleanup.');
+      
+                          }
+      
+                      } catch (cleanupError) {
+      
+                          console.error('Failed to cleanup invalid subscriptions:', cleanupError);
+      
+                          // Don't fail the whole request just because cleanup failed
+      
+                          debugInfo.cleanupError = cleanupError.message;
+      
+                      }
+      
+                  }
+      
+              
+      
+                  return res.status(200).json({
+      
+                    success: true,
+      
+                    joke: jokeText,
+      
+                    sent: sentCount,
+      
+                    total: subscriptions.length,
+      
+                    debug_info: debugInfo,
+      
+                    send_errors: sendErrors,
+      
+                    cleaned_up: cleanedUp
+      
+                  });
 
   } catch (error) {
     console.error('Failed to send notification:', error);
