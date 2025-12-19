@@ -86,7 +86,7 @@ export default async function handler(req, res) {
       requestBody: {
         values: [[
           timestamp,                          // Timestamp (Eastern Time)
-          date || dateOnly,                   // Date
+          dateOnly,                           // Date (Eastern Time, not client-sent UTC)
           hours,                              // Hours (required)
           comments || '',                     // Comments
           oxaloacetate || '',                 // Oxaloacetate (g)
