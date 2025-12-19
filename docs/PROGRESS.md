@@ -54,6 +54,21 @@ Track completed features and current status here. Update after completing each f
   - Debug `api/send-notification.js` to see why it might be skipping the iPhone subscription.
   - Check the format of the subscription object sent from the iPhone.
 
+### 2025-12-18 - iPhone PWA Notification Fix (Session 14)
+- **Investigation**:
+  - Confirmed duplicate notifications on Desktop (Localhost vs Production).
+  - Identified Key Mismatch (403 Forbidden) as the root cause of iPhone failures.
+  - The iPhone PWA had a subscription created with an *old* VAPID key (from development/localhost) which was rejected by the production server.
+- **Fixes**:
+  - **Backend**: Updated `api/send-notification.js` to auto-detect 403/410/404 errors and remove invalid subscriptions.
+  - **Frontend**: Updated `src/components/Settings.jsx` to force-unsubscribe before re-subscribing, ensuring the new VAPID key is used.
+  - **UI Regression**: Fixed "squeezed" layout on mobile by removing default Vite `body { display: flex; place-items: center }` styles in `src/index.css`.
+- **Result**:
+  - "Send Test Notification" now reports "Sent to 1 device" and "Keys match".
+  - Desktop notification received.
+  - iPhone notification *sent* successfully (OS-level display pending user settings check).
+- **Status**: **DEPLOYED & VERIFIED**
+
 ### 2025-12-18 - iPhone PWA Notification Fix (Session 13)
 - **Fixed Notification Sending Logic**: **RESOLVED**
   - Root cause: `api/send-notification.js` assumed a header row always existed in Google Sheets. If the user deleted all rows (including header), the API would fail to find any subscriptions because it blindly skipped the first row.
