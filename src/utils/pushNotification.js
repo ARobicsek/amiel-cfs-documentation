@@ -25,7 +25,15 @@ function urlBase64ToUint8Array(base64String) {
  * Check if push notifications are supported
  */
 export function isPushSupported() {
-  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const hasSW = 'serviceWorker' in navigator;
+  const hasPush = 'PushManager' in window;
+  const hasNotif = 'Notification' in window;
+  
+  if (!hasSW || !hasPush || !hasNotif) {
+    console.log('Push Support Debug:', { hasSW, hasPush, hasNotif });
+  }
+  
+  return hasSW && hasPush && hasNotif;
 }
 
 /**

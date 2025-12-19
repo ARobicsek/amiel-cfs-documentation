@@ -157,8 +157,7 @@ export default function Settings() {
 
       if (response.ok) {
         const data = await response.json();
-        // CACHE BUSTER: 2024-12-19-FIX-02-FORCED-UPDATE
-        let successMsg = `Test notification sent! (0 devices)`;
+        let successMsg = `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
         
         if (data.debug_info && data.debug_info.vapid) {
             const serverKeyPrefix = data.debug_info.vapid.serverKeyPrefix;
@@ -307,21 +306,6 @@ export default function Settings() {
     }
   }
 
-  if (!pushSupported) {
-    return (
-      <div className="settings">
-        <h2>Settings</h2>
-        <div className="settings-section">
-          <h3>Push Notifications</h3>
-          <p className="error-message">
-            Push notifications are not supported in your browser.
-            Please use a modern browser like Chrome, Firefox, or Safari.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="settings">
       <h2>Settings</h2>
@@ -458,86 +442,96 @@ export default function Settings() {
       {/* Push Notifications Section */}
       <div className="settings-section">
         <h3>Push Notifications</h3>
-        <p className="settings-description">
-          Get daily reminders with a joke to track your health metrics.
-          {subscribed && ' Notifications are currently active.'}
-          {!subscribed && ' Enable notifications below to start receiving reminders.'}
-        </p>
+        
+        {!pushSupported ? (
+            <p className="error-message">
+              Push notifications are not supported in your browser.
+              Please use a modern browser like Chrome, Firefox, or Safari.
+            </p>
+        ) : (
+          <>
+            <p className="settings-description">
+              Get daily reminders with a joke to track your health metrics.
+              {subscribed && ' Notifications are currently active.'}
+              {!subscribed && ' Enable notifications below to start receiving reminders.'}
+            </p>
 
-        <div className="notification-status">
-          <div className="status-item">
-            <span className="status-label">Browser Support:</span>
-            <span className={`status-value ${pushSupported ? 'success' : 'error'}`}>
-              {pushSupported ? 'Supported' : 'Not Supported'}
-            </span>
-          </div>
+            <div className="notification-status">
+              <div className="status-item">
+                <span className="status-label">Browser Support:</span>
+                <span className={`status-value ${pushSupported ? 'success' : 'error'}`}>
+                  {pushSupported ? 'Supported' : 'Not Supported'}
+                </span>
+              </div>
 
-          <div className="status-item">
-            <span className="status-label">Permission:</span>
-            <span className={`status-value ${permission === 'granted' ? 'success' : permission === 'denied' ? 'error' : 'warning'}`}>
-              {permission === 'granted' ? 'Granted' : permission === 'denied' ? 'Denied' : 'Not Requested'}
-            </span>
-          </div>
+              <div className="status-item">
+                <span className="status-label">Permission:</span>
+                <span className={`status-value ${permission === 'granted' ? 'success' : permission === 'denied' ? 'error' : 'warning'}`}>
+                  {permission === 'granted' ? 'Granted' : permission === 'denied' ? 'Denied' : 'Not Requested'}
+                </span>
+              </div>
 
-          <div className="status-item">
-            <span className="status-label">Subscription:</span>
-            <span className={`status-value ${subscribed ? 'success' : 'inactive'}`}>
-              {subscribed ? 'Active' : 'Inactive'}
-            </span>
-          </div>
-        </div>
-
-        {message.text && (
-          <div className={`settings-message ${message.type}`}>
-            {message.text}
-          </div>
-        )}
-
-        <div className="settings-actions">
-          {!subscribed ? (
-            <button
-              onClick={handleEnableNotifications}
-              disabled={loading || permission === 'denied'}
-              className="btn-primary"
-            >
-              {loading ? 'Enabling...' : 'Enable Notifications'}
-            </button>
-          ) : (
-            <div className="subscribed-actions">
-              <button
-                onClick={handleDisableNotifications}
-                disabled={loading}
-                className="btn-secondary"
-              >
-                {loading ? 'Disabling...' : 'Disable Notifications'}
-              </button>
-              <button
-                onClick={handleTestNotification}
-                disabled={loading}
-                className="btn-primary"
-                style={{ marginLeft: '10px' }}
-              >
-                {loading ? 'Sending...' : 'Send Test Notification'}
-              </button>
+              <div className="status-item">
+                <span className="status-label">Subscription:</span>
+                <span className={`status-value ${subscribed ? 'success' : 'inactive'}`}>
+                  {subscribed ? 'Active' : 'Inactive'}
+                </span>
+              </div>
             </div>
-          )}
-        </div>
 
-        {permission === 'denied' && (
-          <p className="help-text error">
-            Notifications are blocked. To enable them, please:
-            <ol>
-              <li>Click the lock icon in your browser's address bar</li>
-              <li>Allow notifications for this site</li>
-              <li>Refresh the page</li>
-            </ol>
-          </p>
-        )}
+            {message.text && (
+              <div className={`settings-message ${message.type}`}>
+                {message.text}
+              </div>
+            )}
 
-        {subscribed && (
-          <p className="help-text success">
-            You're all set! You'll receive customized reminder notifications based on your schedule above.
-          </p>
+            <div className="settings-actions">
+              {!subscribed ? (
+                <button
+                  onClick={handleEnableNotifications}
+                  disabled={loading || permission === 'denied'}
+                  className="btn-primary"
+                >
+                  {loading ? 'Enabling...' : 'Enable Notifications'}
+                </button>
+              ) : (
+                <div className="subscribed-actions">
+                  <button
+                    onClick={handleDisableNotifications}
+                    disabled={loading}
+                    className="btn-secondary"
+                  >
+                    {loading ? 'Disabling...' : 'Disable Notifications'}
+                  </button>
+                  <button
+                    onClick={handleTestNotification}
+                    disabled={loading}
+                    className="btn-primary"
+                    style={{ marginLeft: '10px' }}
+                  >
+                    {loading ? 'Sending...' : 'Send Test Notification'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {permission === 'denied' && (
+              <p className="help-text error">
+                Notifications are blocked. To enable them, please:
+                <ol>
+                  <li>Click the lock icon in your browser's address bar</li>
+                  <li>Allow notifications for this site</li>
+                  <li>Refresh the page</li>
+                </ol>
+              </p>
+            )}
+
+            {subscribed && (
+              <p className="help-text success">
+                You're all set! You'll receive customized reminder notifications based on your schedule above.
+              </p>
+            )}
+          </>
         )}
       </div>
 
