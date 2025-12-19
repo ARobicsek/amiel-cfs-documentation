@@ -41,37 +41,35 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
-### 2025-12-18 - Timestamp & Notification Fixes (Session 11)
-- **Fixed Timestamp Timezone Issues**: **RESOLVED**
-  - Fixed api/submit-entry.js to use correct Eastern Time formatting (was showing 15:40 instead of 20:40)
-  - Fixed api/subscribe.js timestamp to use Eastern Time instead of UTC (was showing Dec 19 instead of Dec 18)
-  - All timestamps now correctly display in Eastern Time zone
+### 2025-12-18 - iPhone PWA Debugging & Token Fix (Session 11)
+- **Fixed iPhone PWA Token Issue**: **RESOLVED**
+  - Root cause: Safari browser and iOS PWA have separate localStorage storage
+  - PWA didn't inherit authentication token from Safari browser
+  - Added in-app debug panel (🐛 icon) to show real-time API errors and token status
+  - Added authentication token input field in Settings page for direct token entry
+  - Users can now paste token directly in PWA without URL parameters
+  - Entries now save successfully from iPhone PWA!
 
-- **Fixed VAPID Key Padding Error**: **RESOLVED**
-  - Root cause: VAPID public/private keys had `=` padding and whitespace that web-push library rejects
-  - Added automatic padding removal with `.replace(/=+$/, '')` in api/send-notification.js
-  - Added `.trim()` to strip whitespace/newlines from VAPID keys (same issue as GOOGLE_SHEET_ID)
-  - Notifications now send successfully!
+- **Added iPhone PWA Debug Features**:
+  - Debug toggle button in header (🐛) shows/hides debug panel
+  - Debug panel displays: token status, online state, pending count, and API errors
+  - Detailed logging for entry submission process with full error details
+  - Helps troubleshoot issues without Mac/Safari Web Inspector
+  - Committed as "Add in-app debug panel for iPhone troubleshooting"
 
-- **Enhanced Error Logging**: **COMPLETE**
-  - Added comprehensive console logging throughout send-notification.js
-  - Step-by-step logging: joke fetch, VAPID config, subscription retrieval, sending
-  - Better error messages with stack traces for debugging
-  - Helps diagnose issues quickly without guesswork
+- **Enhanced Settings Page**:
+  - Added Authentication Token section with input field and Save button
+  - Shows current token status with preview (first 15 characters)
+  - Inline code styling for better token visibility
+  - Committed as "Add token entry UI to Settings page for PWA"
 
-- **Documentation Created**:
-  - Created docs/NOTIFICATION-TESTING-GUIDE.md with complete testing procedures
-  - Created docs/IOS-PWA-SETUP.md for iPhone PWA installation and notification setup
-  - Documents iOS 16.4+ requirement and known limitations
-  - Provides Vercel environment variable management instructions
+- **Session Accomplishments**:
+  - ✅ Debug panel deployed and working
+  - ✅ Token entry UI deployed and working
+  - ✅ iPhone PWA entries now saving to Google Sheets
+  - ✅ Sync issue resolved - entries no longer pending
 
-- **Notification System**: **FULLY OPERATIONAL** ✅
-  - End-to-end testing successful
-  - Notifications sending with jokes from API
-  - Google Apps Script cron trigger working
-  - Customizable schedule, repeat intervals, and snooze all functional
-
-- Status: **DEPLOYED & VERIFIED** - Notifications working in production!
+- Status: **DEPLOYED & VERIFIED** - iPhone PWA fully functional for data entry
 
 ### 2025-12-18 - GitHub Setup + Pending Entries Fix + Google Apps Script Cron (Session 10)
 - **GitHub Repository Setup (Feature #19)**: **COMPLETE**
@@ -235,11 +233,12 @@ Track completed features and current status here. Update after completing each f
 
 ## Next Up
 
-**iPhone PWA Experience** (Priority for Next Session)
-- Improve PWA to feel like a native app on iPhone home screen
-- Enhance app icon and splash screens
-- Optimize UI/UX for iOS PWA installation
-- Test and refine iOS notification experience
+**iPhone PWA Notifications** (Priority for Next Session)
+- Enable notifications in the iPhone PWA (Settings → Notifications)
+- Grant iOS notification permissions when prompted
+- Configure notification schedule and timing
+- Test notification receipt on iPhone lock screen
+- Verify snooze functionality works on iPhone
 
 **Future Enhancements**:
 - Connect Vercel to GitHub for automatic deployments
