@@ -41,6 +41,38 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-20 - UI Overhaul & Data Integrity (Session 18)
+
+**Major UI Changes:**
+- Removed midodrine section from Today page (replaced with modafinil)
+- Added modafinil slider to +details area (None/¼/½/Whole options)
+- Promoted "Productive brain time" to main section with slider (default 1h)
+- Renamed "Hours feet on ground" to "Feet on the ground"
+- Added haptic feedback for sliders (Android only - iOS doesn't support vibration API)
+- Fixed slider overlap issue with brain time label (added padding/border separator)
+
+**Data Integrity Improvements:**
+- **One Row Per Day**: API now checks if today's entry exists and UPDATES it instead of appending new row
+- **Subscription Deduplication**: Subscribe API now matches by domain (e.g., `web.push.apple.com`) instead of exact endpoint URL, since iOS generates new endpoints on each enable/disable
+
+**Google Sheets Column H:**
+- Changed from "Midodrine" to "Modafinil" (values: quarter, half, whole, or empty)
+
+**Files Modified:**
+- `src/components/DailyEntry.jsx` - New UI with modafinil slider, brain time promoted
+- `src/App.css` - Modafinil slider styles, layout fixes
+- `api/submit-entry.js` - One-row-per-day logic, modafinil instead of midodrine
+- `api/subscribe.js` - Domain-based subscription matching
+
+**Known Issue - Scheduled Notifications Not Arriving:**
+- Test notifications work perfectly
+- Scheduled notifications don't arrive despite valid subscription
+- UserSettings shows correct values (time, interval, stopAfterLog)
+- Multiple subscriptions accumulating in sheet (5 rows for same device)
+- **NEEDS INVESTIGATION** - See debugging notes in Blockers section
+
+---
+
 ### 2025-12-19 - UI Fixes & Midodrine Tracking (Session 17)
 
 **Bug Fixes:**
@@ -410,11 +442,23 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 
 ## Next Up
 
-**Immediate (Manual Tasks):**
-- Add "Brain Time" header to Google Sheets column G
-- Add "Midodrine" header to Google Sheets column H
-- Test snooze button on iOS (long-press/expand notification)
-- Investigate desktop notifications not working (may be subscription issue)
+**PRIORITY - Scheduled Notifications Bug (Session 19):**
+- **Problem**: Test notifications work, but scheduled notifications don't arrive
+- **Symptoms**:
+  - UserSettings has correct values (18:10, 60 min repeat, stopAfterLog true)
+  - Multiple subscriptions still accumulating (5 rows for same iOS device)
+  - Settings briefly shows "8:00" default before loading saved value
+- **Investigation needed**:
+  1. Check if Google Apps Script cron is actually running (check execution logs)
+  2. Verify cron-trigger.js time matching logic with actual times
+  3. Check if domain-based subscription matching is working (should be 1 row per domain)
+  4. Add logging to cron-trigger to see WHY it's not sending
+  5. Manually call `/api/cron-trigger` and check response
+- **Clean up**: Delete extra subscription rows, keep only most recent one
+
+**Manual Tasks:**
+- Change Google Sheets column H header from "Midodrine" to "Modafinil"
+- PWA icons still placeholders - user can provide 512x512 PNG
 
 **Phase 3 is ON HOLD** - Core functionality complete. Future polish features:
 - Feature #16: ECG Integration (photo upload)
@@ -457,6 +501,31 @@ If iOS notifications fail with `403 BadJwtToken`, check these in order:
    - Clear the Subscriptions sheet in Google Sheets
    - Have user disable then re-enable notifications
    - This forces a fresh subscription with current keys
+
+### Scheduled Notifications Not Working (Session 18 - OPEN)
+
+**Symptoms:**
+- Test notifications work perfectly (subscription is valid)
+- Scheduled notifications never arrive
+- UserSettings tab has correct values
+- Multiple subscriptions in Subscriptions sheet despite domain-matching code
+
+**What we know:**
+- iOS creates completely NEW endpoint URLs each time notifications are enabled/disabled
+- Domain matching code was added but subscriptions still accumulating
+- The cron checks: snooze status, stopAfterLog, and time window (15 min)
+- If `stopAfterLog=true` and user logged today, NO notification is sent
+
+**Debugging steps for next session:**
+1. Manually hit `https://your-app.vercel.app/api/cron-trigger` and check JSON response
+2. Check Google Apps Script execution history (is it actually triggering?)
+3. Check Vercel Function logs after cron runs
+4. Verify time matching: current ET time vs firstReminderTime + repeatInterval
+
+**Likely causes:**
+- Google Apps Script may not be running
+- Time window check may be too strict (only triggers if `minutesSinceFirst % repeatInterval < 15`)
+- stopAfterLog blocking (but user deleted today's entry and still no notification)
 
 ### Other Notes
 
