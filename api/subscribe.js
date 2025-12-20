@@ -134,7 +134,9 @@ export default async function handler(req, res) {
       JSON.stringify(subscription)
     ];
 
-    // Check for existing subscription with same endpoint and update instead of append
+    // Check for existing subscription from same push service and update instead of append
+    // iOS generates a NEW endpoint URL each time notifications are re-enabled,
+    // so we match by domain (e.g., web.push.apple.com) not exact endpoint
     const existingData = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: 'Subscriptions!A:D',
@@ -143,11 +145,26 @@ export default async function handler(req, res) {
     let existingRowIndex = -1;
     const rows = existingData.data.values || [];
 
-    // Find row with same endpoint (column B)
+    // Extract domain from endpoint to identify device type
+    const getEndpointDomain = (endpoint) => {
+      try {
+        return new URL(endpoint).hostname;
+      } catch {
+        return null;
+      }
+    };
+
+    const newEndpointDomain = getEndpointDomain(subscription.endpoint);
+
+    // Find row with same endpoint domain (e.g., web.push.apple.com)
     for (let i = 1; i < rows.length; i++) { // Skip header row
-      if (rows[i] && rows[i][1] === subscription.endpoint) {
-        existingRowIndex = i + 1; // +1 because sheets are 1-indexed
-        break;
+      if (rows[i] && rows[i][1]) {
+        const existingDomain = getEndpointDomain(rows[i][1]);
+        if (existingDomain && existingDomain === newEndpointDomain) {
+          existingRowIndex = i + 1; // +1 because sheets are 1-indexed
+          console.log(`Found existing subscription for ${newEndpointDomain} at row ${existingRowIndex}`);
+          break;
+        }
       }
     }
 
