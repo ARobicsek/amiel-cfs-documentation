@@ -218,15 +218,18 @@ function checkIfReminderTime(currentHour, currentMinute, firstHour, firstMinute,
   // Only send reminders that are at or after the first reminder time today
   const minutesSinceFirst = currentMinutesSinceMidnight - firstReminderMinutes;
 
-  // If no repeat interval, only send at the first reminder time (within 15 min window)
+  // Window should match cron interval (5 minutes) to avoid duplicate notifications
+  const CRON_INTERVAL = 5;
+
+  // If no repeat interval, only send at the first reminder time (within cron window)
   if (repeatInterval === 0) {
-    return minutesSinceFirst < 15;
+    return minutesSinceFirst < CRON_INTERVAL;
   }
 
   // With repeat interval: check if current time aligns with the schedule
   // (first reminder, or subsequent intervals after it)
   const remainder = minutesSinceFirst % repeatInterval;
-  return remainder < 15;
+  return remainder < CRON_INTERVAL;
 }
 
 /**
