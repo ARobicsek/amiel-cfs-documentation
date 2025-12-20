@@ -197,7 +197,6 @@ html, body {
   flex: 0.6;
   padding-top: 1.5rem;
   padding-bottom: 0.5rem;
-  border-top: 1px solid var(--border);
   margin-top: 0;
 }
 
