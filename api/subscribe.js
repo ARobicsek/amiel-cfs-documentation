@@ -134,16 +134,46 @@ export default async function handler(req, res) {
       JSON.stringify(subscription)
     ];
 
-    // For MVP, we'll just append the new subscription
-    // In the future, we could check for duplicates and update instead
-    await sheets.spreadsheets.values.append({
+    // Check for existing subscription with same endpoint and update instead of append
+    const existingData = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: 'Subscriptions!A:D',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [subscriptionData]
-      }
     });
+
+    let existingRowIndex = -1;
+    const rows = existingData.data.values || [];
+
+    // Find row with same endpoint (column B)
+    for (let i = 1; i < rows.length; i++) { // Skip header row
+      if (rows[i] && rows[i][1] === subscription.endpoint) {
+        existingRowIndex = i + 1; // +1 because sheets are 1-indexed
+        break;
+      }
+    }
+
+    if (existingRowIndex > 0) {
+      // Update existing subscription
+      console.log(`Updating existing subscription at row ${existingRowIndex}`);
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `Subscriptions!A${existingRowIndex}:D${existingRowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [subscriptionData]
+        }
+      });
+    } else {
+      // Append new subscription
+      console.log('Adding new subscription');
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: 'Subscriptions!A:D',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [subscriptionData]
+        }
+      });
+    }
 
     return res.status(200).json({ success: true });
 

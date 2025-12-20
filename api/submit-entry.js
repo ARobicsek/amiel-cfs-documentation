@@ -80,26 +80,60 @@ export default async function handler(req, res) {
       day: '2-digit'
     });
 
-    const response = await sheets.spreadsheets.values.append({
+    // Check if an entry for today already exists (one row per day)
+    const existingData = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Sheet1!A:H',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [[
-          timestamp,                          // Timestamp (Eastern Time)
-          dateOnly,                           // Date (Eastern Time, not client-sent UTC)
-          hours,                              // Hours (required)
-          comments || '',                     // Comments
-          oxaloacetate || '',                 // Oxaloacetate (g)
-          exercise || '',                     // Exercise (min)
-          brainTime || '',                    // Productive brain time (hours)
-          modafinil || ''                     // Modafinil (none/quarter/half/whole)
-        ]]
-      }
+      range: 'Sheet1!A:B',
     });
 
-    const updatedRange = response.data.updates.updatedRange;
-    const rowNumber = parseInt(updatedRange.match(/\d+/)[0]);
+    let existingRowIndex = -1;
+    const rows = existingData.data.values || [];
+
+    // Find row with today's date (column B)
+    for (let i = 1; i < rows.length; i++) { // Skip header row
+      if (rows[i] && rows[i][1] === dateOnly) {
+        existingRowIndex = i + 1; // +1 because sheets are 1-indexed
+        break;
+      }
+    }
+
+    const rowData = [
+      timestamp,                          // Timestamp (Eastern Time)
+      dateOnly,                           // Date (Eastern Time, not client-sent UTC)
+      hours,                              // Hours (required)
+      comments || '',                     // Comments
+      oxaloacetate || '',                 // Oxaloacetate (g)
+      exercise || '',                     // Exercise (min)
+      brainTime || '',                    // Productive brain time (hours)
+      modafinil || ''                     // Modafinil (none/quarter/half/whole)
+    ];
+
+    let rowNumber;
+
+    if (existingRowIndex > 0) {
+      // Update existing row
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `Sheet1!A${existingRowIndex}:H${existingRowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [rowData]
+        }
+      });
+      rowNumber = existingRowIndex;
+    } else {
+      // Append new row
+      const response = await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: 'Sheet1!A:H',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [rowData]
+        }
+      });
+      const updatedRange = response.data.updates.updatedRange;
+      rowNumber = parseInt(updatedRange.match(/\d+/)[0]);
+    }
 
     return res.status(200).json({
       success: true,

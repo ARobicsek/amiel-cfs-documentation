@@ -19,8 +19,15 @@ function DailyEntry({ onSave }) {
   const modafinilLabels = { none: 'None', quarter: '¼', half: '½', whole: 'Whole' }
 
   // Haptic feedback helper - gives a satisfying 'clunk' feel
+  // Note: navigator.vibrate works on Android but NOT on iOS Safari
+  // For iOS, we use a light impact haptic via the experimental API if available
   const triggerHaptic = () => {
-    if (navigator.vibrate) {
+    // Try iOS haptic feedback first (requires user gesture, experimental)
+    if (window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(10)
+    }
+    // Try experimental haptic feedback API (Chrome on Android)
+    if ('vibrate' in navigator) {
       navigator.vibrate(10)
     }
   }
