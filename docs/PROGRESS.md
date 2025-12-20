@@ -64,12 +64,36 @@ Track completed features and current status here. Update after completing each f
 - `api/submit-entry.js` - One-row-per-day logic, modafinil instead of midodrine
 - `api/subscribe.js` - Domain-based subscription matching
 
-**Known Issue - Scheduled Notifications Not Arriving:**
-- Test notifications work perfectly
-- Scheduled notifications don't arrive despite valid subscription
-- UserSettings shows correct values (time, interval, stopAfterLog)
-- Multiple subscriptions accumulating in sheet (5 rows for same device)
-- **NEEDS INVESTIGATION** - See debugging notes in Blockers section
+---
+
+### 2025-12-20 - Notification Bug Fixes & PWA Icon (Session 19)
+
+**Critical Bug Fix - Duplicate Notifications:**
+- **Root Cause**: The 15-minute time window was too wide for the 5-minute cron interval
+- With `remainder < 15` check, cron would trigger 3-4 times per reminder (at 0, 5, 10 min after scheduled time)
+- **Fix**: Changed window from 15 minutes to 5 minutes (`CRON_INTERVAL = 5`) in `api/cron-trigger.js`
+- Now sends exactly 1 notification per scheduled reminder time
+
+**UI Fix - Slider Overlap:**
+- Removed `border-top` separator line from `.brain-time-section` in `src/App.css`
+- The line was visually overlapping with the slider thumb
+
+**PWA Icon Update:**
+- Replaced placeholder icons with F16 fighter jet icon
+- Updated: `public/pwa-192x192.png`, `public/pwa-512x512.png`, `public/apple-touch-icon.png`
+- Users need to delete and re-add PWA to home screen to see new icon (iOS caches aggressively)
+
+**Subscription Duplication Explanation:**
+- The 5 duplicate subscription rows were caused by deployment timing during testing
+- Domain-based deduplication code was deployed mid-testing session
+- **Cleanup**: User should delete extra rows in Subscriptions sheet, keep only most recent
+
+**Files Modified:**
+- `api/cron-trigger.js` - Fixed 15→5 minute window for duplicate notification bug
+- `src/App.css` - Removed brain-time-section border-top
+- `public/pwa-192x192.png` - F16 icon
+- `public/pwa-512x512.png` - F16 icon
+- `public/apple-touch-icon.png` - F16 icon
 
 ---
 
@@ -442,23 +466,13 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 
 ## Next Up
 
-**PRIORITY - Scheduled Notifications Bug (Session 19):**
-- **Problem**: Test notifications work, but scheduled notifications don't arrive
-- **Symptoms**:
-  - UserSettings has correct values (18:10, 60 min repeat, stopAfterLog true)
-  - Multiple subscriptions still accumulating (5 rows for same iOS device)
-  - Settings briefly shows "8:00" default before loading saved value
-- **Investigation needed**:
-  1. Check if Google Apps Script cron is actually running (check execution logs)
-  2. Verify cron-trigger.js time matching logic with actual times
-  3. Check if domain-based subscription matching is working (should be 1 row per domain)
-  4. Add logging to cron-trigger to see WHY it's not sending
-  5. Manually call `/api/cron-trigger` and check response
-- **Clean up**: Delete extra subscription rows, keep only most recent one
-
-**Manual Tasks:**
+**Manual Cleanup Tasks:**
+- Delete extra subscription rows in Google Sheets "Subscriptions" tab (keep only most recent)
 - Change Google Sheets column H header from "Midodrine" to "Modafinil"
-- PWA icons still placeholders - user can provide 512x512 PNG
+
+**Notifications - WORKING:**
+- Scheduled notifications now work correctly (1 notification per scheduled time)
+- PWA icon updated to F16 (delete & re-add to home screen to see it)
 
 **Phase 3 is ON HOLD** - Core functionality complete. Future polish features:
 - Feature #16: ECG Integration (photo upload)
@@ -502,30 +516,13 @@ If iOS notifications fail with `403 BadJwtToken`, check these in order:
    - Have user disable then re-enable notifications
    - This forces a fresh subscription with current keys
 
-### Scheduled Notifications Not Working (Session 18 - OPEN)
+### Scheduled Notifications - RESOLVED (Session 19)
 
-**Symptoms:**
-- Test notifications work perfectly (subscription is valid)
-- Scheduled notifications never arrive
-- UserSettings tab has correct values
-- Multiple subscriptions in Subscriptions sheet despite domain-matching code
+**Root Cause Found:** The 15-minute time window was too wide for the 5-minute cron interval. With `remainder < 15`, the cron would trigger 3-4 times per scheduled reminder.
 
-**What we know:**
-- iOS creates completely NEW endpoint URLs each time notifications are enabled/disabled
-- Domain matching code was added but subscriptions still accumulating
-- The cron checks: snooze status, stopAfterLog, and time window (15 min)
-- If `stopAfterLog=true` and user logged today, NO notification is sent
+**Fix:** Changed `CRON_INTERVAL` from 15 to 5 in `api/cron-trigger.js` line 222.
 
-**Debugging steps for next session:**
-1. Manually hit `https://your-app.vercel.app/api/cron-trigger` and check JSON response
-2. Check Google Apps Script execution history (is it actually triggering?)
-3. Check Vercel Function logs after cron runs
-4. Verify time matching: current ET time vs firstReminderTime + repeatInterval
-
-**Likely causes:**
-- Google Apps Script may not be running
-- Time window check may be too strict (only triggers if `minutesSinceFirst % repeatInterval < 15`)
-- stopAfterLog blocking (but user deleted today's entry and still no notification)
+**Multiple subscriptions:** Were caused by deployment timing during testing - domain-based deduplication was deployed mid-session. Clean up extra rows manually.
 
 ### Other Notes
 
@@ -537,7 +534,7 @@ If iOS notifications fail with `403 BadJwtToken`, check these in order:
 - **VAPID Key Padding Error**: **RESOLVED** - Added automatic trimming and padding removal.
 - **iOS Push Notifications**: **RESOLVED** - Fixed trailing newline in VAPID_EMAIL (Session 16).
 - **Notification Action Buttons**: Snooze button may not be visible in all browser/OS combinations. iOS may require long-press/expand.
-- **PWA Icons**: Currently placeholders - need to generate real 192x192 and 512x512 PNG icons
+- **PWA Icons**: **UPDATED** - F16 fighter jet icon (Session 19). Delete & re-add PWA to home screen to see new icon.
 - **Local Development**: Use `vercel dev` to run both frontend and API functions locally (not `npm run dev`)
 - **Windows Notifications**: Users must enable Chrome/browser notifications in Windows Settings → System → Notifications
 - **Google Apps Script Trigger**: Currently set to 5 minutes for testing. Change to 15 minutes after verification.
