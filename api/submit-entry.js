@@ -10,8 +10,8 @@
  *   comments: string | null,
  *   oxaloacetate: number | null (grams),
  *   exercise: number | null (minutes),
- *   brainTime: number | null (hours of productive brain time),
- *   midodrine: number | null (mg)
+ *   brainTime: number (hours of productive brain time),
+ *   modafinil: string | null (none, quarter, half, whole)
  * }
  *
  * Headers:
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   }
 
   // Parse and validate body
-  const { date, hours, comments, oxaloacetate, exercise, brainTime, midodrine } = req.body;
+  const { date, hours, comments, oxaloacetate, exercise, brainTime, modafinil } = req.body;
 
   if (hours === undefined || hours === null) {
     return res.status(400).json({ error: 'Missing required field: hours' });
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
           oxaloacetate || '',                 // Oxaloacetate (g)
           exercise || '',                     // Exercise (min)
           brainTime || '',                    // Productive brain time (hours)
-          midodrine || ''                     // Midodrine (mg)
+          modafinil || ''                     // Modafinil (none/quarter/half/whole)
         ]]
       }
     });
