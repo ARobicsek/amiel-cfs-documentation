@@ -16,7 +16,8 @@
       "Bash(git commit:*)",
       "SlashCommand(/start-session)",
       "Bash(npx web-push generate-vapid-keys)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

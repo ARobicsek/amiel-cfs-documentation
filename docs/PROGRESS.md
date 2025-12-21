@@ -41,6 +41,20 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-20 - Icon Replacement (F15) (Session 20)
+
+**PWA Icon Update:**
+- Replaced F16 fighter jet icon with F15 fighter jet icon (`F15_icon.png`)
+- Updated `public` assets: `pwa-192x192.png`, `pwa-512x512.png`, `apple-touch-icon.png`
+- Added `update-icons` script to `package.json` for easier asset management
+
+**Files Modified:**
+- `package.json` - Added `update-icons` script
+- `update_icons.js` - Created script
+- `public/pwa-*.png`, `public/apple-touch-icon.png` - Updated with F15 icon
+
+---
+
 ### 2025-12-20 - UI Overhaul & Data Integrity (Session 18)
 
 **Major UI Changes:**
