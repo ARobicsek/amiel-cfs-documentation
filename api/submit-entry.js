@@ -112,7 +112,7 @@ export default async function handler(req, res) {
       comments || '',                     // Column D: Comments
       oxaloacetate || '',                 // Column E: Oxaloacetate (g)
       exercise || '',                     // Column F: Exercise (min)
-      brainTime || '',                    // Column G: Productive brain time (hours)
+      brainTime ?? '',                    // Column G: Productive brain time (hours) - use ?? to preserve 0
       modafinil || ''                     // Column H: Modafinil (none/quarter/half/whole)
     ];
 
