@@ -41,6 +41,37 @@ Track completed features and current status here. Update after completing each f
 
 ## Completed Features Log
 
+### 2025-12-20 - Date Selector for Logging Past Days (Session 21)
+
+**New Feature - Date Selector:**
+- Added prominent date picker at the top of the Today page
+- Defaults to **yesterday** (prior calendar day) since user typically logs around 3 AM for the previous day
+- Arrow buttons to navigate between dates (5 days ago through today)
+- Shows full date with day of week (e.g., "Thursday, January 1, 2025")
+- Shows relative label (e.g., "Logging for yesterday", "Logging for 3 days ago")
+- Haptic feedback on date navigation
+
+**Backend Changes:**
+- `submit-entry.js` now accepts `dateFor` from client for Column B (Date)
+- Column A (Timestamp) remains as "when submitted"
+- Column B (Date) is now user-selected "date documented FOR"
+- One-row-per-day logic now matches on `dateFor`
+
+**Reminder Logic Fix:**
+- Fixed "stop after logging" in `cron-trigger.js`
+- Now checks Column A (Timestamp - when submitted) instead of Column B (Date - what date documented for)
+- Reminders now correctly stop when user submits today, regardless of which date they're logging for
+
+**Files Modified:**
+- `src/components/DailyEntry.jsx` - Added date selector UI and state
+- `src/App.css` - Added date selector styles
+- `api/submit-entry.js` - Accept dateFor from client
+- `api/cron-trigger.js` - Fixed reminder stop logic
+
+**No New Sheet Columns Required** - Existing columns work as-is.
+
+---
+
 ### 2025-12-20 - Icon Replacement (F15) (Session 20)
 
 **PWA Icon Update:**
@@ -52,31 +83,6 @@ Track completed features and current status here. Update after completing each f
 - `package.json` - Added `update-icons` script
 - `update_icons.js` - Created script
 - `public/pwa-*.png`, `public/apple-touch-icon.png` - Updated with F15 icon
-
----
-
-### 2025-12-20 - UI Overhaul & Data Integrity (Session 18)
-
-**Major UI Changes:**
-- Removed midodrine section from Today page (replaced with modafinil)
-- Added modafinil slider to +details area (None/¼/½/Whole options)
-- Promoted "Productive brain time" to main section with slider (default 1h)
-- Renamed "Hours feet on ground" to "Feet on the ground"
-- Added haptic feedback for sliders (Android only - iOS doesn't support vibration API)
-- Fixed slider overlap issue with brain time label (added padding/border separator)
-
-**Data Integrity Improvements:**
-- **One Row Per Day**: API now checks if today's entry exists and UPDATES it instead of appending new row
-- **Subscription Deduplication**: Subscribe API now matches by domain (e.g., `web.push.apple.com`) instead of exact endpoint URL, since iOS generates new endpoints on each enable/disable
-
-**Google Sheets Column H:**
-- Changed from "Midodrine" to "Modafinil" (values: quarter, half, whole, or empty)
-
-**Files Modified:**
-- `src/components/DailyEntry.jsx` - New UI with modafinil slider, brain time promoted
-- `src/App.css` - Modafinil slider styles, layout fixes
-- `api/submit-entry.js` - One-row-per-day logic, modafinil instead of midodrine
-- `api/subscribe.js` - Domain-based subscription matching
 
 ---
 
@@ -108,6 +114,31 @@ Track completed features and current status here. Update after completing each f
 - `public/pwa-192x192.png` - F16 icon
 - `public/pwa-512x512.png` - F16 icon
 - `public/apple-touch-icon.png` - F16 icon
+
+---
+
+### 2025-12-20 - UI Overhaul & Data Integrity (Session 18)
+
+**Major UI Changes:**
+- Removed midodrine section from Today page (replaced with modafinil)
+- Added modafinil slider to +details area (None/¼/½/Whole options)
+- Promoted "Productive brain time" to main section with slider (default 1h)
+- Renamed "Hours feet on ground" to "Feet on the ground"
+- Added haptic feedback for sliders (Android only - iOS doesn't support vibration API)
+- Fixed slider overlap issue with brain time label (added padding/border separator)
+
+**Data Integrity Improvements:**
+- **One Row Per Day**: API now checks if today's entry exists and UPDATES it instead of appending new row
+- **Subscription Deduplication**: Subscribe API now matches by domain (e.g., `web.push.apple.com`) instead of exact endpoint URL, since iOS generates new endpoints on each enable/disable
+
+**Google Sheets Column H:**
+- Changed from "Midodrine" to "Modafinil" (values: quarter, half, whole, or empty)
+
+**Files Modified:**
+- `src/components/DailyEntry.jsx` - New UI with modafinil slider, brain time promoted
+- `src/App.css` - Modafinil slider styles, layout fixes
+- `api/submit-entry.js` - One-row-per-day logic, modafinil instead of midodrine
+- `api/subscribe.js` - Domain-based subscription matching
 
 ---
 
@@ -479,14 +510,6 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 ---
 
 ## Next Up
-
-**Manual Cleanup Tasks:**
-- Delete extra subscription rows in Google Sheets "Subscriptions" tab (keep only most recent)
-- Change Google Sheets column H header from "Midodrine" to "Modafinil"
-
-**Notifications - WORKING:**
-- Scheduled notifications now work correctly (1 notification per scheduled time)
-- PWA icon updated to F16 (delete & re-add to home screen to see it)
 
 **Phase 3 is ON HOLD** - Core functionality complete. Future polish features:
 - Feature #16: ECG Integration (photo upload)
