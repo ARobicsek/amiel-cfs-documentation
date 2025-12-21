@@ -1,6 +1,53 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+
+// Helper to get a date at midnight in local time
+function getLocalMidnight(date) {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+// Get yesterday's date at midnight
+function getYesterday() {
+  const today = getLocalMidnight(new Date())
+  today.setDate(today.getDate() - 1)
+  return today
+}
+
+// Format date for display: "Thursday, January 1, 2025"
+function formatDateFull(date) {
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+// Format date for API: "MM/DD/YYYY" in Eastern Time style
+function formatDateForApi(date) {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+}
+
+// Get relative label: "today", "yesterday", "2 days ago", etc.
+function getRelativeLabel(date) {
+  const today = getLocalMidnight(new Date())
+  const target = getLocalMidnight(date)
+  const diffDays = Math.round((today - target) / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) return 'today'
+  if (diffDays === 1) return 'yesterday'
+  return `${diffDays} days ago`
+}
 
 function DailyEntry({ onSave }) {
+  // Date selector - defaults to yesterday
+  const [dateFor, setDateFor] = useState(() => getYesterday())
+
   // Default to 6 hours for feet on ground
   const [hours, setHours] = useState(6)
   // Default to 1 hour for productive brain time
@@ -13,6 +60,37 @@ function DailyEntry({ onSave }) {
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [error, setError] = useState(null)
+
+  // Calculate date bounds (5 days ago through today)
+  const dateBounds = useMemo(() => {
+    const today = getLocalMidnight(new Date())
+    const minDate = getLocalMidnight(new Date())
+    minDate.setDate(minDate.getDate() - 5)
+    return { min: minDate, max: today }
+  }, [])
+
+  // Can navigate left/right?
+  const canGoBack = dateFor > dateBounds.min
+  const canGoForward = dateFor < dateBounds.max
+
+  // Navigate dates
+  const goToPreviousDay = () => {
+    if (canGoBack) {
+      const newDate = new Date(dateFor)
+      newDate.setDate(newDate.getDate() - 1)
+      setDateFor(newDate)
+      triggerHaptic()
+    }
+  }
+
+  const goToNextDay = () => {
+    if (canGoForward) {
+      const newDate = new Date(dateFor)
+      newDate.setDate(newDate.getDate() + 1)
+      setDateFor(newDate)
+      triggerHaptic()
+    }
+  }
 
   // Modafinil options for the slider
   const modafinilOptions = ['none', 'quarter', 'half', 'whole']
@@ -66,6 +144,7 @@ function DailyEntry({ onSave }) {
 
     const entry = {
       date: new Date().toISOString(),
+      dateFor: formatDateForApi(dateFor), // The date being documented FOR
       hours,
       comments: comments || null,
       oxaloacetate: oxaloacetate ? parseFloat(oxaloacetate) : null,
@@ -110,6 +189,30 @@ function DailyEntry({ onSave }) {
       {error && (
         <div className="error-feedback">{error}</div>
       )}
+
+      {/* Date Selector */}
+      <div className="date-selector">
+        <button
+          className="date-nav-btn"
+          onClick={goToPreviousDay}
+          disabled={!canGoBack}
+          aria-label="Previous day"
+        >
+          ‹
+        </button>
+        <div className="date-display">
+          <span className="date-full">{formatDateFull(dateFor)}</span>
+          <span className="date-relative">Logging for {getRelativeLabel(dateFor)}</span>
+        </div>
+        <button
+          className="date-nav-btn"
+          onClick={goToNextDay}
+          disabled={!canGoForward}
+          aria-label="Next day"
+        >
+          ›
+        </button>
+      </div>
 
       <div className="hours-section">
         <span className="hours-label">Feet on the ground</span>

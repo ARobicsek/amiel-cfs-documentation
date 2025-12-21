@@ -100,31 +100,36 @@ export default async function handler(req, res) {
       }
     }
 
-    // Check if user has logged today (if stopAfterLog is enabled)
-    let hasLoggedToday = false;
+    // Check if user has SUBMITTED an entry today (if stopAfterLog is enabled)
+    // Important: We check column A (Timestamp - when submitted), NOT column B (Date - what date documented for)
+    // This way, if user logs at 3 AM for yesterday, the reminder still stops because they submitted today
+    let hasSubmittedToday = false;
     if (settings.stopAfterLog) {
       try {
         const entriesResponse = await sheets.spreadsheets.values.get({
           spreadsheetId,
-          range: 'Sheet1!A:B', // Timestamp and Date columns
+          range: 'Sheet1!A:A', // Timestamp column only
         });
 
         const rows = entriesResponse.data.values || [];
-        hasLoggedToday = rows.some(row => {
-          const dateValue = row[1]; // Date column
-          return dateValue === todayDateString;
+        hasSubmittedToday = rows.some(row => {
+          const timestampValue = row[0]; // Timestamp column (e.g., "01/02/2025, 03:15:30")
+          if (!timestampValue) return false;
+          // Extract date part from timestamp (format: "MM/DD/YYYY, HH:MM:SS")
+          const datePart = timestampValue.split(',')[0]?.trim();
+          return datePart === todayDateString;
         });
       } catch (error) {
-        console.error('Failed to check today\'s entries:', error);
+        console.error('Failed to check today\'s submissions:', error);
       }
     }
 
-    // If user has logged and we should stop, don't send reminder
-    if (hasLoggedToday && settings.stopAfterLog) {
+    // If user has submitted today and we should stop, don't send reminder
+    if (hasSubmittedToday && settings.stopAfterLog) {
       return res.status(200).json({
         triggered: false,
-        reason: 'already_logged',
-        message: `User has already logged today (${todayDateString}). No reminder sent.`,
+        reason: 'already_submitted_today',
+        message: `User has already submitted an entry today (${todayDateString}). No reminder sent.`,
         settings,
         todayDateString
       });

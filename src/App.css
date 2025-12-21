@@ -183,6 +183,71 @@ html, body {
   height: 100%;
 }
 
+/* Date Selector */
+.date-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 1rem;
+  margin-bottom: 1rem;
+}
+
+.date-nav-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, opacity 0.2s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.date-nav-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.date-nav-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.date-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.date-display {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+
+.date-full {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.date-relative {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 500;
+  margin-top: 0.25rem;
+  text-transform: capitalize;
+}
+
 .hours-section {
   flex: 1;
   display: flex;

@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   }
 
   // Parse and validate body
-  const { date, hours, comments, oxaloacetate, exercise, brainTime, modafinil } = req.body;
+  const { date, dateFor, hours, comments, oxaloacetate, exercise, brainTime, modafinil } = req.body;
 
   if (hours === undefined || hours === null) {
     return res.status(400).json({ error: 'Missing required field: hours' });
@@ -51,6 +51,10 @@ export default async function handler(req, res) {
   if (typeof hours !== 'number' || hours < 0 || hours > 24) {
     return res.status(400).json({ error: 'Hours must be a number between 0 and 24' });
   }
+
+  // dateFor is the date the user is documenting FOR (e.g., "01/01/2025")
+  // If not provided, fall back to server's current date (for backwards compatibility)
+  let entryDateFor = dateFor;
 
   try {
     const auth = new google.auth.GoogleAuth({
@@ -61,7 +65,7 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
 
-    // Get current time in US Eastern Time
+    // Get current time in US Eastern Time (this is when the entry was SUBMITTED)
     const now = new Date();
     const timestamp = now.toLocaleString('en-US', {
       timeZone: 'America/New_York',
@@ -73,14 +77,18 @@ export default async function handler(req, res) {
       second: '2-digit',
       hour12: false
     });
-    const dateOnly = now.toLocaleDateString('en-US', {
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
 
-    // Check if an entry for today already exists (one row per day)
+    // If no dateFor provided by client, fall back to server's current date
+    if (!entryDateFor) {
+      entryDateFor = now.toLocaleDateString('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    }
+
+    // Check if an entry for this date already exists (one row per date-for)
     const existingData = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: 'Sheet1!A:B',
@@ -89,23 +97,23 @@ export default async function handler(req, res) {
     let existingRowIndex = -1;
     const rows = existingData.data.values || [];
 
-    // Find row with today's date (column B)
+    // Find row with the target date (column B = date documented FOR)
     for (let i = 1; i < rows.length; i++) { // Skip header row
-      if (rows[i] && rows[i][1] === dateOnly) {
+      if (rows[i] && rows[i][1] === entryDateFor) {
         existingRowIndex = i + 1; // +1 because sheets are 1-indexed
         break;
       }
     }
 
     const rowData = [
-      timestamp,                          // Timestamp (Eastern Time)
-      dateOnly,                           // Date (Eastern Time, not client-sent UTC)
-      hours,                              // Hours (required)
-      comments || '',                     // Comments
-      oxaloacetate || '',                 // Oxaloacetate (g)
-      exercise || '',                     // Exercise (min)
-      brainTime || '',                    // Productive brain time (hours)
-      modafinil || ''                     // Modafinil (none/quarter/half/whole)
+      timestamp,                          // Column A: Timestamp (when submitted, Eastern Time)
+      entryDateFor,                       // Column B: Date FOR (the date being documented)
+      hours,                              // Column C: Hours (required)
+      comments || '',                     // Column D: Comments
+      oxaloacetate || '',                 // Column E: Oxaloacetate (g)
+      exercise || '',                     // Column F: Exercise (min)
+      brainTime || '',                    // Column G: Productive brain time (hours)
+      modafinil || ''                     // Column H: Modafinil (none/quarter/half/whole)
     ];
 
     let rowNumber;
