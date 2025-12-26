@@ -209,78 +209,54 @@ Build a companion iOS app using Swift/SwiftUI that:
 
 ## Recommended Implementation Strategy
 
-Given the constraints (PWA architecture, minimal user effort, CFS consideration), here's the recommended phased approach:
+Given the constraints (PWA architecture, minimal user effort, CFS consideration), the solution must be **fully automatic from the start**. The user cannot be expected to manually enter R/S ratios or other ECG data.
 
-### Phase 1: Quick Win (1-2 hours development)
+### Implementation Phases (All Automatic)
 
-Add basic ECG tracking fields to the existing app:
+#### Phase 1: Infrastructure Setup (30 minutes)
+- Enable Google Drive API
+- Create ECG storage folder
+- Create ECG_Readings sheet with proper columns
+- Generate webhook secret
+- Add environment variables to Vercel
 
-```javascript
-// New fields in DailyEntry.jsx
-{
-  ecgTaken: boolean,           // Did user take ECG today?
-  rsRatio: number,             // R/S ratio if known
-  avgHeartRate: number,        // From ECG reading
-  ecgClassification: string,   // "Sinus Rhythm", "AFib", etc.
-  ecgNotes: string             // Any observations
-}
-```
-
-**New Google Sheets columns:**
-| ECG Taken | R/S Ratio | ECG HR | ECG Classification | ECG Notes |
-
-**User workflow:**
-1. Take ECG on Apple Watch
-2. Note the R/S ratio from ECG+ or doctor
-3. Open CFS Tracker, enter metrics with daily log
-
----
-
-### Phase 2: PDF/Image Storage (4-6 hours development)
-
-Add ability to upload and store ECG PDFs:
-
-1. Add file upload to DailyEntry component
-2. Create Vercel function to handle upload
-3. Store in Google Drive (via API) or Cloudinary
-4. Save reference URL in Sheets
-
-**Benefits:**
-- Full tracing preserved for doctor review
-- Historical record of all ECGs
-- Can be analyzed later if needed
-
----
-
-### Phase 3: Automated Sync (8-12 hours development)
-
-Integrate with Health Auto Export app:
-
-1. Purchase and configure Health Auto Export ($2.99)
-2. Create `/api/ecg-webhook` endpoint
-3. Process incoming ECG data
-4. Calculate R/S ratio from voltage data
-5. Store waveform data efficiently
+#### Phase 2: Webhook Endpoint (2-3 hours)
+- Create `/api/ecg-webhook` endpoint
+- Implement R/S ratio calculation algorithm
+- Store full waveform to Google Drive as CSV
+- Store metadata to Google Sheets
 
 **R/S Ratio Calculation Algorithm:**
 ```javascript
 function calculateRSRatio(voltageMeasurements) {
-  // Find QRS complexes using peak detection
-  // Identify R-wave peaks (largest positive deflections)
-  // Identify S-wave troughs (negative deflections after R)
-  // Calculate ratio for each beat
-  // Return average R/S ratio
+  // 1. Remove baseline wander with moving average filter
+  // 2. Detect R peaks (local maxima above threshold)
+  // 3. Find S waves (minimum within 100ms after each R peak)
+  // 4. Calculate R/S ratio for each beat
+  // 5. Return median ratio (robust to outliers)
 }
 ```
 
----
+#### Phase 3: Health Auto Export Configuration (30 minutes)
+- Configure automation in the app
+- Set webhook URL and secret
+- Select ECG data type
+- Enable automatic sync trigger
 
-### Phase 4: Full Native App (Future, if needed)
+#### Phase 4: ECG Display (Optional, 2-3 hours)
+- Add API to fetch ECG readings
+- Create ECG history component
+- Add ECG tab to navigation
 
-Only pursue if:
-- Automated sync proves unreliable
-- More sophisticated analysis needed
-- Doctor requires specific data format
+### Key Design Principle
+
+**NO MANUAL DATA ENTRY.** The user takes an ECG on their Apple Watch - that's it. Everything else happens automatically:
+- Health Auto Export detects new ECG
+- Sends data to webhook
+- Webhook calculates R/S ratio
+- Stores waveform and metadata
+
+See `docs/ECG-IMPLEMENTATION-GUIDE.md` for complete step-by-step instructions.
 
 ---
 
