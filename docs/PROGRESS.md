@@ -33,51 +33,103 @@ Track completed features and current status here. Update after completing each f
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 16 | ECG integration | TODO | ON HOLD - photo upload |
-| 17 | Data trends/charts | TODO | ON HOLD - 7-day visualization |
-| 18 | Streak animations | TODO | ON HOLD - Motivation feature |
+| 16 | Data trends/charts | TODO | ON HOLD - 7-day visualization |
+| 17 | Streak animations | TODO | ON HOLD - Motivation feature |
+
+### Phase 4: ECG Integration (PLANNED - Fully Automatic)
+
+| # | Feature | Status | Notes |
+|---|---------|--------|-------|
+| 18 | Google Drive & Sheets setup | TODO | Create ECG folder, ECG_Readings sheet |
+| 19 | ECG webhook endpoint | TODO | Receives data, calculates R/S ratio, stores waveform |
+| 20 | Health Auto Export config | TODO | Configure iPhone app for automatic sync |
+| 21 | ECG history display | TODO | (Optional) View ECG data in app |
+
+**Key Design:** NO manual data entry. R/S ratio calculated automatically from raw voltage data.
+
+**User Experience After Setup:**
+1. Take 30-second ECG on Apple Watch
+2. Done! Everything syncs automatically.
+
+**Documentation:**
+- `docs/ECG-CAPTURE-PLANNING.md` - Research & options analysis
+- `docs/ECG-IMPLEMENTATION-GUIDE.md` - Step-by-step dev guide (fully automatic approach)
 
 ---
 
 ## Completed Features Log
 
-### 2025-12-20 - Date Selector for Logging Past Days (Session 21)
+### 2025-12-26 - ECG Capture Feature Planning (Session 20)
 
-**New Feature - Date Selector:**
-- Added prominent date picker at the top of the Today page
-- Defaults to **yesterday** (prior calendar day) since user typically logs around 3 AM for the previous day
-- Arrow buttons to navigate between dates (5 days ago through today)
-- Shows full date with day of week (e.g., "Thursday, January 1, 2025")
-- Shows relative label (e.g., "Logging for yesterday", "Logging for 3 days ago")
-- Haptic feedback on date navigation
+**Research & Planning for ECG Integration:**
 
-**Backend Changes:**
-- `submit-entry.js` now accepts `dateFor` from client for Column B (Date)
-- Column A (Timestamp) remains as "when submitted"
-- Column B (Date) is now user-selected "date documented FOR"
-- One-row-per-day logic now matches on `dateFor`
+Completed comprehensive research on adding daily ECG capture to the CFS tracker, with a focus on **minimal daily effort** for the user (critical for CFS patients).
 
-**Reminder Logic Fix:**
-- Fixed "stop after logging" in `cron-trigger.js`
-- Now checks Column A (Timestamp - when submitted) instead of Column B (Date - what date documented for)
-- Reminders now correctly stop when user submits today, regardless of which date they're logging for
+**Key Findings:**
 
-**Files Modified:**
-- `src/components/DailyEntry.jsx` - Added date selector UI and state
-- `src/App.css` - Added date selector styles
-- `api/submit-entry.js` - Accept dateFor from client
-- `api/cron-trigger.js` - Fixed reminder stop logic
+1. **R/S Ratio Confirmed:** The R/S ratio (ratio of R-wave to S-wave amplitude in ECG) is the target metric. Useful for tracking cardiac changes over time.
 
-**No New Sheet Columns Required** - Existing columns work as-is.
+2. **PWA Limitation:** The app is a PWA, so cannot directly access Apple HealthKit. Required third-party solution.
+
+3. **Recommended Solution:** Health Auto Export app ($2.99 one-time)
+   - Automatically syncs Apple Watch ECG data to our webhook
+   - Zero daily effort after initial setup
+   - Provides full voltage waveform (~15,000 samples per ECG)
+
+4. **Data Storage Plan:**
+   - Full waveform → Google Drive (as CSV, ~15KB per ECG)
+   - Metadata + R/S ratio → Google Sheets (ECG_Readings tab)
+
+**Implementation Phases Defined:**
+
+| Phase | Description | Effort |
+|-------|-------------|--------|
+| 1 | Basic ECG fields (manual entry) | 1-2 hours |
+| 2 | PDF/image upload to Google Drive | 4-6 hours |
+| 3 | Health Auto Export webhook + auto R/S calculation | 8-12 hours |
+
+**Documents Created:**
+- `docs/ECG-CAPTURE-PLANNING.md` - Full research, options analysis, cost breakdown
+- `docs/ECG-IMPLEMENTATION-GUIDE.md` - Detailed step-by-step guide for developers
+
+**R/S Ratio Algorithm:**
+- Baseline removal via moving average filter
+- R-peak detection (threshold-based)
+- S-wave detection (local minimum after R)
+- Median R/S ratio across all detected beats
+
+**Prerequisites Identified:**
+- Enable Google Drive API in Cloud Console
+- Create shared Drive folder for ECG data
+- Purchase Health Auto Export app on user's iPhone
+- Generate webhook secret for authentication
+
+**Next Steps:**
+1. Enable Google Drive API and create ECG folder
+2. Create webhook endpoint with R/S ratio calculation
+3. Configure Health Auto Export on iPhone
+4. Test end-to-end automatic sync
+
+**Note:** Removed all manual entry phases - user cannot be expected to enter R/S ratio manually. Solution is fully automatic from the start.
 
 ---
 
-### 2025-12-20 - Icon Replacement (F15) (Session 20)
+### 2025-12-20 - UI Overhaul & Data Integrity (Session 18)
 
-**PWA Icon Update:**
-- Replaced F16 fighter jet icon with F15 fighter jet icon (`F15_icon.png`)
-- Updated `public` assets: `pwa-192x192.png`, `pwa-512x512.png`, `apple-touch-icon.png`
-- Added `update-icons` script to `package.json` for easier asset management
+**Major UI Changes:**
+- Removed midodrine section from Today page (replaced with modafinil)
+- Added modafinil slider to +details area (None/¼/½/Whole options)
+- Promoted "Productive brain time" to main section with slider (default 1h)
+- Renamed "Hours feet on ground" to "Feet on the ground"
+- Added haptic feedback for sliders (Android only - iOS doesn't support vibration API)
+- Fixed slider overlap issue with brain time label (added padding/border separator)
+
+**Data Integrity Improvements:**
+- **One Row Per Day**: API now checks if today's entry exists and UPDATES it instead of appending new row
+- **Subscription Deduplication**: Subscribe API now matches by domain (e.g., `web.push.apple.com`) instead of exact endpoint URL, since iOS generates new endpoints on each enable/disable
+
+**Google Sheets Column H:**
+- Changed from "Midodrine" to "Modafinil" (values: quarter, half, whole, or empty)
 
 **Files Modified:**
 - `package.json` - Added `update-icons` script
@@ -511,10 +563,29 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 
 ## Next Up
 
-**Phase 3 is ON HOLD** - Core functionality complete. Future polish features:
-- Feature #16: ECG Integration (photo upload)
-- Feature #17: Data trends/charts (7-day visualization)
-- Feature #18: Streak animations (motivation feature)
+**Phase 4: ECG Integration (ACTIVE)**
+
+Ready to implement ECG capture. See `docs/ECG-IMPLEMENTATION-GUIDE.md` for detailed steps.
+
+**Prerequisites before coding:**
+1. Enable Google Drive API in [Google Cloud Console](https://console.cloud.google.com)
+2. Create folder `CFS-ECG-Data` in Google Drive
+3. Share folder with service account email (Editor access)
+4. Add `GOOGLE_DRIVE_FOLDER_ID` to Vercel environment variables
+5. Purchase [Health Auto Export](https://apps.apple.com/us/app/health-auto-export-json-csv/id1115567069) ($2.99) on user's iPhone
+
+**Implementation order:**
+1. Phase 1: Add basic ECG fields to DailyEntry (1-2 hrs)
+2. Phase 2: Add PDF/image upload (4-6 hrs)
+3. Phase 3: Health Auto Export webhook + R/S ratio calculation (8-12 hrs)
+
+**Previous cleanup tasks (if not done):**
+- Delete extra subscription rows in Google Sheets "Subscriptions" tab
+- Ensure column H header is "Modafinil"
+
+**Phase 3 Polish is ON HOLD** - will revisit after ECG integration:
+- Feature #16: Data trends/charts (7-day visualization)
+- Feature #17: Streak animations (motivation feature)
 
 ---
 
