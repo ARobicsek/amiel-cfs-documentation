@@ -159,18 +159,34 @@ export default async function handler(req, res) {
  * Extract ECG data from various Health Auto Export formats
  */
 function extractECGData(data) {
-  // Direct format
+  // Health Auto Export format: { data: { ecg: [...] } }
+  if (data.data && data.data.ecg && Array.isArray(data.data.ecg)) {
+    const ecgArray = data.data.ecg;
+    if (ecgArray.length > 0) {
+      // Take the most recent ECG (last in array, or first - they seem to send newest)
+      const ecg = ecgArray[ecgArray.length - 1];
+      return {
+        classification: ecg.classification,
+        averageHeartRate: ecg.averageHeartRate,
+        samplingFrequency: ecg.samplingFrequency || 512,
+        voltageMeasurements: ecg.voltageMeasurements,
+        date: ecg.start || ecg.end,
+      };
+    }
+  }
+
+  // Direct format (single ECG object)
   if (data.classification && data.voltageMeasurements) {
     return {
       classification: data.classification,
       averageHeartRate: data.averageHeartRate || data.heartRate,
       samplingFrequency: data.samplingFrequency || 512,
       voltageMeasurements: data.voltageMeasurements,
-      date: data.startDate || data.date,
+      date: data.start || data.startDate || data.date,
     };
   }
 
-  // Nested in 'data' field
+  // Nested in 'data' field with 'electrocardiogram' key (alternate format)
   if (data.data && data.data.electrocardiogram) {
     const ecg = data.data.electrocardiogram;
     return {
@@ -178,13 +194,13 @@ function extractECGData(data) {
       averageHeartRate: ecg.averageHeartRate,
       samplingFrequency: ecg.samplingFrequency || 512,
       voltageMeasurements: ecg.voltageMeasurements,
-      date: ecg.startDate,
+      date: ecg.start || ecg.startDate,
     };
   }
 
-  // Array format (multiple ECGs)
+  // Array format (multiple ECGs at top level)
   if (Array.isArray(data) && data.length > 0) {
-    const ecg = data[0]; // Take most recent
+    const ecg = data[data.length - 1]; // Take most recent
     return extractECGData(ecg);
   }
 
@@ -211,7 +227,8 @@ async function storeWaveformData(auth, ecg) {
     const time = (v.timeSinceSampleStart !== undefined)
       ? v.timeSinceSampleStart
       : (i / samplingRate);
-    const voltage = v.microVolts !== undefined ? v.microVolts : v;
+    // Health Auto Export uses 'voltage' field, others might use 'microVolts'
+    const voltage = v.voltage !== undefined ? v.voltage : (v.microVolts !== undefined ? v.microVolts : v);
     csvLines.push(`${time.toFixed(6)},${voltage}`);
   });
 
@@ -265,8 +282,9 @@ async function storeWaveformData(auth, ecg) {
  */
 function calculateRSRatio(voltageMeasurements, samplingRate = 512) {
   // Convert to simple array of voltages
+  // Health Auto Export uses 'voltage' field, others might use 'microVolts'
   const voltages = voltageMeasurements.map(v =>
-    v.microVolts !== undefined ? v.microVolts : v
+    v.voltage !== undefined ? v.voltage : (v.microVolts !== undefined ? v.microVolts : v)
   );
 
   if (voltages.length < samplingRate) {
