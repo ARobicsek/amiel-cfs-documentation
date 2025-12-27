@@ -52,14 +52,27 @@ export default async function handler(req, res) {
   try {
     const ecgData = req.body;
 
-    console.log('ECG Webhook received:', JSON.stringify(ecgData, null, 2).slice(0, 500));
+    console.log('=== ECG WEBHOOK PAYLOAD ===');
+    console.log('Full payload:', JSON.stringify(ecgData, null, 2));
+    console.log('Top-level keys:', Object.keys(ecgData || {}));
+    console.log('Type:', typeof ecgData);
+    console.log('Is Array:', Array.isArray(ecgData));
 
     // Extract ECG information
     // Health Auto Export sends data in various formats - handle common ones
     const ecg = extractECGData(ecgData);
 
     if (!ecg) {
-      return res.status(400).json({ error: 'Could not parse ECG data' });
+      // Return detailed debug info in error response
+      return res.status(400).json({
+        error: 'Could not parse ECG data',
+        debug: {
+          receivedKeys: Object.keys(ecgData || {}),
+          isArray: Array.isArray(ecgData),
+          type: typeof ecgData,
+          sample: JSON.stringify(ecgData).slice(0, 1000),
+        }
+      });
     }
 
     const auth = getGoogleAuth();
