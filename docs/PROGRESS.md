@@ -36,13 +36,13 @@ Track completed features and current status here. Update after completing each f
 | 16 | Data trends/charts | TODO | ON HOLD - 7-day visualization |
 | 17 | Streak animations | TODO | ON HOLD - Motivation feature |
 
-### Phase 4: ECG Integration (PLANNED - Fully Automatic)
+### Phase 4: ECG Integration (IN PROGRESS - Fully Automatic)
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 18 | Google Drive & Sheets setup | TODO | Create ECG folder, ECG_Readings sheet |
-| 19 | ECG webhook endpoint | TODO | Receives data, calculates R/S ratio, stores waveform |
-| 20 | Health Auto Export config | TODO | Configure iPhone app for automatic sync |
+| 18 | Google Drive & Sheets setup | DONE | ECG folder created, ECG_Readings sheet ready |
+| 19 | ECG webhook endpoint | DONE | R/S ratio calculation working, Drive storage TBD |
+| 20 | Health Auto Export config | IN PROGRESS | App purchased, automation needs setup |
 | 21 | ECG history display | TODO | (Optional) View ECG data in app |
 
 **Key Design:** NO manual data entry. R/S ratio calculated automatically from raw voltage data.
@@ -58,6 +58,89 @@ Track completed features and current status here. Update after completing each f
 ---
 
 ## Completed Features Log
+
+### 2025-12-27 - ECG Webhook Implementation (Session 22)
+
+**Major Accomplishments:**
+
+1. **Google Cloud & Drive Setup** - COMPLETE
+   - Enabled Google Drive API in Cloud Console
+   - Created `CFS-ECG-Data` folder in Google Drive
+   - Shared folder with service account: `cfs-tracker-service@cfs-tracker-481603.iam.gserviceaccount.com`
+   - Folder ID: `14_1fgPKdRqHIl6Bvd8tyx3ay0y1SaX3Y`
+
+2. **ECG_Readings Sheet** - COMPLETE
+   - Created new sheet tab with columns: Timestamp, Date, Classification, Avg Heart Rate, R/S Ratio, R Amplitude, S Amplitude, Notes, Waveform URL, Sample Count
+
+3. **Environment Variables Added to Vercel:**
+   - `GOOGLE_DRIVE_FOLDER_ID`: `14_1fgPKdRqHIl6Bvd8tyx3ay0y1SaX3Y`
+   - `ECG_WEBHOOK_SECRET`: `a2a44fdf253e623efcf0cbf4d1c8fd00e1b4e5ee6a4732c6292298a35de92751`
+
+4. **ECG Webhook Endpoint** - COMPLETE (`api/ecg-webhook.js`)
+   - Authenticates via `X-Webhook-Secret` header
+   - Parses multiple ECG data formats from Health Auto Export
+   - **R/S Ratio Calculation Algorithm:**
+     - Moving average baseline removal (200ms window)
+     - R-peak detection (60% threshold, 300ms minimum distance)
+     - S-wave detection (minimum within 100ms after R peak)
+     - Returns median R/S ratio across all beats
+   - Tested with simulated data: R/S ratio = 1.49, R = 1077 µV, S = 725 µV
+   - Saves metadata to Google Sheets ECG_Readings tab
+
+5. **Google Drive Storage** - PARTIAL
+   - Code written to store raw waveform as CSV
+   - **Issue:** Service accounts don't have storage quota on personal Google accounts
+   - Added `supportsAllDrives: true` parameter - needs testing
+   - Wrapped in try/catch so Sheets storage continues even if Drive fails
+
+6. **Health Auto Export App** - PURCHASED
+   - User purchased app on iPhone
+   - Automation configuration not yet complete
+
+**Files Created/Modified:**
+- `api/ecg-webhook.js` - New webhook endpoint (300+ lines)
+- `.env.local` - Added ECG_WEBHOOK_SECRET and GOOGLE_DRIVE_FOLDER_ID
+
+**Testing Verified:**
+- Webhook authentication works
+- R/S ratio calculation works with simulated ECG data
+- Data saves to Google Sheets ECG_Readings tab
+
+**Next Session - Remaining Tasks:**
+
+1. **Check Google Drive Storage**
+   - Look in `CFS-ECG-Data` folder for CSV files from test
+   - If empty, need alternative: store raw data in Sheets or use different storage
+
+2. **Configure Health Auto Export Automation:**
+   - Open Health Auto Export app → Automations → + New
+   - URL: `https://amiel-cfs-documentation-app.vercel.app/api/ecg-webhook`
+   - Method: POST, Format: JSON
+   - Header: `X-Webhook-Secret` = `a2a44fdf253e623efcf0cbf4d1c8fd00e1b4e5ee6a4732c6292298a35de92751`
+   - Data: Select only Electrocardiogram, enable "Include samples"
+   - Trigger: "When new data is available"
+
+3. **Test End-to-End with Real ECG**
+   - Take ECG on Apple Watch
+   - Verify data appears in ECG_Readings sheet
+   - Confirm R/S ratio is calculated
+
+4. **If Drive Storage Failed - Alternative Solutions:**
+   - Option A: Store raw voltage data as JSON in Sheets (new column)
+   - Option B: Use Cloudinary or Firebase Storage
+   - Option C: Domain-wide delegation (complex, requires Google Workspace)
+
+**Webhook Secret (for Health Auto Export setup):**
+```
+a2a44fdf253e623efcf0cbf4d1c8fd00e1b4e5ee6a4732c6292298a35de92751
+```
+
+**Webhook URL:**
+```
+https://amiel-cfs-documentation-app.vercel.app/api/ecg-webhook
+```
+
+---
 
 ### 2025-12-26 - ECG Capture Feature Planning (Session 20)
 

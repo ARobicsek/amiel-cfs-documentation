@@ -67,7 +67,12 @@ export default async function handler(req, res) {
     // Store raw waveform data in Google Drive
     let waveformUrl = '';
     if (ecg.voltageMeasurements && ecg.voltageMeasurements.length > 0) {
-      waveformUrl = await storeWaveformData(auth, ecg);
+      try {
+        waveformUrl = await storeWaveformData(auth, ecg);
+      } catch (driveError) {
+        console.error('Drive storage failed:', driveError.message);
+        // Continue without waveform URL - still save metadata
+      }
     }
 
     // Calculate R/S ratio from voltage data
@@ -208,7 +213,9 @@ async function storeWaveformData(auth, ecg) {
   const fileName = `ECG_${dateStr}_${timeStr}.csv`;
 
   // Upload to Google Drive
+  // Note: supportsAllDrives helps with shared folders
   const driveResponse = await drive.files.create({
+    supportsAllDrives: true,
     requestBody: {
       name: fileName,
       parents: [process.env.GOOGLE_DRIVE_FOLDER_ID.trim()],
@@ -223,6 +230,7 @@ async function storeWaveformData(auth, ecg) {
   // Make file viewable
   await drive.permissions.create({
     fileId: driveResponse.data.id,
+    supportsAllDrives: true,
     requestBody: {
       role: 'reader',
       type: 'anyone',

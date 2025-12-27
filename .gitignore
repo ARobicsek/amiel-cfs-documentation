@@ -42,3 +42,5 @@ cfs-tracker-*.json
 *.sw?
 
 .vercel
+
+.env*.local

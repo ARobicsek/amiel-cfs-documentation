@@ -17,7 +17,15 @@
       "SlashCommand(/start-session)",
       "Bash(npx web-push generate-vapid-keys)",
       "Bash(npm run dev:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Skill(start-session)",
+      "Skill(start-session:*)",
+      "Bash(timeout /t 8 /nobreak)",
+      "Bash(curl:*)",
+      "Bash(powershell:*)",
+      "Bash(npx vercel env pull:*)",
+      "Bash(npx vercel inspect --token=)",
+      "Bash(npx vercel ls)"
     ],
     "deny": [],
     "ask": []
