@@ -264,9 +264,8 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const sheetId = process.env.GOOGLE_SHEET_ID.trim();
 
-    // Get existing ECG dates to avoid duplicates
-    const existingDates = await getExistingECGDates(sheets, sheetId);
-    console.log(`Found ${existingDates.size} existing ECG dates in sheet`);
+    // Get existing ECG IDs to avoid duplicates
+    const existingIds = await getExistingECGIds(sheets, sheetId);
 
     // Sort ECG records by date (newest first) and process each one
     ecgRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -276,10 +275,13 @@ export default async function handler(req, res) {
     let skippedCount = 0;
 
     for (const ecg of ecgRecords) {
-      // Check for duplicate by ECG date (within 1 minute)
-      const ecgDateKey = ecg.date ? new Date(ecg.date).toISOString().slice(0, 16) : null;
-      if (ecgDateKey && existingDates.has(ecgDateKey)) {
-        console.log(`Skipping duplicate ECG from ${ecg.date}`);
+      // Generate ECG ID early so we can check for duplicates
+      const ecgDate = ecg.date ? new Date(ecg.date) : new Date();
+      const ecgId = `ECG_${ecgDate.getTime()}`;
+
+      // Check for duplicate by ECG_ID (most reliable)
+      if (existingIds.has(ecgId)) {
+        console.log(`Skipping duplicate ECG: ${ecgId}`);
         skippedCount++;
         continue;
       }
@@ -314,12 +316,8 @@ export default async function handler(req, res) {
       const etOptions = { timeZone: 'America/New_York' };
       const receivedTimestamp = now.toLocaleString('en-US', etOptions);
 
-      // Format the ECG date for display
-      const ecgDate = ecg.date ? new Date(ecg.date) : now;
+      // Format the ECG date for display (ecgDate and ecgId already defined above)
       const ecgDateStr = ecgDate.toLocaleString('en-US', etOptions);
-
-      // Generate unique ECG ID using the ECG's timestamp
-      const ecgId = `ECG_${ecgDate.getTime()}`;
 
       // Store metadata in ECG_Readings sheet
       await sheets.spreadsheets.values.append({
@@ -358,10 +356,8 @@ export default async function handler(req, res) {
         }
       }
 
-      // Add to existing dates to prevent duplicates within same request
-      if (ecgDateKey) {
-        existingDates.add(ecgDateKey);
-      }
+      // Add to existing IDs to prevent duplicates within same request
+      existingIds.add(ecgId);
 
       savedCount++;
       results.push({
@@ -398,36 +394,30 @@ export default async function handler(req, res) {
 }
 
 /**
- * Get existing ECG dates from sheet to avoid duplicates
+ * Get existing ECG IDs from sheet to avoid duplicates
+ * Uses ECG_ID column (L) which is more reliable than date matching
  */
-async function getExistingECGDates(sheets, sheetId) {
-  const existingDates = new Set();
+async function getExistingECGIds(sheets, sheetId) {
+  const existingIds = new Set();
 
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'ECG_Readings!B:B', // Date column
+      range: 'ECG_Readings!L:L', // ECG_ID column
     });
 
     const rows = response.data.values || [];
     for (const row of rows) {
-      if (row[0] && row[0] !== 'Date') {
-        // Parse the date and create a key (truncated to minute for matching)
-        try {
-          const date = new Date(row[0]);
-          if (!isNaN(date.getTime())) {
-            existingDates.add(date.toISOString().slice(0, 16));
-          }
-        } catch (e) {
-          // Skip unparseable dates
-        }
+      if (row[0] && row[0] !== 'ECG_ID' && row[0].startsWith('ECG_')) {
+        existingIds.add(row[0]);
       }
     }
+    console.log(`Found ${existingIds.size} existing ECG IDs in sheet`);
   } catch (error) {
-    console.log('Could not fetch existing dates:', error.message);
+    console.log('Could not fetch existing ECG IDs:', error.message);
   }
 
-  return existingDates;
+  return existingIds;
 }
 
 /**
