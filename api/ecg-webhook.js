@@ -88,6 +88,9 @@ function extractFromMultipart(rawBody) {
  * Number of Voltage Measurements,15360
  * Sampling Frequency (Hz),512.0
  * Voltage Measurements,0.001,0.002,0.003,...
+ *
+ * MULTI-ECG: When multiple ECGs are exported together, each ECG has its own
+ * set of key-value pairs. We detect this by looking for repeated "Start" keys.
  */
 function parseCSVData(csvText) {
   // First extract from multipart if needed
@@ -99,14 +102,60 @@ function parseCSVData(csvText) {
   console.log('Parsing key-value CSV format, line count:', lines.length);
   console.log('First 5 lines:', lines.slice(0, 5));
 
-  // Parse as key-value pairs
+  // Split lines into separate ECG blocks by detecting repeated "Start" keys
+  const ecgBlocks = [];
+  let currentBlock = [];
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+
+    const firstComma = line.indexOf(',');
+    if (firstComma === -1) continue;
+
+    const key = line.slice(0, firstComma).trim().toLowerCase();
+
+    // If we see a "start" key and already have lines in current block,
+    // that means a new ECG is starting - save the current block
+    if ((key === 'start' || key.includes('start')) && currentBlock.length > 0) {
+      ecgBlocks.push(currentBlock);
+      currentBlock = [];
+      console.log(`Detected new ECG block (block ${ecgBlocks.length + 1})`);
+    }
+
+    currentBlock.push(line);
+  }
+
+  // Don't forget the last block
+  if (currentBlock.length > 0) {
+    ecgBlocks.push(currentBlock);
+  }
+
+  console.log(`Found ${ecgBlocks.length} ECG block(s) in CSV`);
+
+  // Parse each block into an ECG record
+  const records = [];
+  for (let blockIdx = 0; blockIdx < ecgBlocks.length; blockIdx++) {
+    const block = ecgBlocks[blockIdx];
+    const ecg = parseCSVBlock(block, blockIdx + 1);
+    if (ecg) {
+      records.push(ecg);
+    }
+  }
+
+  console.log(`Successfully parsed ${records.length} ECG record(s) from CSV`);
+  return records;
+}
+
+/**
+ * Parse a single ECG block (set of key-value lines) into an ECG record
+ */
+function parseCSVBlock(lines, blockNum) {
   const data = {};
   let voltageValues = [];
 
   for (const line of lines) {
     if (!line.trim()) continue;
 
-    // Find the first comma to split key from value
     const firstComma = line.indexOf(',');
     if (firstComma === -1) continue;
 
@@ -115,9 +164,6 @@ function parseCSVData(csvText) {
 
     // Check for voltage measurements line (contains many comma-separated numbers)
     if (key.includes('voltage') && key.includes('measurement')) {
-      // This line contains all voltage values after the first comma
-      // Format: "Voltage Measurements,0.001,0.002,0.003,..."
-      // But the value already has everything after first comma
       const allValues = value.split(',');
       for (const v of allValues) {
         const num = parseFloat(v.trim());
@@ -125,13 +171,10 @@ function parseCSVData(csvText) {
           voltageValues.push({ voltage: num });
         }
       }
-      console.log(`Found ${voltageValues.length} voltage measurements`);
     } else {
       data[key] = value;
     }
   }
-
-  console.log('Parsed keys:', Object.keys(data));
 
   // Extract metadata with flexible key matching
   let startDate = null;
@@ -155,20 +198,20 @@ function parseCSVData(csvText) {
     }
   }
 
-  console.log(`Extracted: date=${startDate}, class=${classification}, hr=${heartRate}, sampling=${samplingFreq}, voltages=${voltageValues.length}`);
+  console.log(`Block ${blockNum}: date=${startDate}, class=${classification}, hr=${heartRate}, sampling=${samplingFreq}, voltages=${voltageValues.length}`);
 
   if (!startDate && !classification && voltageValues.length === 0) {
-    console.log('No valid ECG data found in key-value format');
-    return [];
+    console.log(`Block ${blockNum}: No valid ECG data found`);
+    return null;
   }
 
-  return [{
+  return {
     date: startDate,
     classification: classification,
     averageHeartRate: heartRate,
     samplingFrequency: samplingFreq,
     voltageMeasurements: voltageValues,
-  }];
+  };
 }
 export default async function handler(req, res) {
   // CORS

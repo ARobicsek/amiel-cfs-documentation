@@ -88,42 +88,37 @@ function EntryCard({ entry }) {
         <span className="entry-date">{formatDate(entry.normalizedDate || entry.date)}</span>
       </div>
 
-      {/* Main metrics row */}
-      <div className="entry-main-metrics">
-        {/* Daily entry metrics */}
-        {entry.hasEntryData && (
-          <>
-            <div className="main-metric">
-              <span className="metric-value">{entry.hours || 0}</span>
-              <span className="metric-label">hrs upright</span>
-            </div>
-            {entry.brainTime !== null && (
-              <div className="main-metric">
-                <span className="metric-value">{entry.brainTime}</span>
-                <span className="metric-label">hrs brain</span>
-              </div>
-            )}
-          </>
-        )}
+      {/* Row 1: Daily entry metrics */}
+      {entry.hasEntryData && (
+        <div className="entry-main-metrics">
+          <div className="main-metric">
+            <span className="metric-value">{entry.hours || 0}</span>
+            <span className="metric-label">hrs upright</span>
+          </div>
+          <div className="main-metric">
+            <span className="metric-value">{entry.brainTime ?? 0}</span>
+            <span className="metric-label">hrs brain</span>
+          </div>
+        </div>
+      )}
 
-        {/* ECG metrics */}
-        {entry.hasECGData && (
-          <>
-            {entry.ecgHR !== null && (
-              <div className="main-metric ecg-metric">
-                <span className="metric-value">{Math.round(entry.ecgHR)}</span>
-                <span className="metric-label">HR bpm</span>
-              </div>
-            )}
-            {entry.ecgRSRatio !== null && (
-              <div className="main-metric ecg-metric">
-                <span className="metric-value">{entry.ecgRSRatio.toFixed(2)}</span>
-                <span className="metric-label">R/S ratio</span>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {/* Row 2: ECG metrics (side by side) */}
+      {entry.hasECGData && (
+        <div className="entry-ecg-metrics">
+          {entry.ecgHR !== null && (
+            <div className="main-metric ecg-metric">
+              <span className="metric-value">{Math.round(entry.ecgHR)}</span>
+              <span className="metric-label">HR bpm</span>
+            </div>
+          )}
+          {entry.ecgRSRatio !== null && (
+            <div className="main-metric ecg-metric">
+              <span className="metric-value">{entry.ecgRSRatio.toFixed(2)}</span>
+              <span className="metric-label">R/S ratio</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Secondary details */}
       {(entry.comments || entry.modafinil || entry.exercise || entry.oxaloacetate || entry.willDoECG) && (

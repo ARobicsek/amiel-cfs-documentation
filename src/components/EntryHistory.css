@@ -44,10 +44,18 @@
   color: var(--text-primary);
 }
 
-/* Main metrics grid */
+/* Main metrics grid - Row 1 (daily entry metrics) */
 .entry-main-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ECG metrics grid - Row 2 (ECG data) */
+.entry-ecg-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
   margin-bottom: 0.5rem;
 }

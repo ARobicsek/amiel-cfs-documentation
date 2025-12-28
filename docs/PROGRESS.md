@@ -65,6 +65,39 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2025-12-28 - Multi-ECG Fix & History Layout (Session 27)
+
+**Session Summary:**
+Fixed the multi-ECG merging bug and improved History view layout.
+
+**Bugs Fixed:**
+
+1. **Multi-ECG Merging Bug**
+   - Root cause: CSV parser wasn't detecting when multiple ECGs were bundled together
+   - Symptom: Two ECGs taken back-to-back resulted in one row with doubled samples (30,722 instead of 15,361)
+   - Fix: Added logic to detect repeated "Start" keys in CSV and split into separate ECG blocks
+   - Added `parseCSVBlock()` function to parse individual ECG records
+
+2. **ECG "Most Recent" Selection Bug**
+   - Root cause: Used Column A (received timestamp) instead of Column B (actual ECG time)
+   - Symptom: History showed wrong ECG when multiple taken same day (showed earlier one)
+   - Fix: Changed `get-entries.js` to use Column B for determining "most recent"
+
+**UI Improvements:**
+
+1. **History Layout Reorganized**
+   - Row 1: hrs upright + hrs brain (daily metrics)
+   - Row 2: HR bpm + R/S ratio (ECG metrics, side by side)
+   - Brain time now always displays (defaults to 0 if not set)
+
+**Files Modified:**
+- `api/ecg-webhook.js` - Multi-ECG parsing with block detection
+- `api/get-entries.js` - Use actual ECG time for "most recent" selection
+- `src/components/EntryHistory.jsx` - Two-row layout, always show brain time
+- `src/components/EntryHistory.css` - Added `.entry-ecg-metrics` styling
+
+---
+
 ### 2025-12-28 - ECG History Display & UI Redesign (Session 26)
 
 **Session Summary:**
@@ -932,34 +965,28 @@ All ECG features are now functional:
 - ✅ Health Auto Export automation
 - ✅ ECG data in History view (HR + R/S ratio)
 - ✅ "Will do ECG" button in Today page
+- ✅ Multi-ECG parsing (fixed Session 27)
 
 ---
 
-### Next Session: Fix Multi-ECG Export Bug
+### Next Session: Investigate Health Auto Export Background Sync
 
-**Bug Discovered:** When two ECGs are taken back-to-back and exported together by Health Auto Export, the webhook merges them into a single row instead of creating separate entries.
+**Issue Discovered:** Health Auto Export only uploads ECG data when the app is manually opened. ECGs are cached locally but not sent to the webhook until the user opens the Health Auto Export app.
 
-**Evidence from ECG_Readings:**
-| Samples | Notes |
-|---------|-------|
-| 15361 | Single ECG - correct |
-| 15361 | Single ECG - correct |
-| 30722 | Two ECGs merged - BUG |
+**Expected Behavior:**
+- ECG taken on Apple Watch → Auto Export syncs in background → Webhook receives data
 
-**Symptoms:**
-- Sample count is doubled (30722 instead of 15361)
-- R amplitude is abnormally high (15400 instead of ~500-900)
-- Only 1 beat detected (should be ~30-50)
-- Classification shows "Inconclusive"
+**Actual Behavior:**
+- ECG taken on Apple Watch → Data cached locally → **Nothing happens** until user opens Auto Export app
 
-**Root Cause (suspected):**
-Health Auto Export batches multiple ECGs into one payload when exported together. The webhook currently processes this as one ECG instead of splitting it.
-
-**Fix needed in `api/ecg-webhook.js`:**
-1. Detect when payload contains multiple ECGs (check sample count > 16000?)
-2. Split voltage data into separate 15361-sample chunks
-3. Process each ECG separately
-4. Create separate rows for each
+**Investigation Needed:**
+1. Check Health Auto Export app settings for background refresh options
+2. Check iOS Settings → Background App Refresh for Health Auto Export
+3. Research if this is a known limitation of the app
+4. Consider alternative solutions:
+   - iOS Shortcuts automation?
+   - Different app?
+   - Accept manual trigger as workflow?
 
 ---
 

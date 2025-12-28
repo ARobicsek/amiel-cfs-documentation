@@ -161,9 +161,11 @@ export default async function handler(req, res) {
 
     const ecgByDate = {};
     for (const row of ecgDataRows) {
-      const { date: normalizedDate, timestamp } = parseECGTimestamp(row[0]); // Column A is timestamp
+      // Use Column B (actual ECG date/time) NOT Column A (received timestamp)
+      // Column B is when the ECG was actually taken on the Apple Watch
+      const { date: normalizedDate, timestamp } = parseECGTimestamp(row[1]); // Column B is ECG date
       if (normalizedDate) {
-        // Keep track of most recent ECG per day
+        // Keep track of most recent ECG per day (by actual ECG time)
         if (!ecgByDate[normalizedDate] || timestamp > ecgByDate[normalizedDate].timestamp) {
           ecgByDate[normalizedDate] = {
             timestamp,
