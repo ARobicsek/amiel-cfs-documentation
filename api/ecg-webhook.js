@@ -706,28 +706,92 @@ function movingAverage(arr, windowSize) {
 }
 
 /**
- * Find R peaks using simple threshold-based detection
+ * Find R peaks using adaptive threshold detection
+ *
+ * Improvements for high HR / post-exercise ECGs:
+ * 1. Use adaptive threshold based on local window, not global max
+ * 2. Use derivative (slope) to detect QRS complex onset
+ * 3. Lower minimum threshold for variable R-wave heights
  */
 function findRPeaks(voltages, samplingRate) {
   const peaks = [];
 
-  // Calculate threshold (35% of max amplitude - lowered from 60% to catch more peaks)
+  // Minimum distance between R peaks (~200ms for 300 BPM max - reduced for high HR)
+  const minDistance = Math.floor(samplingRate * 0.2);
+
+  // Calculate global stats for baseline threshold
   const maxV = Math.max(...voltages);
-  const threshold = maxV * 0.35;
+  const sortedV = [...voltages].sort((a, b) => a - b);
+  const medianV = sortedV[Math.floor(sortedV.length / 2)];
 
-  // Minimum distance between R peaks (~250ms for 240 BPM max)
-  const minDistance = Math.floor(samplingRate * 0.25);
+  // Initial threshold: 25% of (max - median), more lenient than before
+  const baseThreshold = medianV + (maxV - medianV) * 0.25;
 
-  console.log(`Peak detection: maxV=${maxV.toFixed(4)}, threshold=${threshold.toFixed(4)}, minDist=${minDistance} samples`);
+  // Adaptive window size (2 seconds of data)
+  const windowSize = samplingRate * 2;
+
+  console.log(`Peak detection: maxV=${maxV.toFixed(4)}, median=${medianV.toFixed(4)}, baseThreshold=${baseThreshold.toFixed(4)}, minDist=${minDistance} samples`);
 
   let lastPeakIdx = -minDistance;
 
   for (let i = 2; i < voltages.length - 2; i++) {
-    // Check if local maximum
+    // Calculate local adaptive threshold using surrounding window
+    const windowStart = Math.max(0, i - windowSize);
+    const windowEnd = Math.min(voltages.length, i + windowSize);
+    let localMax = 0;
+    for (let j = windowStart; j < windowEnd; j++) {
+      if (voltages[j] > localMax) localMax = voltages[j];
+    }
+
+    // Adaptive threshold: 25% of local max, but never below base threshold * 0.5
+    const adaptiveThreshold = Math.max(localMax * 0.25, baseThreshold * 0.5);
+
+    // Check if local maximum (stronger check - must be higher than 3 neighbors on each side)
+    const isLocalMax = voltages[i] > voltages[i - 1] &&
+                       voltages[i] > voltages[i - 2] &&
+                       voltages[i] >= voltages[i - 3] &&
+                       voltages[i] > voltages[i + 1] &&
+                       voltages[i] > voltages[i + 2] &&
+                       voltages[i] >= voltages[i + 3];
+
+    // Also check for sharp upslope (QRS characteristic) - derivative based
+    const slope = voltages[i] - voltages[i - 2];
+    const hasSharpRise = slope > (maxV - medianV) * 0.1; // At least 10% of signal range
+
+    if (isLocalMax &&
+        voltages[i] > adaptiveThreshold &&
+        hasSharpRise &&
+        i - lastPeakIdx >= minDistance) {
+      peaks.push(i);
+      lastPeakIdx = i;
+    }
+  }
+
+  console.log(`Peak detection found ${peaks.length} R peaks (adaptive threshold)`);
+
+  // If we found very few peaks, try again with more lenient settings
+  if (peaks.length < 10 && voltages.length > samplingRate * 10) {
+    console.log('Few peaks detected, trying lenient fallback...');
+    return findRPeaksLenient(voltages, samplingRate, maxV, medianV, minDistance);
+  }
+
+  return peaks;
+}
+
+/**
+ * Lenient fallback R-peak detection for difficult signals
+ */
+function findRPeaksLenient(voltages, samplingRate, maxV, medianV, minDistance) {
+  const peaks = [];
+
+  // Very lenient threshold: 15% above median
+  const threshold = medianV + (maxV - medianV) * 0.15;
+
+  let lastPeakIdx = -minDistance;
+
+  for (let i = 2; i < voltages.length - 2; i++) {
     if (voltages[i] > voltages[i - 1] &&
-        voltages[i] > voltages[i - 2] &&
         voltages[i] > voltages[i + 1] &&
-        voltages[i] > voltages[i + 2] &&
         voltages[i] > threshold &&
         i - lastPeakIdx >= minDistance) {
       peaks.push(i);
@@ -735,6 +799,6 @@ function findRPeaks(voltages, samplingRate) {
     }
   }
 
-  console.log(`Peak detection found ${peaks.length} R peaks`);
+  console.log(`Lenient fallback found ${peaks.length} R peaks`);
   return peaks;
 }
