@@ -708,24 +708,28 @@ function movingAverage(arr, windowSize) {
 /**
  * Find R peaks using adaptive threshold detection
  *
+ * Key insight: T-waves occur ~300ms after R-peaks and can be falsely detected.
+ * We need minDistance > 350ms to avoid T-waves, but still catch high HR.
+ *
  * Improvements for high HR / post-exercise ECGs:
  * 1. Use adaptive threshold based on local window, not global max
- * 2. Use derivative (slope) to detect QRS complex onset
- * 3. Lower minimum threshold for variable R-wave heights
+ * 2. Use derivative (slope) to detect QRS complex - must be STEEP (not gradual like T-wave)
+ * 3. Require peak to be prominent (significantly above neighbors)
  */
 function findRPeaks(voltages, samplingRate) {
   const peaks = [];
 
-  // Minimum distance between R peaks (~200ms for 300 BPM max - reduced for high HR)
-  const minDistance = Math.floor(samplingRate * 0.2);
+  // Minimum distance between R peaks: 350ms (avoids T-waves, supports up to ~170 BPM)
+  const minDistance = Math.floor(samplingRate * 0.35);
 
   // Calculate global stats for baseline threshold
   const maxV = Math.max(...voltages);
   const sortedV = [...voltages].sort((a, b) => a - b);
   const medianV = sortedV[Math.floor(sortedV.length / 2)];
+  const signalRange = maxV - medianV;
 
-  // Initial threshold: 25% of (max - median), more lenient than before
-  const baseThreshold = medianV + (maxV - medianV) * 0.25;
+  // Threshold: 30% of (max - median) - balance between sensitivity and specificity
+  const baseThreshold = medianV + signalRange * 0.30;
 
   // Adaptive window size (2 seconds of data)
   const windowSize = samplingRate * 2;
@@ -734,7 +738,7 @@ function findRPeaks(voltages, samplingRate) {
 
   let lastPeakIdx = -minDistance;
 
-  for (let i = 2; i < voltages.length - 2; i++) {
+  for (let i = 5; i < voltages.length - 5; i++) {
     // Calculate local adaptive threshold using surrounding window
     const windowStart = Math.max(0, i - windowSize);
     const windowEnd = Math.min(voltages.length, i + windowSize);
@@ -743,24 +747,32 @@ function findRPeaks(voltages, samplingRate) {
       if (voltages[j] > localMax) localMax = voltages[j];
     }
 
-    // Adaptive threshold: 25% of local max, but never below base threshold * 0.5
-    const adaptiveThreshold = Math.max(localMax * 0.25, baseThreshold * 0.5);
+    // Adaptive threshold: 30% of local max, but never below base threshold * 0.6
+    const adaptiveThreshold = Math.max(localMax * 0.30, baseThreshold * 0.6);
 
-    // Check if local maximum (stronger check - must be higher than 3 neighbors on each side)
+    // Check if local maximum (must be clearly higher than neighbors)
     const isLocalMax = voltages[i] > voltages[i - 1] &&
                        voltages[i] > voltages[i - 2] &&
-                       voltages[i] >= voltages[i - 3] &&
                        voltages[i] > voltages[i + 1] &&
-                       voltages[i] > voltages[i + 2] &&
-                       voltages[i] >= voltages[i + 3];
+                       voltages[i] > voltages[i + 2];
 
-    // Also check for sharp upslope (QRS characteristic) - derivative based
-    const slope = voltages[i] - voltages[i - 2];
-    const hasSharpRise = slope > (maxV - medianV) * 0.1; // At least 10% of signal range
+    // QRS complexes have VERY steep slopes (much steeper than T-waves)
+    // Check slope over 4 samples (~8ms) - QRS rises in ~20-40ms
+    const slope = voltages[i] - voltages[i - 4];
+    const hasSharpRise = slope > signalRange * 0.20; // Must rise 20% of range in 8ms
+
+    // Also check that we're significantly above the local minimum (prominence check)
+    let localMin = voltages[i];
+    for (let j = Math.max(0, i - 50); j < i; j++) {
+      if (voltages[j] < localMin) localMin = voltages[j];
+    }
+    const prominence = voltages[i] - localMin;
+    const isProminent = prominence > signalRange * 0.25;
 
     if (isLocalMax &&
         voltages[i] > adaptiveThreshold &&
         hasSharpRise &&
+        isProminent &&
         i - lastPeakIdx >= minDistance) {
       peaks.push(i);
       lastPeakIdx = i;
