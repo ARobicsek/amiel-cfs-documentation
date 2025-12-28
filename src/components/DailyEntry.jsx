@@ -60,6 +60,7 @@ function DailyEntry({ onSave }) {
   const [willDoECG, setWillDoECG] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [showSyncECG, setShowSyncECG] = useState(false)
   const [error, setError] = useState(null)
 
   // Calculate date bounds (5 days ago through today)
@@ -163,6 +164,10 @@ function DailyEntry({ onSave }) {
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 1500)
 
+      // Show "Sync ECG" button for 10 seconds (mobile only)
+      setShowSyncECG(true)
+      setTimeout(() => setShowSyncECG(false), 10000)
+
       // Trigger haptic feedback if available
       if (navigator.vibrate) {
         navigator.vibrate(50)
@@ -188,6 +193,15 @@ function DailyEntry({ onSave }) {
     <div className="daily-entry">
       {showSuccess && (
         <div className="success-feedback">Saved!</div>
+      )}
+      {showSyncECG && (
+        <a
+          href="com.HealthExport://"
+          className="sync-ecg-button"
+          onClick={() => setShowSyncECG(false)}
+        >
+          Sync ECG Data
+        </a>
       )}
       {error && (
         <div className="error-feedback">{error}</div>
