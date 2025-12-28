@@ -14,11 +14,144 @@ function getGoogleAuth() {
 
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '5mb',
-    },
+    bodyParser: false, // We'll handle parsing ourselves to support both JSON and CSV
   },
 };
+
+/**
+ * Read raw body from request
+ */
+async function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', chunk => {
+      data += chunk;
+    });
+    req.on('end', () => {
+      resolve(data);
+    });
+    req.on('error', reject);
+  });
+}
+
+/**
+ * Parse CSV data from Health Auto Export
+ * Returns array of ECG records
+ *
+ * CSV format: one row per ECG, with voltage data split across multiple columns
+ * Columns: start, classification, averageHeartRate, samplingFrequency, voltage1, voltage2, voltage3, voltage4
+ * Each voltage column contains a portion of the ~15,000 samples as comma-separated values
+ */
+function parseCSVData(csvText) {
+  const lines = csvText.trim().split('\n');
+  if (lines.length < 2) return [];
+
+  // Parse header row - handle quoted headers
+  const headerLine = lines[0];
+  const headers = parseCSVLine(headerLine).map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+  console.log('CSV Headers:', headers);
+
+  // Find relevant column indices
+  const dateIdx = headers.findIndex(h => h.includes('start') || h === 'date' || h === 'time');
+  const classIdx = headers.findIndex(h => h.includes('classification'));
+  const hrIdx = headers.findIndex(h =>
+    (h.includes('average') && h.includes('heart')) ||
+    h === 'averageheartrate' ||
+    h.includes('heartrate')
+  );
+  const samplingIdx = headers.findIndex(h => h.includes('sampling'));
+
+  // Find ALL voltage columns (voltage1, voltage2, voltage3, voltage4 or similar)
+  const voltageIndices = [];
+  headers.forEach((h, idx) => {
+    if (h.includes('voltage')) {
+      voltageIndices.push(idx);
+    }
+  });
+
+  console.log('Column indices:', { dateIdx, classIdx, hrIdx, samplingIdx, voltageIndices });
+
+  const records = [];
+
+  // Each row is one ECG record
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    if (values.length === 0) continue;
+
+    const dateStr = dateIdx >= 0 ? values[dateIdx]?.trim() : null;
+    const classification = classIdx >= 0 ? values[classIdx]?.trim() : null;
+    const hrValue = hrIdx >= 0 ? values[hrIdx]?.trim() : null;
+    const hr = hrValue ? parseFloat(hrValue) : null;
+    const samplingValue = samplingIdx >= 0 ? values[samplingIdx]?.trim() : null;
+    const sampling = samplingValue ? parseFloat(samplingValue) : 512;
+
+    console.log(`Row ${i}: date=${dateStr}, class=${classification}, hr=${hr}, sampling=${sampling}`);
+
+    // Combine all voltage columns into one array
+    const voltageMeasurements = [];
+    for (const vIdx of voltageIndices) {
+      const voltageStr = values[vIdx];
+      if (voltageStr) {
+        // Each voltage cell may contain comma-separated values or a single value
+        // But since we're in CSV, the cell should be quoted if it contains commas
+        // Parse the voltage values from the cell
+        const voltageValues = voltageStr.split(',')
+          .map(v => v.trim())
+          .filter(v => v !== '')
+          .map(v => parseFloat(v))
+          .filter(v => !isNaN(v));
+
+        for (const voltage of voltageValues) {
+          voltageMeasurements.push({ voltage });
+        }
+      }
+    }
+
+    console.log(`Row ${i}: Found ${voltageMeasurements.length} voltage measurements`);
+
+    if (dateStr || voltageMeasurements.length > 0) {
+      records.push({
+        date: dateStr,
+        classification: classification,
+        averageHeartRate: hr,
+        samplingFrequency: sampling,
+        voltageMeasurements: voltageMeasurements,
+      });
+    }
+  }
+
+  console.log(`Parsed ${records.length} ECG record(s) from CSV with total voltage samples`);
+  if (records.length > 0) {
+    console.log(`First record: ${records[0].voltageMeasurements.length} samples, HR=${records[0].averageHeartRate}, class=${records[0].classification}`);
+  }
+
+  return records;
+}
+
+/**
+ * Parse a single CSV line, handling quoted values
+ */
+function parseCSVLine(line) {
+  const values = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      values.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  values.push(current.trim());
+
+  return values;
+}
 
 export default async function handler(req, res) {
   // CORS
@@ -33,6 +166,14 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Log request size info for debugging 413 errors
+  const contentLength = req.headers['content-length'];
+  const contentType = req.headers['content-type'];
+  console.log('=== ECG REQUEST SIZE DEBUG ===');
+  console.log('Content-Length:', contentLength, 'bytes');
+  console.log('Content-Length (KB):', contentLength ? (parseInt(contentLength) / 1024).toFixed(2) : 'unknown');
+  console.log('Content-Type:', contentType);
 
   // Authenticate webhook
   const webhookSecret = req.headers['x-webhook-secret'];
@@ -49,134 +190,183 @@ export default async function handler(req, res) {
   }
 
   try {
-    const ecgData = req.body;
+    // Read raw body since we disabled automatic body parsing
+    const rawBody = await getRawBody(req);
+    const contentType = req.headers['content-type'] || '';
 
     console.log('=== ECG WEBHOOK PAYLOAD ===');
-    console.log('Full payload:', JSON.stringify(ecgData, null, 2));
-    console.log('Top-level keys:', Object.keys(ecgData || {}));
-    console.log('Type:', typeof ecgData);
-    console.log('Is Array:', Array.isArray(ecgData));
+    console.log('Content-Type:', contentType);
+    console.log('Raw body length:', rawBody.length);
+    console.log('Raw body preview:', rawBody.slice(0, 500));
 
-    // Extract ECG information
-    // Health Auto Export sends data in various formats - handle common ones
-    const ecg = extractECGData(ecgData);
+    let ecgRecords = [];
+    let ecgData = null; // Declare outside so it's available for error reporting
 
-    if (!ecg) {
-      // Return detailed debug info in error response
+    // Check if this is CSV data
+    const isCSV = contentType.includes('text/csv') ||
+                  contentType.includes('text/plain') ||
+                  (!contentType.includes('json') && rawBody.trim().split('\n')[0].includes(','));
+
+    if (isCSV) {
+      console.log('Detected CSV format');
+      ecgRecords = parseCSVData(rawBody);
+    } else {
+      // JSON format
+      console.log('Detected JSON format');
+      try {
+        ecgData = JSON.parse(rawBody);
+      } catch (parseError) {
+        console.log('JSON parse failed, trying as CSV');
+        ecgRecords = parseCSVData(rawBody);
+      }
+      if (ecgData) {
+        console.log('Top-level keys:', Object.keys(ecgData || {}));
+        console.log('Is Array:', Array.isArray(ecgData));
+        ecgRecords = extractAllECGData(ecgData);
+      }
+    }
+
+    if (!ecgRecords || ecgRecords.length === 0) {
       return res.status(400).json({
         error: 'Could not parse ECG data',
         debug: {
-          receivedKeys: Object.keys(ecgData || {}),
-          isArray: Array.isArray(ecgData),
+          format: isCSV ? 'CSV' : 'JSON',
+          rawBodyPreview: rawBody.slice(0, 500),
+          receivedKeys: ecgData ? Object.keys(ecgData) : [],
+          isArray: ecgData ? Array.isArray(ecgData) : false,
           type: typeof ecgData,
-          sample: JSON.stringify(ecgData).slice(0, 1000),
         }
       });
     }
+
+    console.log(`Found ${ecgRecords.length} ECG record(s) in payload`);
 
     const auth = getGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
     const sheetId = process.env.GOOGLE_SHEET_ID.trim();
 
-    // Calculate R/S ratio and HR from voltage data
-    let rsRatio = null;
-    let rAmplitude = null;
-    let sAmplitude = null;
-    let calculatedHR = null;
-    let beatsDetected = 0;
+    // Get existing ECG dates to avoid duplicates
+    const existingDates = await getExistingECGDates(sheets, sheetId);
+    console.log(`Found ${existingDates.size} existing ECG dates in sheet`);
 
-    if (ecg.voltageMeasurements && ecg.voltageMeasurements.length > 0) {
-      const rsResult = calculateRSRatio(ecg.voltageMeasurements, ecg.samplingFrequency || 512);
-      rsRatio = rsResult.rsRatio;
-      rAmplitude = rsResult.rAmplitude;
-      sAmplitude = rsResult.sAmplitude;
-      calculatedHR = rsResult.calculatedHR;
-      beatsDetected = rsResult.beatsDetected || 0;
-    }
+    // Sort ECG records by date (newest first) and process each one
+    ecgRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // HR validation: compare our calculated HR with Apple's reported HR
-    const appleHR = ecg.averageHeartRate;
-    let hrValid = null;
-    let hrDiff = null;
-    if (calculatedHR && appleHR) {
-      hrDiff = Math.abs(calculatedHR - appleHR);
-      hrValid = hrDiff <= 10; // Within 10 BPM = valid
-    }
+    const results = [];
+    let savedCount = 0;
+    let skippedCount = 0;
 
-    // Get current Eastern Time
-    const now = new Date();
-    const etOptions = { timeZone: 'America/New_York' };
-    const timestamp = now.toLocaleString('en-US', etOptions);
-    const dateStr = ecg.date || now.toLocaleDateString('en-US', etOptions);
-
-    // Generate unique ECG ID for linking readings to waveforms
-    const ecgId = `ECG_${now.getTime()}`;
-
-    // Store metadata in ECG_Readings sheet
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: sheetId,
-      range: 'ECG_Readings!A:O',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [[
-          timestamp,                              // A: Timestamp
-          dateStr,                                // B: Date
-          ecg.classification || '',               // C: Classification
-          ecg.averageHeartRate || '',             // D: Avg Heart Rate (Apple)
-          rsRatio !== null ? rsRatio.toFixed(2) : '',  // E: R/S Ratio
-          rAmplitude !== null ? Math.round(rAmplitude) : '',  // F: R Amplitude (µV)
-          sAmplitude !== null ? Math.round(sAmplitude) : '',  // G: S Amplitude (µV)
-          calculatedHR || '',                     // H: Calc HR (our detection)
-          hrValid === true ? '✓' : (hrValid === false ? '✗' : ''),  // I: HR Valid
-          beatsDetected || '',                    // J: Beats Detected
-          'Auto-sync',                            // K: Notes
-          ecgId,                                  // L: ECG ID (links to waveform)
-          ecg.voltageMeasurements?.length || '',  // M: Sample count
-          ecg.samplingFrequency || 512,           // N: Sampling Frequency
-          hrDiff !== null ? hrDiff : '',          // O: HR Diff (absolute difference)
-        ]],
-      },
-    });
-
-    // Store raw waveform data in ECG_Waveforms sheet
-    let waveformStored = false;
-    if (ecg.voltageMeasurements && ecg.voltageMeasurements.length > 0) {
-      try {
-        await storeWaveformInSheets(sheets, sheetId, ecgId, ecg);
-        waveformStored = true;
-      } catch (waveformError) {
-        console.error('Waveform storage failed:', waveformError.message);
-        // Continue - metadata is already saved
+    for (const ecg of ecgRecords) {
+      // Check for duplicate by ECG date (within 1 minute)
+      const ecgDateKey = ecg.date ? new Date(ecg.date).toISOString().slice(0, 16) : null;
+      if (ecgDateKey && existingDates.has(ecgDateKey)) {
+        console.log(`Skipping duplicate ECG from ${ecg.date}`);
+        skippedCount++;
+        continue;
       }
+
+      // Calculate R/S ratio and HR from voltage data
+      let rsRatio = null;
+      let rAmplitude = null;
+      let sAmplitude = null;
+      let calculatedHR = null;
+      let beatsDetected = 0;
+
+      if (ecg.voltageMeasurements && ecg.voltageMeasurements.length > 0) {
+        const rsResult = calculateRSRatio(ecg.voltageMeasurements, ecg.samplingFrequency || 512);
+        rsRatio = rsResult.rsRatio;
+        rAmplitude = rsResult.rAmplitude;
+        sAmplitude = rsResult.sAmplitude;
+        calculatedHR = rsResult.calculatedHR;
+        beatsDetected = rsResult.beatsDetected || 0;
+      }
+
+      // HR validation: compare our calculated HR with Apple's reported HR
+      const appleHR = ecg.averageHeartRate;
+      let hrValid = null;
+      let hrDiff = null;
+      if (calculatedHR && appleHR) {
+        hrDiff = Math.abs(calculatedHR - appleHR);
+        hrValid = hrDiff <= 10; // Within 10 BPM = valid
+      }
+
+      // Use ECG's actual date/time, not current time
+      const now = new Date();
+      const etOptions = { timeZone: 'America/New_York' };
+      const receivedTimestamp = now.toLocaleString('en-US', etOptions);
+
+      // Format the ECG date for display
+      const ecgDate = ecg.date ? new Date(ecg.date) : now;
+      const ecgDateStr = ecgDate.toLocaleString('en-US', etOptions);
+
+      // Generate unique ECG ID using the ECG's timestamp
+      const ecgId = `ECG_${ecgDate.getTime()}`;
+
+      // Store metadata in ECG_Readings sheet
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: sheetId,
+        range: 'ECG_Readings!A:O',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[
+            receivedTimestamp,                      // A: Timestamp (when we received it)
+            ecgDateStr,                             // B: Date (when ECG was taken)
+            ecg.classification || '',               // C: Classification
+            ecg.averageHeartRate || '',             // D: Avg Heart Rate (Apple)
+            rsRatio !== null ? rsRatio.toFixed(2) : '',  // E: R/S Ratio
+            rAmplitude !== null ? Math.round(rAmplitude) : '',  // F: R Amplitude (µV)
+            sAmplitude !== null ? Math.round(sAmplitude) : '',  // G: S Amplitude (µV)
+            calculatedHR || '',                     // H: Calc HR (our detection)
+            hrValid === true ? '✓' : (hrValid === false ? '✗' : ''),  // I: HR Valid
+            beatsDetected || '',                    // J: Beats Detected
+            'Auto-sync',                            // K: Notes
+            ecgId,                                  // L: ECG ID (links to waveform)
+            ecg.voltageMeasurements?.length || '',  // M: Sample count
+            ecg.samplingFrequency || 512,           // N: Sampling Frequency
+            hrDiff !== null ? hrDiff : '',          // O: HR Diff (absolute difference)
+          ]],
+        },
+      });
+
+      // Store raw waveform data in ECG_Waveforms sheet
+      let waveformStored = false;
+      if (ecg.voltageMeasurements && ecg.voltageMeasurements.length > 0) {
+        try {
+          await storeWaveformInSheets(sheets, sheetId, ecgId, ecg);
+          waveformStored = true;
+        } catch (waveformError) {
+          console.error('Waveform storage failed:', waveformError.message);
+        }
+      }
+
+      // Add to existing dates to prevent duplicates within same request
+      if (ecgDateKey) {
+        existingDates.add(ecgDateKey);
+      }
+
+      savedCount++;
+      results.push({
+        ecgId,
+        date: ecgDateStr,
+        classification: ecg.classification,
+        appleHR: ecg.averageHeartRate,
+        calculatedHR,
+        hrValid,
+        rsRatio,
+        waveformStored,
+      });
+
+      console.log(`Saved ECG: ${ecgId} from ${ecgDateStr}`);
     }
 
-    console.log('ECG saved successfully:', {
-      ecgId,
-      date: dateStr,
-      classification: ecg.classification,
-      appleHR: ecg.averageHeartRate,
-      calculatedHR,
-      hrValid,
-      hrDiff,
-      beatsDetected,
-      rsRatio,
-      samples: ecg.voltageMeasurements?.length,
-      waveformStored,
-    });
+    console.log(`ECG processing complete: ${savedCount} saved, ${skippedCount} skipped (duplicates)`);
 
     return res.status(200).json({
       success: true,
-      message: 'ECG data saved',
-      ecgId,
-      rsRatio,
-      rAmplitude,
-      sAmplitude,
-      calculatedHR,
-      appleHR,
-      hrValid,
-      hrDiff,
-      beatsDetected,
-      waveformStored,
+      message: `Processed ${ecgRecords.length} ECG(s): ${savedCount} saved, ${skippedCount} skipped`,
+      savedCount,
+      skippedCount,
+      results,
     });
 
   } catch (error) {
@@ -189,61 +379,104 @@ export default async function handler(req, res) {
 }
 
 /**
- * Extract ECG data from various Health Auto Export formats
+ * Get existing ECG dates from sheet to avoid duplicates
  */
-function extractECGData(data) {
+async function getExistingECGDates(sheets, sheetId) {
+  const existingDates = new Set();
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'ECG_Readings!B:B', // Date column
+    });
+
+    const rows = response.data.values || [];
+    for (const row of rows) {
+      if (row[0] && row[0] !== 'Date') {
+        // Parse the date and create a key (truncated to minute for matching)
+        try {
+          const date = new Date(row[0]);
+          if (!isNaN(date.getTime())) {
+            existingDates.add(date.toISOString().slice(0, 16));
+          }
+        } catch (e) {
+          // Skip unparseable dates
+        }
+      }
+    }
+  } catch (error) {
+    console.log('Could not fetch existing dates:', error.message);
+  }
+
+  return existingDates;
+}
+
+/**
+ * Extract ALL ECG records from various Health Auto Export formats
+ * Returns an array of ECG objects
+ */
+function extractAllECGData(data) {
+  const records = [];
+
   // Health Auto Export format: { data: { ecg: [...] } }
   if (data.data && data.data.ecg && Array.isArray(data.data.ecg)) {
-    const ecgArray = data.data.ecg;
-    if (ecgArray.length > 0) {
-      // Take the most recent ECG (last in array, or first - they seem to send newest)
-      const ecg = ecgArray[ecgArray.length - 1];
-      return {
+    for (const ecg of data.data.ecg) {
+      records.push({
         classification: ecg.classification,
         averageHeartRate: ecg.averageHeartRate,
         samplingFrequency: ecg.samplingFrequency || 512,
         voltageMeasurements: ecg.voltageMeasurements,
         date: ecg.start || ecg.end,
-      };
+      });
     }
+    return records;
   }
 
   // Direct format (single ECG object)
   if (data.classification && data.voltageMeasurements) {
-    return {
+    records.push({
       classification: data.classification,
       averageHeartRate: data.averageHeartRate || data.heartRate,
       samplingFrequency: data.samplingFrequency || 512,
       voltageMeasurements: data.voltageMeasurements,
       date: data.start || data.startDate || data.date,
-    };
+    });
+    return records;
   }
 
   // Nested in 'data' field with 'electrocardiogram' key (alternate format)
   if (data.data && data.data.electrocardiogram) {
-    const ecg = data.data.electrocardiogram;
-    return {
-      classification: ecg.classification,
-      averageHeartRate: ecg.averageHeartRate,
-      samplingFrequency: ecg.samplingFrequency || 512,
-      voltageMeasurements: ecg.voltageMeasurements,
-      date: ecg.start || ecg.startDate,
-    };
+    const ecgData = data.data.electrocardiogram;
+    // Could be array or single object
+    const ecgArray = Array.isArray(ecgData) ? ecgData : [ecgData];
+    for (const ecg of ecgArray) {
+      records.push({
+        classification: ecg.classification,
+        averageHeartRate: ecg.averageHeartRate,
+        samplingFrequency: ecg.samplingFrequency || 512,
+        voltageMeasurements: ecg.voltageMeasurements,
+        date: ecg.start || ecg.startDate,
+      });
+    }
+    return records;
   }
 
   // Array format (multiple ECGs at top level)
   if (Array.isArray(data) && data.length > 0) {
-    const ecg = data[data.length - 1]; // Take most recent
-    return extractECGData(ecg);
+    for (const item of data) {
+      const extracted = extractAllECGData(item);
+      records.push(...extracted);
+    }
+    return records;
   }
 
   // Nested in 'metrics' field
   if (data.metrics && data.metrics.electrocardiogram) {
-    return extractECGData(data.metrics.electrocardiogram);
+    return extractAllECGData(data.metrics.electrocardiogram);
   }
 
   console.log('Unknown ECG format:', Object.keys(data));
-  return null;
+  return records;
 }
 
 /**
