@@ -49,7 +49,8 @@ Track completed features and current status here. Update after completing each f
 
 **User Experience After Setup:**
 1. Take 30-second ECG on Apple Watch
-2. Done! Everything syncs automatically.
+2. Open CFS Tracker, save daily entry, tap "Sync ECG Data" button
+3. Health Auto Export opens and syncs cached ECG data
 
 **ECG_Readings Columns (15 total):**
 Timestamp, Date, Classification, Avg HR (Apple), R/S Ratio, R Amp, S Amp, Calc HR, HR Valid, Beats, Notes, ECG_ID, Samples, Sampling_Freq, HR Diff
@@ -64,6 +65,40 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2025-12-28 - R-Peak Detection Fix & Sync ECG Button (Session 28)
+
+**Session Summary:**
+Fixed R-peak detection algorithm for accurate HR calculation and added "Sync ECG Data" button to trigger Health Auto Export sync.
+
+**R-Peak Detection Algorithm Iterations:**
+
+| Version | Threshold | Min Distance | Result |
+|---------|-----------|--------------|--------|
+| Original | 35% global max | 250ms | Missed peaks at high HR |
+| v1 | 25% adaptive | 200ms | Detected T-waves as R-peaks (double count) |
+| v2 | 30% + slope/prominence | 350ms | Too strict, missed R-peaks |
+| **v3 (final)** | **30% global max** | **320ms** | **Works well for all HR** |
+
+**Key Insight:** T-waves occur ~300ms after R-peaks. Using 320ms minimum distance skips T-waves while still supporting up to 187 BPM.
+
+**New Feature: "Sync ECG Data" Button**
+- Appears for 10 seconds after saving daily entry
+- Tapping opens Health Auto Export via URL scheme (`com.HealthExport://`)
+- Opening the app triggers cached ECG data to sync
+- Solves iOS background sync limitation (iOS throttles background app refresh)
+
+**Background Sync Investigation:**
+- Health Auto Export background sync works intermittently (iOS limitation)
+- iOS aggressively throttles background activity to save battery
+- Solution: User taps "Sync ECG Data" button after saving, which opens the app and guarantees sync
+
+**Files Modified:**
+- `api/ecg-webhook.js` - Simplified R-peak detection (30% threshold, 320ms min distance)
+- `src/components/DailyEntry.jsx` - Added "Sync ECG Data" button after save
+- `src/App.css` - Styling for sync button
+
+---
 
 ### 2025-12-28 - Multi-ECG Fix & History Layout (Session 27)
 
@@ -966,27 +1001,21 @@ All ECG features are now functional:
 - ✅ ECG data in History view (HR + R/S ratio)
 - ✅ "Will do ECG" button in Today page
 - ✅ Multi-ECG parsing (fixed Session 27)
+- ✅ R-peak detection fixed for accurate HR calculation (Session 28)
+- ✅ "Sync ECG Data" button to trigger Health Auto Export (Session 28)
 
 ---
 
-### Next Session: Investigate Health Auto Export Background Sync
+### Background Sync Status (RESOLVED - Session 28)
 
-**Issue Discovered:** Health Auto Export only uploads ECG data when the app is manually opened. ECGs are cached locally but not sent to the webhook until the user opens the Health Auto Export app.
+**Issue:** Health Auto Export background sync is unreliable due to iOS throttling background app refresh.
 
-**Expected Behavior:**
-- ECG taken on Apple Watch → Auto Export syncs in background → Webhook receives data
+**Solution:** Added "Sync ECG Data" button that appears after saving daily entry. Tapping it opens Health Auto Export via URL scheme, which triggers the cached ECG data to sync immediately.
 
-**Actual Behavior:**
-- ECG taken on Apple Watch → Data cached locally → **Nothing happens** until user opens Auto Export app
-
-**Investigation Needed:**
-1. Check Health Auto Export app settings for background refresh options
-2. Check iOS Settings → Background App Refresh for Health Auto Export
-3. Research if this is a known limitation of the app
-4. Consider alternative solutions:
-   - iOS Shortcuts automation?
-   - Different app?
-   - Accept manual trigger as workflow?
+**Workflow:**
+1. Take ECG on Apple Watch
+2. Open CFS Tracker, save daily entry
+3. Tap "Sync ECG Data" button → Health Auto Export opens → data syncs
 
 ---
 
