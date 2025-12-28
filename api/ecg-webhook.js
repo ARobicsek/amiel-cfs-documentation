@@ -78,16 +78,29 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const sheetId = process.env.GOOGLE_SHEET_ID.trim();
 
-    // Calculate R/S ratio from voltage data
+    // Calculate R/S ratio and HR from voltage data
     let rsRatio = null;
     let rAmplitude = null;
     let sAmplitude = null;
+    let calculatedHR = null;
+    let beatsDetected = 0;
 
     if (ecg.voltageMeasurements && ecg.voltageMeasurements.length > 0) {
       const rsResult = calculateRSRatio(ecg.voltageMeasurements, ecg.samplingFrequency || 512);
       rsRatio = rsResult.rsRatio;
       rAmplitude = rsResult.rAmplitude;
       sAmplitude = rsResult.sAmplitude;
+      calculatedHR = rsResult.calculatedHR;
+      beatsDetected = rsResult.beatsDetected || 0;
+    }
+
+    // HR validation: compare our calculated HR with Apple's reported HR
+    const appleHR = ecg.averageHeartRate;
+    let hrValid = null;
+    let hrDiff = null;
+    if (calculatedHR && appleHR) {
+      hrDiff = Math.abs(calculatedHR - appleHR);
+      hrValid = hrDiff <= 10; // Within 10 BPM = valid
     }
 
     // Get current Eastern Time
@@ -102,21 +115,25 @@ export default async function handler(req, res) {
     // Store metadata in ECG_Readings sheet
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'ECG_Readings!A:K',
+      range: 'ECG_Readings!A:O',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
           timestamp,                              // A: Timestamp
           dateStr,                                // B: Date
           ecg.classification || '',               // C: Classification
-          ecg.averageHeartRate || '',             // D: Avg Heart Rate
+          ecg.averageHeartRate || '',             // D: Avg Heart Rate (Apple)
           rsRatio !== null ? rsRatio.toFixed(2) : '',  // E: R/S Ratio
           rAmplitude !== null ? Math.round(rAmplitude) : '',  // F: R Amplitude (µV)
           sAmplitude !== null ? Math.round(sAmplitude) : '',  // G: S Amplitude (µV)
-          'Auto-sync',                            // H: Notes
-          ecgId,                                  // I: ECG ID (links to waveform)
-          ecg.voltageMeasurements?.length || '',  // J: Sample count
-          ecg.samplingFrequency || 512,           // K: Sampling Frequency
+          calculatedHR || '',                     // H: Calc HR (our detection)
+          hrValid === true ? '✓' : (hrValid === false ? '✗' : ''),  // I: HR Valid
+          beatsDetected || '',                    // J: Beats Detected
+          'Auto-sync',                            // K: Notes
+          ecgId,                                  // L: ECG ID (links to waveform)
+          ecg.voltageMeasurements?.length || '',  // M: Sample count
+          ecg.samplingFrequency || 512,           // N: Sampling Frequency
+          hrDiff !== null ? hrDiff : '',          // O: HR Diff (absolute difference)
         ]],
       },
     });
@@ -137,7 +154,11 @@ export default async function handler(req, res) {
       ecgId,
       date: dateStr,
       classification: ecg.classification,
-      hr: ecg.averageHeartRate,
+      appleHR: ecg.averageHeartRate,
+      calculatedHR,
+      hrValid,
+      hrDiff,
+      beatsDetected,
       rsRatio,
       samples: ecg.voltageMeasurements?.length,
       waveformStored,
@@ -150,6 +171,11 @@ export default async function handler(req, res) {
       rsRatio,
       rAmplitude,
       sAmplitude,
+      calculatedHR,
+      appleHR,
+      hrValid,
+      hrDiff,
+      beatsDetected,
       waveformStored,
     });
 
@@ -309,10 +335,21 @@ function calculateRSRatio(voltageMeasurements, samplingRate = 512) {
         rsRatio: Math.abs(maxV / minV),
         rAmplitude: maxV,
         sAmplitude: Math.abs(minV),
+        calculatedHR: null,
+        beatsDetected: rPeaks.length,
       };
     }
-    return { rsRatio: null, rAmplitude: null, sAmplitude: null };
+    return { rsRatio: null, rAmplitude: null, sAmplitude: null, calculatedHR: null, beatsDetected: 0 };
   }
+
+  // Calculate heart rate from R-R intervals
+  const rrIntervals = [];
+  for (let i = 1; i < rPeaks.length; i++) {
+    rrIntervals.push(rPeaks[i] - rPeaks[i - 1]);
+  }
+  const avgRRSamples = rrIntervals.reduce((a, b) => a + b, 0) / rrIntervals.length;
+  const avgRRSeconds = avgRRSamples / samplingRate;
+  const calculatedHR = Math.round(60 / avgRRSeconds);
 
   // Calculate R and S amplitudes for each beat
   const rsRatios = [];
@@ -344,7 +381,7 @@ function calculateRSRatio(voltageMeasurements, samplingRate = 512) {
   }
 
   if (rsRatios.length === 0) {
-    return { rsRatio: null, rAmplitude: null, sAmplitude: null };
+    return { rsRatio: null, rAmplitude: null, sAmplitude: null, calculatedHR, beatsDetected: rPeaks.length };
   }
 
   // Return median values (more robust than mean)
@@ -358,6 +395,8 @@ function calculateRSRatio(voltageMeasurements, samplingRate = 512) {
     rsRatio: rsRatios[medianIdx],
     rAmplitude: rAmplitudes[medianIdx],
     sAmplitude: sAmplitudes[medianIdx],
+    calculatedHR,
+    beatsDetected: rPeaks.length,
   };
 }
 
