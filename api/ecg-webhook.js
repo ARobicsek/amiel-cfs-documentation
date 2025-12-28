@@ -35,124 +35,141 @@ async function getRawBody(req) {
 }
 
 /**
- * Parse CSV data from Health Auto Export
- * Returns array of ECG records
- *
- * CSV format: one row per ECG, with voltage data split across multiple columns
- * Columns: start, classification, averageHeartRate, samplingFrequency, voltage1, voltage2, voltage3, voltage4
- * Each voltage column contains a portion of the ~15,000 samples as comma-separated values
+ * Extract CSV content from multipart form-data
+ * Health Auto Export sends data as multipart/form-data with the CSV embedded
  */
-function parseCSVData(csvText) {
-  const lines = csvText.trim().split('\n');
-  if (lines.length < 2) return [];
+function extractFromMultipart(rawBody) {
+  // Check if it's multipart (starts with boundary)
+  if (!rawBody.includes('--Boundary-') && !rawBody.includes('boundary=')) {
+    return rawBody; // Not multipart, return as-is
+  }
 
-  // Parse header row - handle quoted headers
-  const headerLine = lines[0];
-  const headers = parseCSVLine(headerLine).map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
-  console.log('CSV Headers:', headers);
+  console.log('Detected multipart form-data, extracting CSV...');
 
-  // Find relevant column indices
-  const dateIdx = headers.findIndex(h => h.includes('start') || h === 'date' || h === 'time');
-  const classIdx = headers.findIndex(h => h.includes('classification'));
-  const hrIdx = headers.findIndex(h =>
-    (h.includes('average') && h.includes('heart')) ||
-    h === 'averageheartrate' ||
-    h.includes('heartrate')
-  );
-  const samplingIdx = headers.findIndex(h => h.includes('sampling'));
+  // Find the CSV content between the headers and the next boundary
+  // Pattern: Content-Type: "text/csv" followed by blank line, then CSV data
+  const csvMatch = rawBody.match(/Content-Type:\s*"?text\/csv"?\s*\r?\n\r?\n([\s\S]*?)(?:\r?\n--Boundary-|\r?\n------)/i);
 
-  // Find ALL voltage columns (voltage1, voltage2, voltage3, voltage4 or similar)
-  const voltageIndices = [];
-  headers.forEach((h, idx) => {
-    if (h.includes('voltage')) {
-      voltageIndices.push(idx);
-    }
-  });
+  if (csvMatch && csvMatch[1]) {
+    console.log('Extracted CSV content, length:', csvMatch[1].length);
+    return csvMatch[1].trim();
+  }
 
-  console.log('Column indices:', { dateIdx, classIdx, hrIdx, samplingIdx, voltageIndices });
-
-  const records = [];
-
-  // Each row is one ECG record
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
-    if (values.length === 0) continue;
-
-    const dateStr = dateIdx >= 0 ? values[dateIdx]?.trim() : null;
-    const classification = classIdx >= 0 ? values[classIdx]?.trim() : null;
-    const hrValue = hrIdx >= 0 ? values[hrIdx]?.trim() : null;
-    const hr = hrValue ? parseFloat(hrValue) : null;
-    const samplingValue = samplingIdx >= 0 ? values[samplingIdx]?.trim() : null;
-    const sampling = samplingValue ? parseFloat(samplingValue) : 512;
-
-    console.log(`Row ${i}: date=${dateStr}, class=${classification}, hr=${hr}, sampling=${sampling}`);
-
-    // Combine all voltage columns into one array
-    const voltageMeasurements = [];
-    for (const vIdx of voltageIndices) {
-      const voltageStr = values[vIdx];
-      if (voltageStr) {
-        // Each voltage cell may contain comma-separated values or a single value
-        // But since we're in CSV, the cell should be quoted if it contains commas
-        // Parse the voltage values from the cell
-        const voltageValues = voltageStr.split(',')
-          .map(v => v.trim())
-          .filter(v => v !== '')
-          .map(v => parseFloat(v))
-          .filter(v => !isNaN(v));
-
-        for (const voltage of voltageValues) {
-          voltageMeasurements.push({ voltage });
+  // Try alternate pattern - just find content after double newline in multipart
+  const parts = rawBody.split(/\r?\n\r?\n/);
+  if (parts.length >= 2) {
+    // Find the part that looks like CSV (starts with "Start," or similar)
+    for (let i = 1; i < parts.length; i++) {
+      if (parts[i].startsWith('Start,') || parts[i].includes('Classification,')) {
+        // Combine this and subsequent parts until we hit a boundary
+        let csvContent = parts.slice(i).join('\n\n');
+        const boundaryIdx = csvContent.indexOf('\n--Boundary-');
+        if (boundaryIdx > 0) {
+          csvContent = csvContent.slice(0, boundaryIdx);
         }
+        console.log('Extracted CSV via alternate method, length:', csvContent.length);
+        return csvContent.trim();
       }
     }
-
-    console.log(`Row ${i}: Found ${voltageMeasurements.length} voltage measurements`);
-
-    if (dateStr || voltageMeasurements.length > 0) {
-      records.push({
-        date: dateStr,
-        classification: classification,
-        averageHeartRate: hr,
-        samplingFrequency: sampling,
-        voltageMeasurements: voltageMeasurements,
-      });
-    }
   }
 
-  console.log(`Parsed ${records.length} ECG record(s) from CSV with total voltage samples`);
-  if (records.length > 0) {
-    console.log(`First record: ${records[0].voltageMeasurements.length} samples, HR=${records[0].averageHeartRate}, class=${records[0].classification}`);
-  }
-
-  return records;
+  console.log('Could not extract CSV from multipart, returning raw');
+  return rawBody;
 }
 
 /**
- * Parse a single CSV line, handling quoted values
+ * Parse CSV data from Health Auto Export
+ *
+ * Health Auto Export CSV uses KEY-VALUE format (not columnar):
+ * Start,2025-12-27 23:15:55 -0500
+ * End,2025-12-27 23:16:25 -0500
+ * Classification,Sinus Rhythm
+ * Avg. Heart Rate (count/min),72.0
+ * Number of Voltage Measurements,15360
+ * Sampling Frequency (Hz),512.0
+ * Voltage Measurements,0.001,0.002,0.003,...
  */
-function parseCSVLine(line) {
-  const values = [];
-  let current = '';
-  let inQuotes = false;
+function parseCSVData(csvText) {
+  // First extract from multipart if needed
+  csvText = extractFromMultipart(csvText);
 
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
+  const lines = csvText.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
 
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      values.push(current.trim());
-      current = '';
+  console.log('Parsing key-value CSV format, line count:', lines.length);
+  console.log('First 5 lines:', lines.slice(0, 5));
+
+  // Parse as key-value pairs
+  const data = {};
+  let voltageValues = [];
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+
+    // Find the first comma to split key from value
+    const firstComma = line.indexOf(',');
+    if (firstComma === -1) continue;
+
+    const key = line.slice(0, firstComma).trim().toLowerCase();
+    const value = line.slice(firstComma + 1).trim();
+
+    // Check for voltage measurements line (contains many comma-separated numbers)
+    if (key.includes('voltage') && key.includes('measurement')) {
+      // This line contains all voltage values after the first comma
+      // Format: "Voltage Measurements,0.001,0.002,0.003,..."
+      // But the value already has everything after first comma
+      const allValues = value.split(',');
+      for (const v of allValues) {
+        const num = parseFloat(v.trim());
+        if (!isNaN(num)) {
+          voltageValues.push({ voltage: num });
+        }
+      }
+      console.log(`Found ${voltageValues.length} voltage measurements`);
     } else {
-      current += char;
+      data[key] = value;
     }
   }
-  values.push(current.trim());
 
-  return values;
+  console.log('Parsed keys:', Object.keys(data));
+
+  // Extract metadata with flexible key matching
+  let startDate = null;
+  let classification = null;
+  let heartRate = null;
+  let samplingFreq = 512;
+
+  for (const [key, value] of Object.entries(data)) {
+    if (key === 'start' || key.includes('start')) {
+      startDate = value;
+    }
+    if (key === 'classification') {
+      classification = value;
+    }
+    if (key.includes('heart') && key.includes('rate')) {
+      heartRate = parseFloat(value);
+    }
+    if (key.includes('sampling') && key.includes('freq')) {
+      // Handle "512.0)" format (malformed from "Sampling Frequency (Hz,512.0)")
+      samplingFreq = parseFloat(value.replace(/[^0-9.]/g, '')) || 512;
+    }
+  }
+
+  console.log(`Extracted: date=${startDate}, class=${classification}, hr=${heartRate}, sampling=${samplingFreq}, voltages=${voltageValues.length}`);
+
+  if (!startDate && !classification && voltageValues.length === 0) {
+    console.log('No valid ECG data found in key-value format');
+    return [];
+  }
+
+  return [{
+    date: startDate,
+    classification: classification,
+    averageHeartRate: heartRate,
+    samplingFrequency: samplingFreq,
+    voltageMeasurements: voltageValues,
+  }];
 }
-
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -202,13 +219,15 @@ export default async function handler(req, res) {
     let ecgRecords = [];
     let ecgData = null; // Declare outside so it's available for error reporting
 
-    // Check if this is CSV data
+    // Check if this is CSV or multipart form-data (which contains CSV)
     const isCSV = contentType.includes('text/csv') ||
                   contentType.includes('text/plain') ||
+                  contentType.includes('multipart/form-data') ||
+                  rawBody.trim().startsWith('--Boundary-') ||
                   (!contentType.includes('json') && rawBody.trim().split('\n')[0].includes(','));
 
     if (isCSV) {
-      console.log('Detected CSV format');
+      console.log('Detected CSV/multipart format');
       ecgRecords = parseCSVData(rawBody);
     } else {
       // JSON format
