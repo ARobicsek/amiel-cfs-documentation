@@ -678,12 +678,14 @@ function movingAverage(arr, windowSize) {
 function findRPeaks(voltages, samplingRate) {
   const peaks = [];
 
-  // Calculate threshold (60% of max amplitude)
+  // Calculate threshold (35% of max amplitude - lowered from 60% to catch more peaks)
   const maxV = Math.max(...voltages);
-  const threshold = maxV * 0.6;
+  const threshold = maxV * 0.35;
 
-  // Minimum distance between R peaks (~300ms for 200 BPM max)
-  const minDistance = Math.floor(samplingRate * 0.3);
+  // Minimum distance between R peaks (~250ms for 240 BPM max)
+  const minDistance = Math.floor(samplingRate * 0.25);
+
+  console.log(`Peak detection: maxV=${maxV.toFixed(4)}, threshold=${threshold.toFixed(4)}, minDist=${minDistance} samples`);
 
   let lastPeakIdx = -minDistance;
 
@@ -700,5 +702,6 @@ function findRPeaks(voltages, samplingRate) {
     }
   }
 
+  console.log(`Peak detection found ${peaks.length} R peaks`);
   return peaks;
 }
