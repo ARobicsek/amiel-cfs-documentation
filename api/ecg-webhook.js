@@ -1,5 +1,4 @@
 import { google } from 'googleapis';
-import { Readable } from 'stream';
 
 // Initialize Google APIs
 function getGoogleAuth() {
@@ -76,17 +75,8 @@ export default async function handler(req, res) {
     }
 
     const auth = getGoogleAuth();
-
-    // Store raw waveform data in Google Drive
-    let waveformUrl = '';
-    if (ecg.voltageMeasurements && ecg.voltageMeasurements.length > 0) {
-      try {
-        waveformUrl = await storeWaveformData(auth, ecg);
-      } catch (driveError) {
-        console.error('Drive storage failed:', driveError.message);
-        // Continue without waveform URL - still save metadata
-      }
-    }
+    const sheets = google.sheets({ version: 'v4', auth });
+    const sheetId = process.env.GOOGLE_SHEET_ID.trim();
 
     // Calculate R/S ratio from voltage data
     let rsRatio = null;
@@ -100,19 +90,19 @@ export default async function handler(req, res) {
       sAmplitude = rsResult.sAmplitude;
     }
 
-    // Store metadata in Google Sheets
-    const sheets = google.sheets({ version: 'v4', auth });
-    const sheetId = process.env.GOOGLE_SHEET_ID.trim();
-
     // Get current Eastern Time
     const now = new Date();
     const etOptions = { timeZone: 'America/New_York' };
     const timestamp = now.toLocaleString('en-US', etOptions);
     const dateStr = ecg.date || now.toLocaleDateString('en-US', etOptions);
 
+    // Generate unique ECG ID for linking readings to waveforms
+    const ecgId = `ECG_${now.getTime()}`;
+
+    // Store metadata in ECG_Readings sheet
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'ECG_Readings!A:J',
+      range: 'ECG_Readings!A:K',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
@@ -124,26 +114,43 @@ export default async function handler(req, res) {
           rAmplitude !== null ? Math.round(rAmplitude) : '',  // F: R Amplitude (µV)
           sAmplitude !== null ? Math.round(sAmplitude) : '',  // G: S Amplitude (µV)
           'Auto-sync',                            // H: Notes
-          waveformUrl,                            // I: Waveform URL
+          ecgId,                                  // I: ECG ID (links to waveform)
           ecg.voltageMeasurements?.length || '',  // J: Sample count
+          ecg.samplingFrequency || 512,           // K: Sampling Frequency
         ]],
       },
     });
 
+    // Store raw waveform data in ECG_Waveforms sheet
+    let waveformStored = false;
+    if (ecg.voltageMeasurements && ecg.voltageMeasurements.length > 0) {
+      try {
+        await storeWaveformInSheets(sheets, sheetId, ecgId, ecg);
+        waveformStored = true;
+      } catch (waveformError) {
+        console.error('Waveform storage failed:', waveformError.message);
+        // Continue - metadata is already saved
+      }
+    }
+
     console.log('ECG saved successfully:', {
+      ecgId,
       date: dateStr,
       classification: ecg.classification,
       hr: ecg.averageHeartRate,
       rsRatio,
       samples: ecg.voltageMeasurements?.length,
+      waveformStored,
     });
 
     return res.status(200).json({
       success: true,
       message: 'ECG data saved',
+      ecgId,
       rsRatio,
       rAmplitude,
       sAmplitude,
+      waveformStored,
     });
 
   } catch (error) {
@@ -214,60 +221,53 @@ function extractECGData(data) {
 }
 
 /**
- * Store waveform data as CSV in Google Drive
+ * Store waveform data in Google Sheets
+ * Voltages are stored as comma-separated values, split across columns if needed
+ * (Google Sheets has a 50K character limit per cell)
  */
-async function storeWaveformData(auth, ecg) {
-  const drive = google.drive({ version: 'v3', auth });
-
-  // Create CSV content
-  const csvLines = ['Time (s),Voltage (µV)'];
+async function storeWaveformInSheets(sheets, sheetId, ecgId, ecg) {
   const samplingRate = ecg.samplingFrequency || 512;
 
-  ecg.voltageMeasurements.forEach((v, i) => {
-    const time = (v.timeSinceSampleStart !== undefined)
-      ? v.timeSinceSampleStart
-      : (i / samplingRate);
-    // Health Auto Export uses 'voltage' field, others might use 'microVolts'
+  // Extract voltage values, rounded to 2 decimal places
+  const voltages = ecg.voltageMeasurements.map(v => {
     const voltage = v.voltage !== undefined ? v.voltage : (v.microVolts !== undefined ? v.microVolts : v);
-    csvLines.push(`${time.toFixed(6)},${voltage}`);
+    return voltage.toFixed(2);
   });
 
-  const csvContent = csvLines.join('\n');
-  const buffer = Buffer.from(csvContent, 'utf-8');
-  const stream = Readable.from(buffer);
+  // Join as comma-separated string
+  const voltageString = voltages.join(',');
 
-  // Generate filename with timestamp
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-  const timeStr = now.toISOString().split('T')[1].split('.')[0].replace(/:/g, '-');
-  const fileName = `ECG_${dateStr}_${timeStr}.csv`;
+  // Split into chunks of ~45K characters (safe margin under 50K limit)
+  const CHUNK_SIZE = 45000;
+  const chunks = [];
+  for (let i = 0; i < voltageString.length; i += CHUNK_SIZE) {
+    chunks.push(voltageString.slice(i, i + CHUNK_SIZE));
+  }
 
-  // Upload to Google Drive
-  // Note: supportsAllDrives helps with shared folders
-  const driveResponse = await drive.files.create({
-    supportsAllDrives: true,
+  // Ensure we have exactly 4 columns (pad with empty strings if fewer chunks)
+  while (chunks.length < 4) {
+    chunks.push('');
+  }
+
+  // Store in ECG_Waveforms sheet
+  // Columns: A: ECG_ID, B: Sampling Frequency, C-F: Voltage Data (4 chunks)
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: sheetId,
+    range: 'ECG_Waveforms!A:F',
+    valueInputOption: 'RAW',
     requestBody: {
-      name: fileName,
-      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID.trim()],
-    },
-    media: {
-      mimeType: 'text/csv',
-      body: stream,
-    },
-    fields: 'id, webViewLink',
-  });
-
-  // Make file viewable
-  await drive.permissions.create({
-    fileId: driveResponse.data.id,
-    supportsAllDrives: true,
-    requestBody: {
-      role: 'reader',
-      type: 'anyone',
+      values: [[
+        ecgId,
+        samplingRate,
+        chunks[0],
+        chunks[1],
+        chunks[2],
+        chunks[3],
+      ]],
     },
   });
 
-  return driveResponse.data.webViewLink;
+  console.log(`Waveform stored: ${voltages.length} samples in ${chunks.filter(c => c).length} chunks`);
 }
 
 /**
