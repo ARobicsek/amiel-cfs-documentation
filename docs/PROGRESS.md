@@ -15,7 +15,7 @@ Track completed features and current status here. Update after completing each f
 | 5 | Submit entry API | DONE | Saves entries to Google Sheets |
 | 6 | Secret URL auth | DONE | Token handling in src/utils/auth.js |
 | 7 | Optional fields (collapsible) | DONE | Comments, oxaloacetate, exercise |
-| 8 | Entry history view | DONE | Last 7 days, with smart date formatting |
+| 8 | Entry history view | DONE | Last 10 days, ECG data integrated, redesigned cards |
 | 9 | Offline storage + sync | DONE | IndexedDB with auto-sync on reconnect |
 | 10 | Auto light/dark theme | DONE | Follows system preference |
 
@@ -36,14 +36,14 @@ Track completed features and current status here. Update after completing each f
 | 16 | Data trends/charts | TODO | ON HOLD - 7-day visualization |
 | 17 | Streak animations | TODO | ON HOLD - Motivation feature |
 
-### Phase 4: ECG Integration (IN PROGRESS - Fully Automatic)
+### Phase 4: ECG Integration (COMPLETE - Fully Automatic)
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | 18 | Google Drive & Sheets setup | DONE | ECG folder created, ECG_Readings sheet ready |
 | 19 | ECG webhook endpoint | DONE | R/S ratio + HR validation, waveform storage in Sheets |
 | 20 | Health Auto Export config | DONE | CSV parsing fixed, duplicate detection working |
-| 21 | ECG history display | TODO | (Optional) View ECG data in app |
+| 21 | ECG history display | DONE | HR + R/S ratio in history cards, "Will do ECG" button |
 
 **Key Design:** NO manual data entry. R/S ratio calculated automatically from raw voltage data.
 
@@ -64,6 +64,52 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2025-12-28 - ECG History Display & UI Redesign (Session 26)
+
+**Session Summary:**
+Completed Feature #21 - ECG data now displays in the History view with a redesigned card layout.
+
+**Changes Made:**
+
+1. **Enhanced History View**
+   - Redesigned `EntryHistory.jsx` with new card layout
+   - Shows 10 cards instead of 7
+   - Main metrics grid: hrs upright, hrs brain, HR (bpm), R/S ratio
+   - Secondary details: modafinil, exercise, oxaloacetate, comments
+   - ECG-only days get special blue left border styling
+   - "ECG data only" notice for days with only ECG data
+
+2. **ECG Data Integration**
+   - Modified `api/get-entries.js` to fetch ECG_Readings alongside daily entries
+   - Merges three data sources: daily entries, ECG readings, ECG plan intentions
+   - Uses most recent ECG per day when multiple exist
+   - ECG data attributed to collection date (from timestamp)
+
+3. **"Will do ECG" Button**
+   - Added toggle button in DailyEntry.jsx +details section (under Modafinil)
+   - Column I: "Will Do ECG" (Yes or empty)
+   - Column J: "ECG Plan Date" (today's date when intention recorded)
+   - Attributed to documentation date (today), NOT dateFor
+
+4. **Date Attribution Logic**
+   - Daily entry data → attributed to `dateFor` (date being documented)
+   - ECG readings → attributed to collection timestamp
+   - "Will do ECG" → attributed to documentation date (today)
+
+**Files Modified:**
+- `api/get-entries.js` - Fetch ECG data, merge by date, handle three data sources
+- `api/submit-entry.js` - Added Column I (willDoECG) and Column J (ECG Plan Date)
+- `src/components/EntryHistory.jsx` - New card layout with ECG metrics
+- `src/components/EntryHistory.css` - New grid-based styling
+- `src/components/DailyEntry.jsx` - Added "Will do ECG" toggle button
+- `src/App.css` - Added ECG button styles
+
+**Google Sheets Updates Needed:**
+- Sheet1 Column I: "Will Do ECG"
+- Sheet1 Column J: "ECG Plan Date"
+
+---
 
 ### 2025-12-28 - ECG Webhook Fixes Complete (Session 25)
 
@@ -881,33 +927,49 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 
 **Phase 4: ECG Integration - COMPLETE!**
 
-The ECG webhook is fully functional. ECGs taken on Apple Watch automatically sync via Health Auto Export with:
-- ✅ Classification (Sinus Rhythm, AFib, etc.)
-- ✅ Heart rate (Apple's + our calculated HR for validation)
-- ✅ R/S ratio calculation from raw voltage data
-- ✅ Full waveform storage (15,360 samples)
-- ✅ Duplicate prevention via ECG_ID
+All ECG features are now functional:
+- ✅ ECG webhook with R/S ratio calculation
+- ✅ Health Auto Export automation
+- ✅ ECG data in History view (HR + R/S ratio)
+- ✅ "Will do ECG" button in Today page
 
-**Next Session: Enhanced History View (Feature #21)**
+---
 
-Update the PWA's "History" section to show comprehensive daily cards that include:
-- All existing daily entry data (hours, comments, modafinil, brain time, etc.)
-- **NEW:** ECG data from that day:
-  - Avg HR (Apple) - from the last ECG taken that day
-  - R/S Ratio - our calculated value from the last ECG that day
-- Data source: Join daily entries with ECG_Readings by date
+### Next Session: Fix Multi-ECG Export Bug
 
-**Implementation approach:**
-1. Modify `api/get-entries.js` to also fetch ECG_Readings data
-2. Match ECG records to daily entries by date
-3. Update `EntryHistory.jsx` to display ECG metrics in each card
-4. Handle days with no ECG gracefully
+**Bug Discovered:** When two ECGs are taken back-to-back and exported together by Health Auto Export, the webhook merges them into a single row instead of creating separate entries.
 
-**Cleanup tasks (if not done):**
-- Delete duplicate ECG rows from ECG_Readings and ECG_Waveforms sheets
-- Delete extra subscription rows in Google Sheets "Subscriptions" tab
+**Evidence from ECG_Readings:**
+| Samples | Notes |
+|---------|-------|
+| 15361 | Single ECG - correct |
+| 15361 | Single ECG - correct |
+| 30722 | Two ECGs merged - BUG |
 
-**Phase 3 Polish is ON HOLD** - can revisit now that ECG is done:
+**Symptoms:**
+- Sample count is doubled (30722 instead of 15361)
+- R amplitude is abnormally high (15400 instead of ~500-900)
+- Only 1 beat detected (should be ~30-50)
+- Classification shows "Inconclusive"
+
+**Root Cause (suspected):**
+Health Auto Export batches multiple ECGs into one payload when exported together. The webhook currently processes this as one ECG instead of splitting it.
+
+**Fix needed in `api/ecg-webhook.js`:**
+1. Detect when payload contains multiple ECGs (check sample count > 16000?)
+2. Split voltage data into separate 15361-sample chunks
+3. Process each ECG separately
+4. Create separate rows for each
+
+---
+
+### Other Tasks
+
+**Google Sheets Updates Needed:**
+- Sheet1 Column I header: "Will Do ECG"
+- Sheet1 Column J header: "ECG Plan Date"
+
+**Phase 3 Polish is ON HOLD:**
 - Feature #16: Data trends/charts (7-day visualization)
 - Feature #17: Streak animations (motivation feature)
 

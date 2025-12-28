@@ -440,6 +440,34 @@ html, body {
   font-weight: 600;
 }
 
+/* ECG toggle button */
+.ecg-group {
+  padding: 0.5rem 0;
+}
+
+.ecg-toggle-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ecg-toggle-btn:hover {
+  border-color: var(--accent);
+}
+
+.ecg-toggle-btn.active {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+}
+
 /* Save button */
 .save-button {
   width: 100%;

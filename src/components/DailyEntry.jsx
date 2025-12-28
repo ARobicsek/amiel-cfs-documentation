@@ -57,6 +57,7 @@ function DailyEntry({ onSave }) {
   const [oxaloacetate, setOxaloacetate] = useState('')
   const [exercise, setExercise] = useState('')
   const [modafinil, setModafinil] = useState('none')
+  const [willDoECG, setWillDoECG] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [error, setError] = useState(null)
@@ -150,7 +151,8 @@ function DailyEntry({ onSave }) {
       oxaloacetate: oxaloacetate ? parseFloat(oxaloacetate) : null,
       exercise: exercise ? parseInt(exercise) : null,
       brainTime: brainTime,
-      modafinil: modafinil !== 'none' ? modafinil : null
+      modafinil: modafinil !== 'none' ? modafinil : null,
+      willDoECG: willDoECG
     }
 
     try {
@@ -171,6 +173,7 @@ function DailyEntry({ onSave }) {
       setOxaloacetate('')
       setExercise('')
       setModafinil('none')
+      setWillDoECG(false)
       setShowOptional(false)
     } catch (error) {
       console.error('Failed to save:', error)
@@ -282,13 +285,27 @@ function DailyEntry({ onSave }) {
             </div>
           </div>
 
+          <div className="field-group ecg-group">
+            <label>ECG Today</label>
+            <button
+              type="button"
+              className={`ecg-toggle-btn ${willDoECG ? 'active' : ''}`}
+              onClick={() => {
+                setWillDoECG(!willDoECG)
+                triggerHaptic()
+              }}
+            >
+              {willDoECG ? 'Yes, will do ECG' : 'Tap if doing ECG'}
+            </button>
+          </div>
+
           <div className="field-group">
             <label htmlFor="comments">Comments</label>
             <textarea
               id="comments"
               value={comments}
               onChange={(e) => setComments(e.target.value)}
-              placeholder="How are you feeling?"
+              placeholder="Amsy - say stuff."
             />
           </div>
 
