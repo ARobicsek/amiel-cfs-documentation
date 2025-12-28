@@ -41,8 +41,8 @@ Track completed features and current status here. Update after completing each f
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | 18 | Google Drive & Sheets setup | DONE | ECG folder created, ECG_Readings sheet ready |
-| 19 | ECG webhook endpoint | DONE | R/S ratio calculation working, Drive storage TBD |
-| 20 | Health Auto Export config | IN PROGRESS | App purchased, automation needs setup |
+| 19 | ECG webhook endpoint | DONE | R/S ratio + HR validation, waveform storage in Sheets |
+| 20 | Health Auto Export config | IN PROGRESS | Automation configured, turn OFF Batch Requests |
 | 21 | ECG history display | TODO | (Optional) View ECG data in app |
 
 **Key Design:** NO manual data entry. R/S ratio calculated automatically from raw voltage data.
@@ -51,6 +51,12 @@ Track completed features and current status here. Update after completing each f
 1. Take 30-second ECG on Apple Watch
 2. Done! Everything syncs automatically.
 
+**ECG_Readings Columns (15 total):**
+Timestamp, Date, Classification, Avg HR (Apple), R/S Ratio, R Amp, S Amp, Calc HR, HR Valid, Beats, Notes, ECG_ID, Samples, Sampling_Freq, HR Diff
+
+**ECG_Waveforms Columns (6 total):**
+ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
+
 **Documentation:**
 - `docs/ECG-CAPTURE-PLANNING.md` - Research & options analysis
 - `docs/ECG-IMPLEMENTATION-GUIDE.md` - Step-by-step dev guide (fully automatic approach)
@@ -58,6 +64,54 @@ Track completed features and current status here. Update after completing each f
 ---
 
 ## Completed Features Log
+
+### 2025-12-27 - ECG Webhook Fixes & Enhancements (Session 23)
+
+**Major Accomplishments:**
+
+1. **Fixed Health Auto Export Data Parsing**
+   - Discovered actual format: `data.ecg` array (not `data.electrocardiogram`)
+   - Voltage field is `.voltage` (not `.microVolts`)
+   - Successfully parsing and calculating R/S ratio from real ECG data
+
+2. **Added Raw Waveform Storage in Google Sheets**
+   - Replaced failed Google Drive storage with Sheets-based approach
+   - All 15,360 voltage samples stored as comma-separated strings
+   - Split across 4 columns (45K chars each, under 50K cell limit)
+   - ECG_ID links ECG_Readings to ECG_Waveforms for data retrieval
+
+3. **Added HR Validation Sanity Check**
+   - Calculate HR from R-R intervals: `60 / (avg interval in seconds)`
+   - Compare to Apple's reported `averageHeartRate`
+   - Flag as valid (✓) if within 10 BPM, invalid (✗) if not
+   - New columns: Calc HR, HR Valid, Beats Detected, HR Diff
+
+4. **Diagnosed 413 Payload Too Large Error**
+   - Caused by "Batch Requests" ON in Health Auto Export
+   - Solution: Turn OFF Batch Requests to send one ECG at a time
+
+**Files Modified:**
+- `api/ecg-webhook.js` - Parsing fix, Sheets waveform storage, HR validation
+
+**New ECG_Readings Schema (15 columns):**
+A: Timestamp, B: Date, C: Classification, D: Avg HR (Apple), E: R/S Ratio, F: R Amp, G: S Amp, H: Calc HR, I: HR Valid, J: Beats, K: Notes, L: ECG_ID, M: Samples, N: Sampling_Freq, O: HR Diff
+
+**New ECG_Waveforms Schema (6 columns):**
+A: ECG_ID, B: Sampling_Freq, C-F: Voltage data chunks
+
+**Tested & Verified:**
+- ECG data parsing works with real Health Auto Export payloads
+- R/S ratio calculation: 7.46-8.45 (realistic values)
+- HR validation ready for testing
+
+**Next Session Tasks:**
+1. Create ECG_Waveforms sheet tab with headers
+2. Update ECG_Readings headers to new 15-column schema
+3. Turn OFF Batch Requests in Health Auto Export
+4. Deploy with `vercel --prod`
+5. Test full end-to-end with new ECG
+
+---
 
 ### 2025-12-27 - ECG Webhook Implementation (Session 22)
 
