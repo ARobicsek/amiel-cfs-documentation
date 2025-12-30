@@ -45,17 +45,17 @@ function getRelativeLabel(date) {
   return `${diffDays} days ago`
 }
 
-// Medication Configuration (Z-A sorted)
+// Medication Configuration (A-Z sorted)
 const MED_CONFIG = [
-  { key: 'vitaminD', label: 'Vitamin D', defaultDose: '', defaultOn: true },
-  { key: 'venlafaxine', label: 'Venlafaxine', defaultDose: '', defaultOn: true },
-  { key: 'tirzepatide', label: 'Tirzepatide', defaultDose: '', defaultOn: true },
-  { key: 'oxaloacetateNew', label: 'Oxaloacetate', defaultDose: '1g', defaultOn: false },
-  { key: 'nyquil', label: 'NyQuil', defaultDose: '', defaultOn: true },
+  { key: 'amitriptyline', label: 'Amitriptyline', defaultDose: '', defaultOn: true },
+  { key: 'dayquil', label: 'DayQuil', defaultDose: '', defaultOn: false },
+  { key: 'dextromethorphan', label: 'Dextromethorphan', defaultDose: '', defaultOn: false },
   { key: 'modafinilNew', label: 'Modafinil', defaultDose: '1 pill', defaultOn: true },
-  { key: 'dextromethorphan', label: 'Dextromethorphan', defaultDose: '', defaultOn: true },
-  { key: 'dayquil', label: 'DayQuil', defaultDose: '', defaultOn: true },
-  { key: 'amitriptyline', label: 'Amitriptyline', defaultDose: '', defaultOn: true }
+  { key: 'nyquil', label: 'NyQuil', defaultDose: '', defaultOn: false },
+  { key: 'oxaloacetateNew', label: 'Oxaloacetate', defaultDose: '1g', defaultOn: false },
+  { key: 'tirzepatide', label: 'Tirzepatide', defaultDose: '', defaultOn: false },
+  { key: 'venlafaxine', label: 'Venlafaxine', defaultDose: '', defaultOn: true },
+  { key: 'vitaminD', label: 'Vitamin D', defaultDose: '', defaultOn: true }
 ]
 
 function DailyEntry({ onSave }) {

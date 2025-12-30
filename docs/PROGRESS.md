@@ -72,7 +72,7 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 Implemented "Medications" section in Today's entry view. Users can now track detailed medication doses with a minimized documentation approach.
 
 **Key Features:**
-1.  **Medication Cards (Z-A):** Vitamin D, Venlafaxine, Tirzepatide, Oxaloacetate, NyQuil, Modafinil, Dextromethorphan, DayQuil, Amitriptyline.
+1.  **Medication Cards (A-Z):** Amitriptyline, DayQuil, Dextromethorphan, Modafinil, NyQuil, Oxaloacetate, Tirzepatide, Venlafaxine, Vitamin D.
 2.  **Smart Defaults & Persistence:**
     - App remembers the last *documented dose* even if the med was switched "Off" for a few days.
     - Default status for Modafinil is "On" (1 pill).
