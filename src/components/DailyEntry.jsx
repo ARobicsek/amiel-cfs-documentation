@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { getEntries } from '../utils/api'
 
 // Helper to get a date at midnight in local time
 function getLocalMidnight(date) {
@@ -44,6 +45,19 @@ function getRelativeLabel(date) {
   return `${diffDays} days ago`
 }
 
+// Medication Configuration (Z-A sorted)
+const MED_CONFIG = [
+  { key: 'vitaminD', label: 'Vitamin D', defaultDose: '', defaultOn: true },
+  { key: 'venlafaxine', label: 'Venlafaxine', defaultDose: '', defaultOn: true },
+  { key: 'tirzepatide', label: 'Tirzepatide', defaultDose: '', defaultOn: true },
+  { key: 'oxaloacetateNew', label: 'Oxaloacetate', defaultDose: '1g', defaultOn: false },
+  { key: 'nyquil', label: 'NyQuil', defaultDose: '', defaultOn: true },
+  { key: 'modafinilNew', label: 'Modafinil', defaultDose: '1 pill', defaultOn: true },
+  { key: 'dextromethorphan', label: 'Dextromethorphan', defaultDose: '', defaultOn: true },
+  { key: 'dayquil', label: 'DayQuil', defaultDose: '', defaultOn: true },
+  { key: 'amitriptyline', label: 'Amitriptyline', defaultDose: '', defaultOn: true }
+]
+
 function DailyEntry({ onSave }) {
   // Date selector - defaults to yesterday
   const [dateFor, setDateFor] = useState(() => getYesterday())
@@ -54,14 +68,132 @@ function DailyEntry({ onSave }) {
   const [brainTime, setBrainTime] = useState(1)
   const [showOptional, setShowOptional] = useState(false)
   const [comments, setComments] = useState('')
-  const [oxaloacetate, setOxaloacetate] = useState('')
   const [exercise, setExercise] = useState('')
-  const [modafinil, setModafinil] = useState('none')
   const [willDoECG, setWillDoECG] = useState(false)
+  
+  // Medications State
+  const [meds, setMeds] = useState(() => {
+    const initial = {}
+    MED_CONFIG.forEach(med => {
+      initial[med.key] = { 
+        dose: med.defaultDose, 
+        status: med.defaultOn ? 'on' : 'off' 
+      }
+    })
+    return initial
+  })
+
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [showSyncECG, setShowSyncECG] = useState(false)
   const [error, setError] = useState(null)
+
+  // Fetch history to populate defaults
+  useEffect(() => {
+    async function fetchDefaults() {
+      try {
+        const result = await getEntries(30)
+        if (!result || !result.entries) return
+
+        const entries = result.entries
+        const dateForStr = formatDateForApi(dateFor)
+        
+        // Check if we have an entry for the selected date
+        const currentEntry = entries.find(e => e.date === dateForStr)
+
+        // Helper to find last valid dose in history
+        const findLastDose = (key, entriesToSearch) => {
+          const entry = entriesToSearch.find(e => e[key] && e[key] !== 'Off')
+          return entry ? entry[key] : MED_CONFIG.find(m => m.key === key).defaultDose
+        }
+
+        const newMeds = { ...meds }
+
+        MED_CONFIG.forEach(med => {
+          const key = med.key
+          
+          if (currentEntry && currentEntry[key]) {
+            // We have a saved entry for this date
+            if (currentEntry[key] === 'Off') {
+              newMeds[key] = {
+                status: 'off',
+                dose: findLastDose(key, entries.filter(e => e.date !== dateForStr)) // Look back for dose
+              }
+            } else {
+              newMeds[key] = {
+                status: 'on',
+                dose: currentEntry[key]
+              }
+            }
+          } else {
+            // No entry for this date, look at history
+            // Filter out entries strictly AFTER the dateFor (future entries shouldn't affect history)
+            // But API returns sorted desc. We need entries strictly *before* dateFor.
+            // Since dateForStr is "MM/DD/YYYY", string comparison might be tricky if not YYYY-MM-DD.
+            // But getEntries returns normalizedDate (YYYY-MM-DD) as well!
+            // Wait, getEntries returns 'normalizedDate' field? Yes.
+            
+            // Convert dateFor to YYYY-MM-DD
+            const d = new Date(dateFor)
+            const yyyy = d.getFullYear()
+            const mm = String(d.getMonth() + 1).padStart(2, '0')
+            const dd = String(d.getDate()).padStart(2, '0')
+            const targetDateISO = `${yyyy}-${mm}-${dd}`
+
+            const priorEntries = entries.filter(e => e.normalizedDate < targetDateISO)
+            
+            // Find most recent prior entry for this med
+            const lastEntry = priorEntries.find(e => e[key])
+
+            if (lastEntry) {
+              if (lastEntry[key] === 'Off') {
+                newMeds[key] = {
+                  status: 'off',
+                  dose: findLastDose(key, priorEntries)
+                }
+              } else {
+                newMeds[key] = {
+                  status: 'on',
+                  dose: lastEntry[key]
+                }
+              }
+            } else {
+              // No history, use default
+              newMeds[key] = {
+                dose: med.defaultDose,
+                status: med.defaultOn ? 'on' : 'off'
+              }
+            }
+          }
+        })
+
+        setMeds(newMeds)
+
+        // Also populate other fields if editing existing entry
+        if (currentEntry) {
+          setHours(currentEntry.hours ?? 6)
+          setBrainTime(currentEntry.brainTime ?? 1)
+          setComments(currentEntry.comments || '')
+          setExercise(currentEntry.exercise || '')
+          setWillDoECG(currentEntry.willDoECG || false)
+        } else {
+           // Reset to defaults if no entry
+           // (Optional: Maybe preserve user edits if they just switched dates? 
+           //  For now, resetting ensures data consistency with the view)
+           setHours(6)
+           setBrainTime(1)
+           setComments('')
+           setExercise('')
+           setWillDoECG(false)
+        }
+
+      } catch (err) {
+        console.error('Failed to fetch history for defaults:', err)
+      }
+    }
+
+    fetchDefaults()
+  }, [dateFor]) // Re-run when date changes
 
   // Calculate date bounds (5 days ago through today)
   const dateBounds = useMemo(() => {
@@ -94,26 +226,17 @@ function DailyEntry({ onSave }) {
     }
   }
 
-  // Modafinil options for the slider
-  const modafinilOptions = ['none', 'quarter', 'half', 'whole']
-  const modafinilLabels = { none: 'None', quarter: '¼', half: '½', whole: 'Whole' }
-
-  // Haptic feedback helper - gives a satisfying 'clunk' feel
-  // Note: navigator.vibrate works on Android but NOT on iOS Safari
-  // For iOS, we use a light impact haptic via the experimental API if available
+  // Haptic feedback helper
   const triggerHaptic = () => {
-    // Try iOS haptic feedback first (requires user gesture, experimental)
     if (window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate(10)
     }
-    // Try experimental haptic feedback API (Chrome on Android)
     if ('vibrate' in navigator) {
       navigator.vibrate(10)
     }
   }
 
   const handleSliderChange = (e) => {
-    // Convert to whole hour increments (0, 1, 2, etc.)
     const value = parseFloat(e.target.value)
     const newValue = Math.round(value)
     if (newValue !== hours) {
@@ -123,7 +246,6 @@ function DailyEntry({ onSave }) {
   }
 
   const handleBrainTimeChange = (e) => {
-    // Convert to whole hour increments (0, 1, 2, etc.)
     const value = parseFloat(e.target.value)
     const newValue = Math.round(value)
     if (newValue !== brainTime) {
@@ -132,53 +254,65 @@ function DailyEntry({ onSave }) {
     setBrainTime(newValue)
   }
 
-  const handleModafinilChange = (e) => {
-    const index = parseInt(e.target.value)
-    const newValue = modafinilOptions[index]
-    if (newValue !== modafinil) {
-      triggerHaptic()
-    }
-    setModafinil(newValue)
+  const handleMedChange = (key, field, value) => {
+    setMeds(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value
+      }
+    }))
+  }
+
+  const handleMedToggle = (key) => {
+    triggerHaptic()
+    setMeds(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        status: prev[key].status === 'on' ? 'off' : 'on'
+      }
+    }))
   }
 
   const handleSave = async () => {
     setSaving(true)
 
+    // Prepare meds for API
+    const medsPayload = {}
+    Object.keys(meds).forEach(key => {
+      const med = meds[key]
+      // If On, send dose. If Off, send "Off".
+      medsPayload[key] = med.status === 'on' ? med.dose : 'Off'
+    })
+
     const entry = {
       date: new Date().toISOString(),
-      dateFor: formatDateForApi(dateFor), // The date being documented FOR
+      dateFor: formatDateForApi(dateFor),
       hours,
       comments: comments || null,
-      oxaloacetate: oxaloacetate ? parseFloat(oxaloacetate) : null,
       exercise: exercise ? parseInt(exercise) : null,
       brainTime: brainTime,
-      modafinil: modafinil !== 'none' ? modafinil : null,
-      willDoECG: willDoECG
+      willDoECG: willDoECG,
+      ...medsPayload
     }
 
     try {
-      // Call parent save handler
       await onSave(entry)
 
-      // Show success feedback
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 1500)
 
-      // Show "Sync ECG" button for 10 seconds (mobile only)
       setShowSyncECG(true)
       setTimeout(() => setShowSyncECG(false), 10000)
 
-      // Trigger haptic feedback if available
       if (navigator.vibrate) {
         navigator.vibrate(50)
       }
 
-      // Reset optional fields
-      setComments('')
-      setOxaloacetate('')
-      setExercise('')
-      setModafinil('none')
-      setWillDoECG(false)
+      // Reset UI state triggers?
+      // Actually, we usually stay on the same page or reset defaults.
+      // But preserving the entered data on screen is better UX for verification.
       setShowOptional(false)
     } catch (error) {
       console.error('Failed to save:', error)
@@ -274,31 +408,7 @@ function DailyEntry({ onSave }) {
 
       {showOptional && (
         <div className="optional-fields">
-          <div className="field-group modafinil-group">
-            <label>Modafinil</label>
-            <div className="modafinil-slider-container">
-              <input
-                type="range"
-                className="modafinil-slider"
-                min="0"
-                max="3"
-                step="1"
-                value={modafinilOptions.indexOf(modafinil)}
-                onChange={handleModafinilChange}
-              />
-              <div className="modafinil-labels">
-                {modafinilOptions.map((opt, i) => (
-                  <span
-                    key={opt}
-                    className={`modafinil-label ${modafinil === opt ? 'active' : ''}`}
-                  >
-                    {modafinilLabels[opt]}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
+          
           <div className="field-group ecg-group">
             <label>ECG Today</label>
             <button
@@ -311,6 +421,39 @@ function DailyEntry({ onSave }) {
             >
               {willDoECG ? 'Yes, will do ECG' : 'Tap if doing ECG'}
             </button>
+          </div>
+
+          <div className="medications-section">
+            <h3 className="section-title">Medications</h3>
+            {MED_CONFIG.map(med => {
+              const state = meds[med.key]
+              const isOn = state.status === 'on'
+              
+              return (
+                <div key={med.key} className={`med-card ${isOn ? 'on' : 'off'}`}>
+                  <div className="med-header">
+                    <span className="med-name">{med.label}</span>
+                    <button 
+                      className={`med-toggle ${isOn ? 'on' : 'off'}`}
+                      onClick={() => handleMedToggle(med.key)}
+                      aria-label={`Toggle ${med.label} ${isOn ? 'off' : 'on'}`}
+                    >
+                      {isOn ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                  <div className="med-body">
+                    <input
+                      type="text"
+                      className="med-dose-input"
+                      value={state.dose}
+                      onChange={(e) => handleMedChange(med.key, 'dose', e.target.value)}
+                      placeholder="Enter dose..."
+                      disabled={!isOn}
+                    />
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
           <div className="field-group">
@@ -335,18 +478,6 @@ function DailyEntry({ onSave }) {
             />
           </div>
 
-          <div className="field-group">
-            <label htmlFor="oxaloacetate">Oxaloacetate (grams)</label>
-            <input
-              id="oxaloacetate"
-              type="number"
-              step="0.1"
-              min="0"
-              value={oxaloacetate}
-              onChange={(e) => setOxaloacetate(e.target.value)}
-              placeholder="e.g., 2"
-            />
-          </div>
         </div>
       )}
 

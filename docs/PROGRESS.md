@@ -66,6 +66,45 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2025-12-29 - Medications Feature (Session 29)
+
+**Session Summary:**
+Implemented "Medications" section in Today's entry view. Users can now track detailed medication doses with a minimized documentation approach.
+
+**Key Features:**
+1.  **Medication Cards (Z-A):** Vitamin D, Venlafaxine, Tirzepatide, Oxaloacetate, NyQuil, Modafinil, Dextromethorphan, DayQuil, Amitriptyline.
+2.  **Smart Defaults & Persistence:**
+    - App remembers the last *documented dose* even if the med was switched "Off" for a few days.
+    - Default status for Modafinil is "On" (1 pill).
+    - Default status for Oxaloacetate is "Off" (1g).
+3.  **On/Off Toggle:**
+    - "Off" saves as "Off" string in the sheet.
+    - "On" saves the dose text.
+    - Visual distinction (grayed out vs. active).
+4.  **Minimizing Documentation:**
+    - If status was "On" yesterday, it defaults to "On" today with the same dose.
+    - If status was "Off", it defaults to "Off" today, but remembers the dose from the last "On" day for easy re-enabling.
+
+**Files Modified:**
+- `api/submit-entry.js` - Extended to support columns K-S.
+- `api/get-entries.js` - Extended to fetch columns A-S and map new fields.
+- `src/components/DailyEntry.jsx` - Replaced old inputs with new Medication cards and history fetch logic.
+- `src/App.css` - Added styles for medication cards.
+
+**Google Sheets Updates Needed:**
+- **Add Headers K-S:**
+    - K: Vitamin D
+    - L: Venlafaxine
+    - M: Tirzepatide
+    - N: Oxaloacetate
+    - O: NyQuil
+    - P: Modafinil
+    - Q: Dextromethorphan
+    - R: DayQuil
+    - S: Amitriptyline
+
+---
+
 ### 2025-12-28 - R-Peak Detection Fix & Sync ECG Button (Session 28)
 
 **Session Summary:**

@@ -42,7 +42,11 @@ export default async function handler(req, res) {
   }
 
   // Parse and validate body
-  const { date, dateFor, hours, comments, oxaloacetate, exercise, brainTime, modafinil, willDoECG } = req.body;
+  const { 
+    date, dateFor, hours, comments, oxaloacetate, exercise, brainTime, modafinil, willDoECG,
+    // New Meds (Columns K-S)
+    vitaminD, venlafaxine, tirzepatide, oxaloacetateNew, nyquil, modafinilNew, dextromethorphan, dayquil, amitriptyline
+  } = req.body;
 
   if (hours === undefined || hours === null) {
     return res.status(400).json({ error: 'Missing required field: hours' });
@@ -123,7 +127,17 @@ export default async function handler(req, res) {
       brainTime ?? '',                    // Column G: Productive brain time (hours) - use ?? to preserve 0
       modafinil || '',                    // Column H: Modafinil (none/quarter/half/whole)
       willDoECG ? 'Yes' : '',             // Column I: Will do ECG
-      willDoECG ? todayDate : ''          // Column J: ECG Plan Date (today's date, when intention was recorded)
+      willDoECG ? todayDate : '',         // Column J: ECG Plan Date (today's date, when intention was recorded)
+      // New Meds (Columns K-S)
+      vitaminD || '',                     // Column K
+      venlafaxine || '',                  // Column L
+      tirzepatide || '',                  // Column M
+      oxaloacetateNew || '',              // Column N
+      nyquil || '',                       // Column O
+      modafinilNew || '',                 // Column P
+      dextromethorphan || '',             // Column Q
+      dayquil || '',                      // Column R
+      amitriptyline || ''                 // Column S
     ];
 
     let rowNumber;
@@ -132,7 +146,7 @@ export default async function handler(req, res) {
       // Update existing row
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: `Sheet1!A${existingRowIndex}:J${existingRowIndex}`,
+        range: `Sheet1!A${existingRowIndex}:S${existingRowIndex}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [rowData]
@@ -143,7 +157,7 @@ export default async function handler(req, res) {
       // Append new row
       const response = await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: 'Sheet1!A:J',
+        range: 'Sheet1!A:S',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [rowData]

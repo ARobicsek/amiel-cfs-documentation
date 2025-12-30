@@ -381,7 +381,7 @@ html, body {
   border-color: var(--accent);
 }
 
-/* Modafinil slider styles */
+/* Modafinil slider styles - Kept for reference but unused in new UI */
 .modafinil-group {
   padding: 0.5rem 0;
 }
@@ -701,4 +701,95 @@ html, body {
   color: var(--text-secondary);
   padding: 2rem;
   font-size: 0.875rem;
+}
+
+/* Medications Section */
+.medications-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 0.5rem 0;
+}
+
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.med-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  transition: all 0.2s;
+}
+
+.med-card.on {
+  border-left: 3px solid var(--accent);
+}
+
+.med-card.off {
+  border-left: 3px solid var(--text-secondary);
+  opacity: 0.7;
+  background: var(--bg-secondary);
+}
+
+.med-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.med-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.med-toggle {
+  border: none;
+  border-radius: 1rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.med-toggle.on {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+}
+
+.med-toggle.off {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--text-secondary);
+}
+
+.med-body {
+  display: flex;
+}
+
+.med-dose-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.med-dose-input:disabled {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+  padding: 0.5rem 0;
 }

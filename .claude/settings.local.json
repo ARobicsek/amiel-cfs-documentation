@@ -25,7 +25,12 @@
       "Bash(powershell:*)",
       "Bash(npx vercel env pull:*)",
       "Bash(npx vercel inspect --token=)",
-      "Bash(npx vercel ls)"
+      "Bash(npx vercel ls)",
+      "Bash(npx vercel logs --token=$VERCEL_TOKEN)",
+      "Bash(npx vercel:*)",
+      "Bash(node test-multi-ecg.js:*)",
+      "Skill(end-session)",
+      "Skill(end-session:*)"
     ],
     "deny": [],
     "ask": []

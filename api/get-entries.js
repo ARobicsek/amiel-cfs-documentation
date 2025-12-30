@@ -114,7 +114,7 @@ export default async function handler(req, res) {
     const [entriesResponse, ecgResponse] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'Sheet1!A:J', // Extended to include brainTime (G), modafinil (H), willDoECG (I), ECG Plan Date (J)
+        range: 'Sheet1!A:S', // Extended to include meds (K-S)
       }),
       sheets.spreadsheets.values.get({
         spreadsheetId,
@@ -142,7 +142,17 @@ export default async function handler(req, res) {
           oxaloacetate: row[4] ? parseFloat(row[4]) : null,
           exercise: row[5] ? parseInt(row[5]) : null,
           brainTime: row[6] ? parseFloat(row[6]) : null,
-          modafinil: row[7] || null,
+          modafinil: row[7] || null, // Keeping for backward compatibility or if used as fallback
+          // New Meds (Columns K-S)
+          vitaminD: row[10] || null,
+          venlafaxine: row[11] || null,
+          tirzepatide: row[12] || null,
+          oxaloacetate: row[13] || null, // Overwrites old oxaloacetate (row[4]) if present
+          nyquil: row[14] || null,
+          modafinilNew: row[15] || null, // Distinct from old modafinil col H to avoid confusion
+          dextromethorphan: row[16] || null,
+          dayquil: row[17] || null,
+          amitriptyline: row[18] || null,
         };
       }
 
@@ -200,6 +210,17 @@ export default async function handler(req, res) {
         exercise: entry.exercise || null,
         brainTime: entry.brainTime || null,
         modafinil: entry.modafinil || null,
+        // Meds
+        vitaminD: entry.vitaminD || null,
+        venlafaxine: entry.venlafaxine || null,
+        tirzepatide: entry.tirzepatide || null,
+        oxaloacetate: entry.oxaloacetate || null,
+        nyquil: entry.nyquil || null,
+        modafinilNew: entry.modafinilNew || null,
+        dextromethorphan: entry.dextromethorphan || null,
+        dayquil: entry.dayquil || null,
+        amitriptyline: entry.amitriptyline || null,
+        
         willDoECG: willDoECG,
         // ECG data
         ecgHR: ecg.avgHR || null,
