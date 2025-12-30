@@ -44,8 +44,9 @@ export default async function handler(req, res) {
   // Parse and validate body
   const { 
     date, dateFor, hours, comments, oxaloacetate, exercise, brainTime, modafinil, willDoECG,
-    // New Meds (Columns K-S)
-    vitaminD, venlafaxine, tirzepatide, oxaloacetateNew, nyquil, modafinilNew, dextromethorphan, dayquil, amitriptyline
+    // New Meds (Columns K-V)
+    vitaminD, venlafaxine, tirzepatide, oxaloacetateNew, nyquil, modafinilNew, dextromethorphan, dayquil, amitriptyline,
+    senna, melatonin, metoprolol
   } = req.body;
 
   if (hours === undefined || hours === null) {
@@ -137,7 +138,10 @@ export default async function handler(req, res) {
       modafinilNew || '',                 // Column P
       dextromethorphan || '',             // Column Q
       dayquil || '',                      // Column R
-      amitriptyline || ''                 // Column S
+      amitriptyline || '',                // Column S
+      senna || '',                        // Column T
+      melatonin || '',                    // Column U
+      metoprolol || ''                    // Column V
     ];
 
     let rowNumber;
@@ -146,7 +150,7 @@ export default async function handler(req, res) {
       // Update existing row
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: `Sheet1!A${existingRowIndex}:S${existingRowIndex}`,
+        range: `Sheet1!A${existingRowIndex}:V${existingRowIndex}`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [rowData]
@@ -157,7 +161,7 @@ export default async function handler(req, res) {
       // Append new row
       const response = await sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: 'Sheet1!A:S',
+        range: 'Sheet1!A:V',
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [rowData]

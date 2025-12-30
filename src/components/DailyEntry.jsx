@@ -50,9 +50,12 @@ const MED_CONFIG = [
   { key: 'amitriptyline', label: 'Amitriptyline', defaultDose: '', defaultOn: true },
   { key: 'dayquil', label: 'DayQuil', defaultDose: '', defaultOn: false },
   { key: 'dextromethorphan', label: 'Dextromethorphan', defaultDose: '', defaultOn: false },
+  { key: 'melatonin', label: 'Melatonin', defaultDose: '', defaultOn: true },
+  { key: 'metoprolol', label: 'Metoprolol', defaultDose: '', defaultOn: true },
   { key: 'modafinilNew', label: 'Modafinil', defaultDose: '1 pill', defaultOn: true },
   { key: 'nyquil', label: 'NyQuil', defaultDose: '', defaultOn: false },
   { key: 'oxaloacetateNew', label: 'Oxaloacetate', defaultDose: '1g', defaultOn: false },
+  { key: 'senna', label: 'Senna', defaultDose: '', defaultOn: true },
   { key: 'tirzepatide', label: 'Tirzepatide', defaultDose: '', defaultOn: false },
   { key: 'venlafaxine', label: 'Venlafaxine', defaultDose: '', defaultOn: true },
   { key: 'vitaminD', label: 'Vitamin D', defaultDose: '', defaultOn: true }

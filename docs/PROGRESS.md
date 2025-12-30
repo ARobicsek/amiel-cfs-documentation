@@ -72,7 +72,7 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 Implemented "Medications" section in Today's entry view. Users can now track detailed medication doses with a minimized documentation approach.
 
 **Key Features:**
-1.  **Medication Cards (A-Z):** Amitriptyline, DayQuil, Dextromethorphan, Modafinil, NyQuil, Oxaloacetate, Tirzepatide, Venlafaxine, Vitamin D.
+1.  **Medication Cards (A-Z):** Amitriptyline, DayQuil, Dextromethorphan, Melatonin, Metoprolol, Modafinil, NyQuil, Oxaloacetate, Senna, Tirzepatide, Venlafaxine, Vitamin D.
 2.  **Smart Defaults & Persistence:**
     - App remembers the last *documented dose* even if the med was switched "Off" for a few days.
     - Default status for Modafinil is "On" (1 pill).
@@ -92,7 +92,7 @@ Implemented "Medications" section in Today's entry view. Users can now track det
 - `src/App.css` - Added styles for medication cards.
 
 **Google Sheets Updates Needed:**
-- **Add Headers K-S:**
+- **Add Headers K-V:**
     - K: Vitamin D
     - L: Venlafaxine
     - M: Tirzepatide
@@ -102,6 +102,9 @@ Implemented "Medications" section in Today's entry view. Users can now track det
     - Q: Dextromethorphan
     - R: DayQuil
     - S: Amitriptyline
+    - T: Senna
+    - U: Melatonin
+    - V: Metoprolol
 
 ---
 
