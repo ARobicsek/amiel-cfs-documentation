@@ -66,6 +66,43 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2025-12-31 - Medication Bug Fixes & Change Indicators (Session 30)
+
+**Session Summary:**
+Fixed two critical medication bugs and added visual change indicators to medication history display.
+
+**Bugs Fixed:**
+
+1. **Missing Medication Carry-Forward**
+   - Root cause: `api/get-entries.js` only fetched columns up to S, missing T, U, V
+   - Senna (column T), Melatonin (column U), and Metoprolol (column V) were not being loaded
+   - Fix: Extended sheet range from A:S to A:V
+   - Result: All 12 medications now properly carry forward their last documented doses
+
+2. **Deprecated Columns in History Cards**
+   - Root cause: History was displaying old modafinil (column H) and oxaloacetate (column E)
+   - These columns were deprecated in Session 29 in favor of new columns P and N
+   - Fix: Removed old column references, added comprehensive medication list (K-V)
+   - Result: History cards now show all 12 medications with correct doses, only when taken
+
+**New Feature - Medication Change Indicators:**
+- Medications that changed from the previous day display with subtle pink background
+- Detects both dose changes and OFF→ON transitions
+- Same grey text color as unchanged medications, only background differs
+- Helps user quickly identify medication adjustments in history
+
+**Files Modified:**
+- `api/get-entries.js` - Extended range to A:V, added senna/melatonin/metoprolol fields, renamed oxaloacetate to oxaloacetateNew
+- `src/components/EntryHistory.jsx` - Removed deprecated med display, added comprehensive med list with change detection
+- `src/components/EntryHistory.css` - Added `.med-changed` styling with pink background
+
+**Testing:**
+- ✅ All 12 medications display correctly in Today view with carry-forward
+- ✅ History cards show all medications taken on each day
+- ✅ Change indicators work correctly (pink background for changed meds)
+
+---
+
 ### 2025-12-29 - Medications Feature (Session 29)
 
 **Session Summary:**
