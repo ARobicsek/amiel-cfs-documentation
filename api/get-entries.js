@@ -114,7 +114,7 @@ export default async function handler(req, res) {
     const [entriesResponse, ecgResponse] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'Sheet1!A:S', // Extended to include meds (K-S)
+        range: 'Sheet1!A:V', // Extended to include all meds (K-V)
       }),
       sheets.spreadsheets.values.get({
         spreadsheetId,
@@ -143,16 +143,19 @@ export default async function handler(req, res) {
           exercise: row[5] ? parseInt(row[5]) : null,
           brainTime: row[6] ? parseFloat(row[6]) : null,
           modafinil: row[7] || null, // Keeping for backward compatibility or if used as fallback
-          // New Meds (Columns K-S)
+          // New Meds (Columns K-V)
           vitaminD: row[10] || null,
           venlafaxine: row[11] || null,
           tirzepatide: row[12] || null,
-          oxaloacetate: row[13] || null, // Overwrites old oxaloacetate (row[4]) if present
+          oxaloacetateNew: row[13] || null, // New oxaloacetate column, distinct from old row[4]
           nyquil: row[14] || null,
           modafinilNew: row[15] || null, // Distinct from old modafinil col H to avoid confusion
           dextromethorphan: row[16] || null,
           dayquil: row[17] || null,
           amitriptyline: row[18] || null,
+          senna: row[19] || null,
+          melatonin: row[20] || null,
+          metoprolol: row[21] || null,
         };
       }
 
@@ -214,12 +217,15 @@ export default async function handler(req, res) {
         vitaminD: entry.vitaminD || null,
         venlafaxine: entry.venlafaxine || null,
         tirzepatide: entry.tirzepatide || null,
-        oxaloacetate: entry.oxaloacetate || null,
+        oxaloacetateNew: entry.oxaloacetateNew || null,
         nyquil: entry.nyquil || null,
         modafinilNew: entry.modafinilNew || null,
         dextromethorphan: entry.dextromethorphan || null,
         dayquil: entry.dayquil || null,
         amitriptyline: entry.amitriptyline || null,
+        senna: entry.senna || null,
+        melatonin: entry.melatonin || null,
+        metoprolol: entry.metoprolol || null,
         
         willDoECG: willDoECG,
         // ECG data

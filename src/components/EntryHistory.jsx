@@ -77,9 +77,29 @@ export default function EntryHistory() {
 function EntryCard({ entry }) {
   const hasAnyData = entry.hasEntryData || entry.hasECGData;
 
-  // Format modafinil display
-  const modafinilLabels = { quarter: '¼', half: '½', whole: 'Whole' };
-  const modafinilDisplay = entry.modafinil ? modafinilLabels[entry.modafinil] || entry.modafinil : null;
+  // Collect all medications that were taken (not "Off")
+  const medsTaken = [];
+  const medFields = [
+    { key: 'amitriptyline', label: 'Amitriptyline' },
+    { key: 'dayquil', label: 'DayQuil' },
+    { key: 'dextromethorphan', label: 'Dextromethorphan' },
+    { key: 'melatonin', label: 'Melatonin' },
+    { key: 'metoprolol', label: 'Metoprolol' },
+    { key: 'modafinilNew', label: 'Modafinil' },
+    { key: 'nyquil', label: 'NyQuil' },
+    { key: 'oxaloacetateNew', label: 'Oxaloacetate' },
+    { key: 'senna', label: 'Senna' },
+    { key: 'tirzepatide', label: 'Tirzepatide' },
+    { key: 'venlafaxine', label: 'Venlafaxine' },
+    { key: 'vitaminD', label: 'Vitamin D' }
+  ];
+
+  medFields.forEach(med => {
+    const value = entry[med.key];
+    if (value && value !== 'Off') {
+      medsTaken.push(`${med.label}: ${value}`);
+    }
+  });
 
   return (
     <div className={`entry-card ${!entry.hasEntryData && entry.hasECGData ? 'ecg-only' : ''}`}>
@@ -121,25 +141,25 @@ function EntryCard({ entry }) {
       )}
 
       {/* Secondary details */}
-      {(entry.comments || entry.modafinil || entry.exercise || entry.oxaloacetate || entry.willDoECG) && (
+      {(entry.comments || medsTaken.length > 0 || entry.exercise || entry.willDoECG) && (
         <div className="entry-details">
           {entry.comments && (
             <p className="entry-comments">{entry.comments}</p>
           )}
           <div className="entry-metrics">
-            {modafinilDisplay && (
-              <span className="metric">
-                {modafinilDisplay} modafinil
-              </span>
+            {medsTaken.length > 0 && (
+              <div className="medications-list">
+                <span className="metric-label">Medications:</span>
+                {medsTaken.map((med, idx) => (
+                  <span key={idx} className="metric">
+                    {med}
+                  </span>
+                ))}
+              </div>
             )}
             {entry.exercise && (
               <span className="metric">
                 {entry.exercise} min exercise
-              </span>
-            )}
-            {entry.oxaloacetate && (
-              <span className="metric">
-                {entry.oxaloacetate}g oxaloacetate
               </span>
             )}
             {entry.willDoECG && (
