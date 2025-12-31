@@ -103,7 +103,7 @@ function EntryCard({ entry, previousEntry }) {
     if (value && value !== 'Off') {
       // Check if medication changed from previous day
       const prevValue = previousEntry ? previousEntry[med.key] : null;
-      const isChanged = !previousEntry || prevValue !== value;
+      const isChanged = prevValue !== value;
 
       medsTaken.push({
         label: med.label,
@@ -163,8 +163,12 @@ function EntryCard({ entry, previousEntry }) {
               <div className="medications-list">
                 <span className="metric-label">Medications:</span>
                 {medsTaken.map((med, idx) => (
-                  <span key={idx} className={`metric ${med.changed ? 'med-changed' : ''}`}>
-                    {med.label}: {med.value}
+                  <span
+                    key={idx}
+                    className={`metric ${med.changed ? 'med-changed' : ''}`}
+                    title={med.changed ? 'Changed from previous day' : 'Same as previous day'}
+                  >
+                    {med.label}: {med.value} {med.changed ? '⚠️' : ''}
                   </span>
                 ))}
               </div>
