@@ -101,18 +101,8 @@ function EntryCard({ entry }) {
     }
   });
 
-  // Debug: Log entry data to see what we're getting
-  if (entry.normalizedDate === '2025-12-31' || entry.normalizedDate === '2025-12-30') {
-    console.log('DEBUG Entry:', entry.normalizedDate, {
-      vitaminD: entry.vitaminD,
-      venlafaxine: entry.venlafaxine,
-      modafinilNew: entry.modafinilNew,
-      senna: entry.senna,
-      melatonin: entry.melatonin,
-      metoprolol: entry.metoprolol,
-      medsTaken
-    });
-  }
+  // Debug: Show medication data in UI for recent entries
+  const isRecentEntry = entry.normalizedDate === '2025-12-31' || entry.normalizedDate === '2025-12-30' || entry.normalizedDate === '2025-12-29';
 
   return (
     <div className={`entry-card ${!entry.hasEntryData && entry.hasECGData ? 'ecg-only' : ''}`}>
@@ -120,6 +110,17 @@ function EntryCard({ entry }) {
       <div className="entry-header">
         <span className="entry-date">{formatDate(entry.normalizedDate || entry.date)}</span>
       </div>
+
+      {/* DEBUG: Show raw med data for recent entries */}
+      {isRecentEntry && (
+        <div style={{fontSize: '10px', background: '#ffeb3b', padding: '5px', margin: '5px 0'}}>
+          <strong>DEBUG {entry.normalizedDate}:</strong><br/>
+          vitD: {entry.vitaminD || 'null'}, venla: {entry.venlafaxine || 'null'},
+          modaf: {entry.modafinilNew || 'null'}, senna: {entry.senna || 'null'},
+          melat: {entry.melatonin || 'null'}, metop: {entry.metoprolol || 'null'}<br/>
+          medsTaken.length: {medsTaken.length}
+        </div>
+      )}
 
       {/* Row 1: Daily entry metrics */}
       {entry.hasEntryData && (
