@@ -101,6 +101,19 @@ function EntryCard({ entry }) {
     }
   });
 
+  // Debug: Log entry data to see what we're getting
+  if (entry.normalizedDate === '2025-12-31' || entry.normalizedDate === '2025-12-30') {
+    console.log('DEBUG Entry:', entry.normalizedDate, {
+      vitaminD: entry.vitaminD,
+      venlafaxine: entry.venlafaxine,
+      modafinilNew: entry.modafinilNew,
+      senna: entry.senna,
+      melatonin: entry.melatonin,
+      metoprolol: entry.metoprolol,
+      medsTaken
+    });
+  }
+
   return (
     <div className={`entry-card ${!entry.hasEntryData && entry.hasECGData ? 'ecg-only' : ''}`}>
       {/* Header with date */}
