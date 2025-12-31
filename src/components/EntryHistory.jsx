@@ -64,7 +64,11 @@ export default function EntryHistory() {
       <h2>Recent Entries</h2>
       <div className="entries-list">
         {entries.map((entry, index) => (
-          <EntryCard key={entry.normalizedDate || index} entry={entry} />
+          <EntryCard
+            key={entry.normalizedDate || index}
+            entry={entry}
+            previousEntry={entries[index + 1] || null}
+          />
         ))}
       </div>
     </div>
@@ -74,7 +78,7 @@ export default function EntryHistory() {
 /**
  * Individual entry card component
  */
-function EntryCard({ entry }) {
+function EntryCard({ entry, previousEntry }) {
   const hasAnyData = entry.hasEntryData || entry.hasECGData;
 
   // Collect all medications that were taken (not "Off")
@@ -97,12 +101,17 @@ function EntryCard({ entry }) {
   medFields.forEach(med => {
     const value = entry[med.key];
     if (value && value !== 'Off') {
-      medsTaken.push(`${med.label}: ${value}`);
+      // Check if medication changed from previous day
+      const prevValue = previousEntry ? previousEntry[med.key] : null;
+      const isChanged = !previousEntry || prevValue !== value;
+
+      medsTaken.push({
+        label: med.label,
+        value: value,
+        changed: isChanged
+      });
     }
   });
-
-  // Debug: Show medication data in UI for recent entries
-  const isRecentEntry = entry.normalizedDate === '2025-12-31' || entry.normalizedDate === '2025-12-30' || entry.normalizedDate === '2025-12-29';
 
   return (
     <div className={`entry-card ${!entry.hasEntryData && entry.hasECGData ? 'ecg-only' : ''}`}>
@@ -110,17 +119,6 @@ function EntryCard({ entry }) {
       <div className="entry-header">
         <span className="entry-date">{formatDate(entry.normalizedDate || entry.date)}</span>
       </div>
-
-      {/* DEBUG: Show raw med data for recent entries */}
-      {isRecentEntry && (
-        <div style={{fontSize: '10px', background: '#ffeb3b', padding: '5px', margin: '5px 0'}}>
-          <strong>DEBUG {entry.normalizedDate}:</strong><br/>
-          vitD: {entry.vitaminD || 'null'}, venla: {entry.venlafaxine || 'null'},
-          modaf: {entry.modafinilNew || 'null'}, senna: {entry.senna || 'null'},
-          melat: {entry.melatonin || 'null'}, metop: {entry.metoprolol || 'null'}<br/>
-          medsTaken.length: {medsTaken.length}
-        </div>
-      )}
 
       {/* Row 1: Daily entry metrics */}
       {entry.hasEntryData && (
@@ -165,8 +163,8 @@ function EntryCard({ entry }) {
               <div className="medications-list">
                 <span className="metric-label">Medications:</span>
                 {medsTaken.map((med, idx) => (
-                  <span key={idx} className="metric">
-                    {med}
+                  <span key={idx} className={`metric ${med.changed ? 'med-changed' : ''}`}>
+                    {med.label}: {med.value}
                   </span>
                 ))}
               </div>

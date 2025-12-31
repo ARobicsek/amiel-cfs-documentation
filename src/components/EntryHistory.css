@@ -128,6 +128,13 @@
   color: var(--accent, #3b82f6);
 }
 
+.metric.med-changed {
+  background: rgba(251, 146, 60, 0.15);
+  color: #ea580c;
+  font-weight: 500;
+  border: 1px solid rgba(251, 146, 60, 0.3);
+}
+
 /* ECG-only notice */
 .ecg-only-notice {
   font-size: 0.75rem;
@@ -161,5 +168,11 @@
 
   .main-metric.ecg-metric {
     background: rgba(59, 130, 246, 0.15);
+  }
+
+  .metric.med-changed {
+    background: rgba(251, 146, 60, 0.2);
+    color: #fb923c;
+    border-color: rgba(251, 146, 60, 0.4);
   }
 }
