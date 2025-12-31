@@ -166,9 +166,8 @@ function EntryCard({ entry, previousEntry }) {
                   <span
                     key={idx}
                     className={`metric ${med.changed ? 'med-changed' : ''}`}
-                    title={med.changed ? 'Changed from previous day' : 'Same as previous day'}
                   >
-                    {med.label}: {med.value} {med.changed ? '⚠️' : ''}
+                    {med.label}: {med.value}
                   </span>
                 ))}
               </div>
