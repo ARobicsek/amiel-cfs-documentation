@@ -82,6 +82,7 @@ Implemented manual alert trigger in the Settings page, allowing the user (parent
    - Updated `api/send-notification.js` to accept `req.body.message`.
    - Preserved existing cron job functionality (random jokes).
    - Refined logic to combine custom message with random joke.
+   - Added support for `includeJoke` flag to support "message only" alerts.
 
 **Files Modified:**
 - `src/components/Settings.jsx` - Added UI and logic for manual alerts.

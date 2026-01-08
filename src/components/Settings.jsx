@@ -17,6 +17,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [manualAlertMessage, setManualAlertMessage] = useState('');
+  const [includeJoke, setIncludeJoke] = useState(true);
 
   // Auth token settings
   const [authToken, setAuthToken] = useState('');
@@ -327,7 +328,10 @@ export default function Settings() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ message: manualAlertMessage })
+        body: JSON.stringify({
+          message: manualAlertMessage,
+          includeJoke: includeJoke
+        })
       });
 
       if (response.ok) {
@@ -567,6 +571,17 @@ export default function Settings() {
             <p className="help-text">
               Enter a message to display above the random joke. If empty, only a joke will be sent.
             </p>
+          </div>
+
+          <div className="form-group checkbox-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={includeJoke}
+                onChange={(e) => setIncludeJoke(e.target.checked)}
+              />
+              <span>Include random joke</span>
+            </label>
           </div>
 
           <div className="settings-actions">

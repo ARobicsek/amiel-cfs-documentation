@@ -31,36 +31,53 @@ export default async function handler(req, res) {
 
   try {
     // Check for custom message in request body
-    const { message } = req.body || {};
+    const { message, includeJoke } = req.body || {};
     const customMessage = (message && typeof message === 'string') ? message.trim() : '';
 
-    // Always fetch a joke
-    console.log('Fetching joke from API...');
+    // Default includeJoke to true if undefined
+    const shouldIncludeJoke = includeJoke !== false;
+
+    // Fetch joke only if needed
+    // 1. If we have no custom message (always need joke)
+    // 2. OR if we have custom message AND user wants joke
     let jokeString = '';
 
-    try {
-      const jokeResponse = await fetch('https://official-joke-api.appspot.com/random_joke');
-      if (jokeResponse.ok) {
-        const joke = await jokeResponse.json();
-        jokeString = `${joke.setup} ${joke.punchline}`;
-        console.log('Joke fetched successfully');
-      } else {
-        console.error(`Joke API returned ${jokeResponse.status}`);
+    if (!customMessage || shouldIncludeJoke) {
+      console.log('Fetching joke from API...');
+      try {
+        const jokeResponse = await fetch('https://official-joke-api.appspot.com/random_joke');
+        if (jokeResponse.ok) {
+          const joke = await jokeResponse.json();
+          jokeString = `${joke.setup} ${joke.punchline}`;
+          console.log('Joke fetched successfully');
+        } else {
+          console.error(`Joke API returned ${jokeResponse.status}`);
+          jokeString = 'Why did the developer go broke? Because he used up all his cache.';
+        }
+      } catch (e) {
+        console.error('Failed to fetch joke:', e);
         jokeString = 'Why did the developer go broke? Because he used up all his cache.';
       }
-    } catch (e) {
-      console.error('Failed to fetch joke:', e);
-      jokeString = 'Why did the developer go broke? Because he used up all his cache.';
+    } else {
+      console.log('Skipping joke fetch (custom message only)');
     }
 
-    // Combine custom message and joke
+    // specific logic for jokeText construction
     let jokeText;
+
     if (customMessage) {
-      jokeText = `${customMessage}\n\n${jokeString}`;
-      console.log('Using custom message + joke');
+      if (shouldIncludeJoke) {
+        jokeText = `${customMessage}\n\n${jokeString}`;
+        console.log('Using custom message + joke');
+      } else {
+        jokeText = customMessage;
+        console.log('Using custom message ONLY');
+      }
     } else {
+      // No custom message -> Must be joke (shouldIncludeJoke logic is implicitly true here effectively, 
+      // but even if false, we can't send empty notification, so fallback to joke)
       jokeText = jokeString;
-      console.log('Using joke only');
+      console.log('Using joke only (no custom message)');
     }
 
     // Initialize debugInfo early so we can add VAPID info
