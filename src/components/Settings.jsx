@@ -561,11 +561,11 @@ export default function Settings() {
               id="manualMessage"
               value={manualAlertMessage}
               onChange={(e) => setManualAlertMessage(e.target.value)}
-              placeholder="Leave empty for a random joke"
+              placeholder="Your message (joke will be added below)"
               className="text-input"
             />
             <p className="help-text">
-              If left empty, a random joke will be sent.
+              Enter a message to display above the random joke. If empty, only a joke will be sent.
             </p>
           </div>
 
