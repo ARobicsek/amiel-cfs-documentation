@@ -16,6 +16,7 @@ export default function Settings() {
   const [permission, setPermission] = useState('default');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [manualAlertMessage, setManualAlertMessage] = useState('');
 
   // Auth token settings
   const [authToken, setAuthToken] = useState('');
@@ -95,11 +96,11 @@ export default function Settings() {
   async function saveReminderSettings() {
     const token = getAuthToken();
     if (!token) {
-        setSettingsMessage({
-            type: 'error',
-            text: 'Please enter and save your Authentication Token first.'
-        });
-        return;
+      setSettingsMessage({
+        type: 'error',
+        text: 'Please enter and save your Authentication Token first.'
+      });
+      return;
     }
 
     setSettingsLoading(true);
@@ -137,11 +138,11 @@ export default function Settings() {
   async function handleTestNotification() {
     const token = getAuthToken();
     if (!token) {
-        setMessage({
-            type: 'error',
-            text: 'Please enter and save your Authentication Token first.'
-        });
-        return;
+      setMessage({
+        type: 'error',
+        text: 'Please enter and save your Authentication Token first.'
+      });
+      return;
     }
 
     setLoading(true);
@@ -158,66 +159,66 @@ export default function Settings() {
       if (response.ok) {
         const data = await response.json();
         let successMsg = `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
-        
+
         if (data.debug_info && data.debug_info.vapid) {
-            const serverKeyPrefix = data.debug_info.vapid.serverKeyPrefix;
-            const clientKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
-            const clientKeyPrefix = clientKey.trim().substring(0, 15) + '...';
-            
-            console.log('VAPID Check:', { server: serverKeyPrefix, client: clientKeyPrefix });
-            
-            if (serverKeyPrefix && clientKeyPrefix && serverKeyPrefix !== clientKeyPrefix) {
-                successMsg += `\n\n⚠️ CRITICAL CONFIG ERROR ⚠️\nVAPID Key Mismatch!`;
-                successMsg += `\nClient uses: ${clientKeyPrefix}`;
-                successMsg += `\nServer uses: ${serverKeyPrefix}`;
-                successMsg += `\nCheck your Vercel Environment Variables. VITE_VAPID_PUBLIC_KEY and VAPID_PUBLIC_KEY must be identical.`;
-            } else {
-                successMsg += `\n(Keys match: ${serverKeyPrefix})`;
-            }
-            
-            if (data.debug_info.vapid.subject) {
-                 successMsg += `\nSubject: ${data.debug_info.vapid.subject}`;
-            }
+          const serverKeyPrefix = data.debug_info.vapid.serverKeyPrefix;
+          const clientKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
+          const clientKeyPrefix = clientKey.trim().substring(0, 15) + '...';
+
+          console.log('VAPID Check:', { server: serverKeyPrefix, client: clientKeyPrefix });
+
+          if (serverKeyPrefix && clientKeyPrefix && serverKeyPrefix !== clientKeyPrefix) {
+            successMsg += `\n\n⚠️ CRITICAL CONFIG ERROR ⚠️\nVAPID Key Mismatch!`;
+            successMsg += `\nClient uses: ${clientKeyPrefix}`;
+            successMsg += `\nServer uses: ${serverKeyPrefix}`;
+            successMsg += `\nCheck your Vercel Environment Variables. VITE_VAPID_PUBLIC_KEY and VAPID_PUBLIC_KEY must be identical.`;
+          } else {
+            successMsg += `\n(Keys match: ${serverKeyPrefix})`;
+          }
+
+          if (data.debug_info.vapid.subject) {
+            successMsg += `\nSubject: ${data.debug_info.vapid.subject}`;
+          }
         }
 
         if (data.cleaned_up && data.cleaned_up > 0) {
-           successMsg += `\n\nNote: ${data.cleaned_up} expired subscription(s) were removed.`;
-           // If we failed to send AND cleaned up, it likely means OUR subscription was the bad one.
-           // Reset UI to allow re-subscribing.
-           if (data.sent === 0) {
-              setSubscribed(false);
-              successMsg += `\nYour subscription was expired. Please click "Enable Notifications" to re-subscribe.`;
-           }
+          successMsg += `\n\nNote: ${data.cleaned_up} expired subscription(s) were removed.`;
+          // If we failed to send AND cleaned up, it likely means OUR subscription was the bad one.
+          // Reset UI to allow re-subscribing.
+          if (data.sent === 0) {
+            setSubscribed(false);
+            successMsg += `\nYour subscription was expired. Please click "Enable Notifications" to re-subscribe.`;
+          }
         }
-        
+
         // Always show send errors if any occurred (even if some succeeded)
         if (data.send_errors && data.send_errors.length > 0) {
-           successMsg += `\n\n⚠️ ${data.send_errors.length} device(s) failed:`;
-           data.send_errors.forEach((err, idx) => {
-             successMsg += `\n${idx + 1}. ${err.error}`;
-             if (err.statusCode) successMsg += ` (Status: ${err.statusCode})`;
-             if (err.endpoint) successMsg += `\n   Endpoint: ${err.endpoint}`;
-             if (err.body) successMsg += `\n   Response: ${err.body}`;
-           });
+          successMsg += `\n\n⚠️ ${data.send_errors.length} device(s) failed:`;
+          data.send_errors.forEach((err, idx) => {
+            successMsg += `\n${idx + 1}. ${err.error}`;
+            if (err.statusCode) successMsg += ` (Status: ${err.statusCode})`;
+            if (err.endpoint) successMsg += `\n   Endpoint: ${err.endpoint}`;
+            if (err.body) successMsg += `\n   Response: ${err.body}`;
+          });
         }
 
         if (data.sent === 0 && data.debug_info) {
-           console.log('Debug Info:', data.debug_info);
-           successMsg += `\n\nDebug: Found ${data.debug_info.rowsFound} rows.`;
-           if (data.debug_info.parseErrors && data.debug_info.parseErrors.length > 0) {
-              const firstError = data.debug_info.parseErrors[0];
-              successMsg += `\nError 1: ${firstError.error}`;
-              if (firstError.missing) successMsg += ` (${firstError.missing.join(', ')})`;
-           }
+          console.log('Debug Info:', data.debug_info);
+          successMsg += `\n\nDebug: Found ${data.debug_info.rowsFound} rows.`;
+          if (data.debug_info.parseErrors && data.debug_info.parseErrors.length > 0) {
+            const firstError = data.debug_info.parseErrors[0];
+            successMsg += `\nError 1: ${firstError.error}`;
+            if (firstError.missing) successMsg += ` (${firstError.missing.join(', ')})`;
+          }
         }
-        
+
         setMessage({
           type: 'success',
           text: successMsg
         });
       } else {
         const errorData = await response.json();
-        const errorMessage = errorData.details 
+        const errorMessage = errorData.details
           ? `${errorData.error}: ${errorData.details}`
           : (errorData.error || 'Failed to send test notification');
         throw new Error(errorMessage);
@@ -236,11 +237,11 @@ export default function Settings() {
   async function handleEnableNotifications() {
     const token = getAuthToken();
     if (!token) {
-        setMessage({
-            type: 'error',
-            text: 'Please enter and save your Authentication Token first.'
-        });
-        return;
+      setMessage({
+        type: 'error',
+        text: 'Please enter and save your Authentication Token first.'
+      });
+      return;
     }
 
     setLoading(true);
@@ -300,6 +301,61 @@ export default function Settings() {
       setMessage({
         type: 'error',
         text: 'Failed to disable notifications. Please try again.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleManualAlert() {
+    const token = getAuthToken();
+    if (!token) {
+      setMessage({
+        type: 'error',
+        text: 'Please enter and save your Authentication Token first.'
+      });
+      return;
+    }
+
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await fetch('/api/send-notification', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: manualAlertMessage })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        let successMsg = `Manual alert sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
+
+        // Show errors if any
+        if (data.send_errors && data.send_errors.length > 0) {
+          successMsg += `\n\n⚠️ ${data.send_errors.length} device(s) failed:`;
+          data.send_errors.forEach((err, idx) => {
+            successMsg += `\n${idx + 1}. ${err.error}`;
+          });
+        }
+
+        setMessage({
+          type: 'success',
+          text: successMsg
+        });
+        setManualAlertMessage(''); // Clear input on success
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send alert');
+      }
+    } catch (error) {
+      console.error('Failed to send manual alert:', error);
+      setMessage({
+        type: 'error',
+        text: `Error: ${error.message}`
       });
     } finally {
       setLoading(false);
@@ -398,12 +454,12 @@ export default function Settings() {
       {/* Push Notifications Section */}
       <div className="settings-section">
         <h3>Push Notifications</h3>
-        
+
         {!pushSupported ? (
-            <p className="error-message">
-              Push notifications are not supported in your browser.
-              Please use a modern browser like Chrome, Firefox, or Safari.
-            </p>
+          <p className="error-message">
+            Push notifications are not supported in your browser.
+            Please use a modern browser like Chrome, Firefox, or Safari.
+          </p>
         ) : (
           <>
             <p className="settings-description">
@@ -488,6 +544,41 @@ export default function Settings() {
             )}
           </>
         )}
+      </div>
+
+      {/* Manual Alert Section */}
+      <div className="settings-section">
+        <h3>Manual Alert</h3>
+        <p className="settings-description">
+          Manually send a push notification to all subscribed devices.
+        </p>
+
+        <div className="settings-form">
+          <div className="form-group">
+            <label htmlFor="manualMessage">Custom Message (Optional)</label>
+            <input
+              type="text"
+              id="manualMessage"
+              value={manualAlertMessage}
+              onChange={(e) => setManualAlertMessage(e.target.value)}
+              placeholder="Leave empty for a random joke"
+              className="text-input"
+            />
+            <p className="help-text">
+              If left empty, a random joke will be sent.
+            </p>
+          </div>
+
+          <div className="settings-actions">
+            <button
+              onClick={handleManualAlert}
+              disabled={loading}
+              className="btn-primary"
+            >
+              {loading ? 'Sending...' : 'Send Manual Alert'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Authentication Token Section */}

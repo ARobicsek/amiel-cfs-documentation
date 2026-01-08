@@ -30,15 +30,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch a joke from the free API
-    console.log('Fetching joke from API...');
-    const jokeResponse = await fetch('https://official-joke-api.appspot.com/random_joke');
-    if (!jokeResponse.ok) {
-      throw new Error(`Joke API returned ${jokeResponse.status}`);
+    // Check for custom message in request body
+    const { message } = req.body || {};
+    let jokeText;
+
+    if (message && typeof message === 'string' && message.trim().length > 0) {
+      jokeText = message.trim();
+      console.log('Using custom message:', jokeText);
+    } else {
+      // Fetch a joke from the free API
+      console.log('Fetching joke from API...');
+      const jokeResponse = await fetch('https://official-joke-api.appspot.com/random_joke');
+      if (!jokeResponse.ok) {
+        throw new Error(`Joke API returned ${jokeResponse.status}`);
+      }
+      const joke = await jokeResponse.json();
+      jokeText = `${joke.setup} ${joke.punchline}`;
+      console.log('Joke fetched successfully');
     }
-    const joke = await jokeResponse.json();
-    const jokeText = `${joke.setup} ${joke.punchline}`;
-    console.log('Joke fetched successfully');
 
     // Initialize debugInfo early so we can add VAPID info
     let debugInfo = {

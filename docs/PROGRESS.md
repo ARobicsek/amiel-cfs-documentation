@@ -28,6 +28,7 @@ Track completed features and current status here. Update after completing each f
 | 13 | Notification endpoint | DONE | Sends push with jokes from API |
 | 14 | Vercel cron job | DONE | Customizable schedule + snooze feature |
 | 15 | Settings page | DONE | Enable/disable notifications UI complete |
+| 16 | Manual Alert Trigger | DONE | Custom message support + Parent UI |
 
 ### Phase 3: Polish (ON HOLD)
 
@@ -65,6 +66,31 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-01-08 - Manual Alert System (Session 31)
+
+**Session Summary:**
+Implemented manual alert trigger in the Settings page, allowing the user (parent) to send custom push notifications to their son's PWA.
+
+**New Features:**
+1. **Manual Alert Trigger:**
+   - Added "Manual Alert" section to Settings page.
+   - Allows sending custom messages (or random jokes).
+   - Works for any user with the correct Auth Token, even if not subscribed on that device.
+
+2. **Backend Custom Messages:**
+   - Updated `api/send-notification.js` to accept `req.body.message`.
+   - Preserved existing cron job functionality (random jokes).
+
+**Files Modified:**
+- `src/components/Settings.jsx` - Added UI and logic for manual alerts.
+- `api/send-notification.js` - Added custom message handling.
+
+**Testing:**
+- Verified manual alert sends custom message.
+- Verified existing test notification still works.
+
+---
 
 ### 2025-12-31 - Medication Bug Fixes & Change Indicators (Session 30)
 
