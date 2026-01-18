@@ -207,11 +207,11 @@ export default async function handler(req, res) {
       combinedEntries.push({
         normalizedDate: date,
         date: entry.date || date, // Use original format if available
-        hours: entry.hours || null,
+        hours: entry.hours ?? null,
         comments: entry.comments || null,
-        oxaloacetate: entry.oxaloacetate || null,
-        exercise: entry.exercise || null,
-        brainTime: entry.brainTime || null,
+        oxaloacetate: entry.oxaloacetate ?? null,
+        exercise: entry.exercise ?? null,
+        brainTime: entry.brainTime ?? null,
         modafinil: entry.modafinil || null,
         // Meds
         vitaminD: entry.vitaminD || null,
@@ -226,11 +226,11 @@ export default async function handler(req, res) {
         senna: entry.senna || null,
         melatonin: entry.melatonin || null,
         metoprolol: entry.metoprolol || null,
-        
+
         willDoECG: willDoECG,
         // ECG data
-        ecgHR: ecg.avgHR || null,
-        ecgRSRatio: ecg.rsRatio || null,
+        ecgHR: ecg.avgHR ?? null,
+        ecgRSRatio: ecg.rsRatio ?? null,
         ecgClassification: ecg.classification || null,
         // Flag to indicate data source
         hasEntryData: !!entriesByDate[date],
