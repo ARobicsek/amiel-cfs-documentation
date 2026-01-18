@@ -67,6 +67,21 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-17 - Brain Time Display Bug Fix (Session 32)
+
+**Session Summary:**
+Fixed bug where "Brain time" (and other numeric fields) were not displaying their documented values when navigating between days in the Today screen.
+
+**Bug Fixed:**
+- **Root Cause:** In `api/get-entries.js`, JavaScript's `||` operator was treating `0` as falsy, converting numeric values of `0` to `null`.
+- **Symptom:** When `brainTime` was documented as `0`, the API returned `null`, and the UI defaulted to `1`.
+- **Fix:** Changed from `||` to `??` (nullish coalescing) for all numeric fields: `hours`, `brainTime`, `oxaloacetate`, `exercise`, `ecgHR`, `ecgRSRatio`.
+
+**Files Modified:**
+- `api/get-entries.js` - Fixed falsy value handling for numeric fields.
+
+---
+
 ### 2026-01-08 - Manual Alert System (Session 31)
 
 **Session Summary:**
