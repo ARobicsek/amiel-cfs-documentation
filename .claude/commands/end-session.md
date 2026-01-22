@@ -53,7 +53,13 @@ If there are uncommitted changes:
 - Create a descriptive commit message
 - Commit the changes
 
-## 5. Final Summary
+## 5. Update Script References
+
+If you created, deleted, or significantly changed any scripts:
+- Update `docs/scriptReferences.md` to reflect the changes
+- Ensure descriptions remain accurate and concise
+
+## 6. Final Summary
 
 Provide a brief summary for the developer:
 
@@ -63,10 +69,10 @@ Provide a brief summary for the developer:
 > - **Next Session**: [what to work on next]
 > - **Notes**: [any important context for next time]
 
-## 6. Update PROGRESS.md Next Up Section
+## 7. Update PROGRESS.md Next Up Section
 
 Make sure the "Next Up" section clearly indicates what the next developer (or next session) should work on.
 
 ---
 
-Now proceed with steps 1-6 above. Start by asking: "What did we accomplish in this session?"
+Now proceed with steps 1-7 above. Start by asking: "What did we accomplish in this session?"

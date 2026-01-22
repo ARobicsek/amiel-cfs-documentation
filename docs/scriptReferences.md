@@ -1,0 +1,71 @@
+# Script References
+
+Quick reference for all JavaScript files in this project. **Read this file first when looking for code.**
+
+---
+
+## API Endpoints (`api/`)
+Server-side Vercel functions. All require `Authorization: Bearer <SECRET_TOKEN>`.
+
+| File | Description | Link |
+|------|-------------|------|
+| `backup-data.js` | Creates daily Google Sheets backups and sends monthly CSV email backups. | [backup-data.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/backup-data.js) |
+| `cron-trigger.js` | Runs every 15 min via Vercel cron; checks if it's time to send a push notification reminder. | [cron-trigger.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/cron-trigger.js) |
+| `debug-env.js` | Debug endpoint that returns which environment variables are set (no token required). | [debug-env.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/debug-env.js) |
+| `ecg-webhook.js` | Receives ECG data from Health Auto Export (multipart/CSV), parses it, calculates R/S ratio, and stores in Sheets. | [ecg-webhook.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/ecg-webhook.js) |
+| `get-entries.js` | Fetches recent daily entries from Google Sheets, merging in ECG data by date. | [get-entries.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/get-entries.js) |
+| `notification-settings.js` | GET/POST for user notification preferences (first reminder time, repeat interval). | [notification-settings.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/notification-settings.js) |
+| `send-notification.js` | Sends push notifications with jokes to all subscribed devices. | [send-notification.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/send-notification.js) |
+| `snooze.js` | Records a snooze request, storing snooze-until time in Sheets. | [snooze.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/snooze.js) |
+| `submit-entry.js` | Saves/updates a daily entry (hours, meds, comments) to Google Sheets with audit logging. | [submit-entry.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/submit-entry.js) |
+| `subscribe.js` | Saves a push notification subscription to Google Sheets. | [subscribe.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/subscribe.js) |
+
+---
+
+## Client Utilities (`src/utils/`)
+Frontend helper modules.
+
+| File | Exports | Description | Link |
+|------|---------|-------------|------|
+| `api.js` | `submitEntry`, `getEntries`, `subscribeToPush` | Wrapper functions for authenticated API calls. | [api.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/api.js) |
+| `auth.js` | `getSecretToken`, `isAuthenticated`, `clearAuth`, `getAuthenticatedUrl` | Manages secret URL token authentication (store/retrieve from localStorage). | [auth.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/auth.js) |
+| `offlineStorage.js` | `saveOfflineEntry`, `getPendingEntries`, `syncPendingEntries`, `setupOfflineSync` | IndexedDB utilities for offline-first entry storage and sync. | [offlineStorage.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/offlineStorage.js) |
+| `pushNotification.js` | `isPushSupported`, `subscribeToPush`, `unsubscribeFromPush`, `isSubscribed` | Push notification subscription and management. | [pushNotification.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/pushNotification.js) |
+
+---
+
+## React Components (`src/components/`)
+
+| File | Description | Link |
+|------|-------------|------|
+| `DailyEntry.jsx` | Main form for submitting daily entries (hours, meds, ECG checkbox). | [DailyEntry.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/DailyEntry.jsx) |
+| `EntryHistory.jsx` | Displays past entries in a timeline/list format. | [EntryHistory.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/EntryHistory.jsx) |
+| `Settings.jsx` | Notification settings, push subscription toggle, and debug tools. | [Settings.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Settings.jsx) |
+
+---
+
+## Service Worker (`public/`)
+
+| File | Description | Link |
+|------|-------------|------|
+| `sw-custom.js` | Handles push events (show notification), notification clicks (snooze/track actions), and window focus. | [sw-custom.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/public/sw-custom.js) |
+
+---
+
+## App Entry Points (`src/`)
+
+| File | Description | Link |
+|------|-------------|------|
+| `main.jsx` | React app entry point; renders `<App />` into DOM. | [main.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/main.jsx) |
+| `App.jsx` | Root component with routing between DailyEntry, EntryHistory, and Settings tabs. | [App.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/App.jsx) |
+
+---
+
+## Build/Config (root)
+
+| File | Description | Link |
+|------|-------------|------|
+| `vite.config.js` | Vite + PWA config: manifest, workbox caching, service worker setup. | [vite.config.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/vite.config.js) |
+| `eslint.config.js` | ESLint flat config with React hooks/refresh plugins. | [eslint.config.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/eslint.config.js) |
+| `validate-keys.js` | Utility script to validate VAPID keys are correctly configured. | [validate-keys.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/validate-keys.js) |
+| `update_icons.js` | Utility script to copy F15_icon.png to all PWA icon locations. | [update_icons.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/update_icons.js) |

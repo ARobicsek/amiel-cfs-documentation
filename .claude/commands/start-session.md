@@ -2,6 +2,11 @@
 
 You are starting a development session on the CFS Daily Tracker app. Follow these steps:
 
+## 0. Script Reference
+
+**When you need to find or modify code, first read `docs/scriptReferences.md`.**
+This file lists every script with its purpose and a direct file link, organized by category (API, utils, components, etc.).
+
 ## 1. Check Current Status
 
 Read `docs/PROGRESS.md` and summarize:
