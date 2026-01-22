@@ -48,19 +48,28 @@ export default async function handler(req, res) {
         const month = String(etDate.getMonth() + 1).padStart(2, '0');
         const day = String(etDate.getDate()).padStart(2, '0');
         const backupSheetName = `Backup_${year}-${month}-${day}`;
+        const ecgBackupSheetName = `ECG_Backup_${year}-${month}-${day}`;
 
-        console.log(`Starting backup: ${backupSheetName}`);
+        console.log(`Starting backup: ${backupSheetName} and ${ecgBackupSheetName}`);
 
-        // Step 1: Fetch all data from Sheet1
-        const sourceData = await sheets.spreadsheets.values.get({
-            spreadsheetId,
-            range: 'Sheet1!A:Z', // Get all columns
-        });
+        // Step 1: Fetch all data from Sheet1 and ECG_Readings
+        const [sourceData, ecgData] = await Promise.all([
+            sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: 'Sheet1!A:Z', // Get all columns
+            }),
+            sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: 'ECG_Readings!A:Z',
+            }).catch(() => ({ data: { values: [] } })) // Handle if ECG sheet doesn't exist
+        ]);
 
         const rows = sourceData.data.values || [];
+        const ecgRows = ecgData.data.values || [];
         const rowCount = rows.length;
+        const ecgRowCount = ecgRows.length;
 
-        console.log(`Fetched ${rowCount} rows from Sheet1`);
+        console.log(`Fetched ${rowCount} rows from Sheet1, ${ecgRowCount} rows from ECG_Readings`);
 
         // Anomaly detection: Alert if row count suddenly dropped
         // (This could indicate accidental deletion)
@@ -75,37 +84,50 @@ export default async function handler(req, res) {
 
         const existingSheets = spreadsheet.data.sheets.map(s => s.properties.title);
 
-        // Step 3: Create backup sheet if it doesn't exist
+        // Step 3: Create backup sheets if they don't exist
+        const sheetsToCreate = [];
         if (!existingSheets.includes(backupSheetName)) {
-            await sheets.spreadsheets.batchUpdate({
-                spreadsheetId,
-                requestBody: {
-                    requests: [{
-                        addSheet: {
-                            properties: {
-                                title: backupSheetName,
-                            },
-                        },
-                    }],
-                },
-            });
-            console.log(`Created new backup sheet: ${backupSheetName}`);
-        } else {
-            console.log(`Backup sheet ${backupSheetName} already exists, will overwrite`);
+            sheetsToCreate.push({ addSheet: { properties: { title: backupSheetName } } });
+        }
+        if (!existingSheets.includes(ecgBackupSheetName) && ecgRowCount > 0) {
+            sheetsToCreate.push({ addSheet: { properties: { title: ecgBackupSheetName } } });
         }
 
-        // Step 4: Write data to backup sheet
-        if (rows.length > 0) {
-            await sheets.spreadsheets.values.update({
+        if (sheetsToCreate.length > 0) {
+            await sheets.spreadsheets.batchUpdate({
                 spreadsheetId,
-                range: `${backupSheetName}!A1`,
-                valueInputOption: 'RAW',
-                requestBody: {
-                    values: rows,
-                },
+                requestBody: { requests: sheetsToCreate },
             });
-            console.log(`Wrote ${rowCount} rows to backup sheet`);
+            console.log(`Created backup sheets: ${sheetsToCreate.map(s => s.addSheet.properties.title).join(', ')}`);
         }
+
+        // Step 4: Write data to backup sheets
+        const writePromises = [];
+
+        if (rows.length > 0) {
+            writePromises.push(
+                sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: `${backupSheetName}!A1`,
+                    valueInputOption: 'RAW',
+                    requestBody: { values: rows },
+                })
+            );
+        }
+
+        if (ecgRows.length > 0) {
+            writePromises.push(
+                sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: `${ecgBackupSheetName}!A1`,
+                    valueInputOption: 'RAW',
+                    requestBody: { values: ecgRows },
+                })
+            );
+        }
+
+        await Promise.all(writePromises);
+        console.log(`Wrote ${rowCount} rows to ${backupSheetName}, ${ecgRowCount} rows to ${ecgBackupSheetName}`);
 
         // Step 5: Prune old backups (keep last 30 days)
         const RETENTION_DAYS = 30;
@@ -115,9 +137,10 @@ export default async function handler(req, res) {
         const sheetsToDelete = [];
         for (const sheet of spreadsheet.data.sheets) {
             const title = sheet.properties.title;
-            if (title.startsWith('Backup_')) {
-                // Parse date from sheet name
-                const dateMatch = title.match(/Backup_(\d{4})-(\d{2})-(\d{2})/);
+            // Match both Backup_ and ECG_Backup_ sheets
+            if (title.startsWith('Backup_') || title.startsWith('ECG_Backup_')) {
+                // Parse date from sheet name (handles both prefixes)
+                const dateMatch = title.match(/(?:ECG_)?Backup_(\d{4})-(\d{2})-(\d{2})/);
                 if (dateMatch) {
                     const backupDate = new Date(dateMatch[1], dateMatch[2] - 1, dateMatch[3]);
                     if (backupDate < cutoffDate) {
@@ -148,7 +171,7 @@ export default async function handler(req, res) {
         let emailSent = false;
         if (etDate.getDate() === 1) {
             try {
-                emailSent = await sendMonthlyEmailBackup(rows, etDate);
+                emailSent = await sendMonthlyEmailBackup(rows, ecgRows, etDate);
             } catch (emailError) {
                 console.error('Failed to send monthly email backup:', emailError.message);
                 // Don't fail the whole backup just because email failed
@@ -158,7 +181,9 @@ export default async function handler(req, res) {
         return res.status(200).json({
             success: true,
             backupSheet: backupSheetName,
+            ecgBackupSheet: ecgBackupSheetName,
             rowCount: rowCount,
+            ecgRowCount: ecgRowCount,
             prunedBackups: sheetsToDelete.length,
             emailSent: emailSent,
             timestamp: now.toISOString(),
@@ -176,7 +201,7 @@ export default async function handler(req, res) {
 /**
  * Send monthly email backup to configured recipients
  */
-async function sendMonthlyEmailBackup(rows, date) {
+async function sendMonthlyEmailBackup(rows, ecgRows, date) {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
     if (!RESEND_API_KEY) {
@@ -189,10 +214,9 @@ async function sendMonthlyEmailBackup(rows, date) {
         'ari.robicsek@gmail.com'
     ];
 
-    // Convert data to CSV
-    const csvContent = rows.map(row =>
+    // Helper to convert rows to CSV
+    const toCsv = (dataRows) => dataRows.map(row =>
         row.map(cell => {
-            // Escape quotes and wrap in quotes if contains comma or newline
             const str = String(cell || '');
             if (str.includes(',') || str.includes('\n') || str.includes('"')) {
                 return `"${str.replace(/"/g, '""')}"`;
@@ -202,10 +226,25 @@ async function sendMonthlyEmailBackup(rows, date) {
     ).join('\n');
 
     const monthName = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-    const fileName = `cfs-tracker-backup-${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}.csv`;
+    const datePrefix = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-    // Base64 encode the CSV for attachment
-    const csvBase64 = Buffer.from(csvContent).toString('base64');
+    // Create attachments
+    const attachments = [
+        {
+            filename: `cfs-tracker-entries-${datePrefix}.csv`,
+            content: Buffer.from(toCsv(rows)).toString('base64'),
+            type: 'text/csv',
+        }
+    ];
+
+    // Only attach ECG data if it exists
+    if (ecgRows && ecgRows.length > 0) {
+        attachments.push({
+            filename: `cfs-tracker-ecg-${datePrefix}.csv`,
+            content: Buffer.from(toCsv(ecgRows)).toString('base64'),
+            type: 'text/csv',
+        });
+    }
 
     const emailBody = {
         from: 'CFS Tracker <noreply@resend.dev>',
@@ -215,21 +254,16 @@ async function sendMonthlyEmailBackup(rows, date) {
       <h2>CFS Tracker Monthly Backup</h2>
       <p>This is your automated monthly backup of Amiel's CFS tracking data.</p>
       <p><strong>Date:</strong> ${monthName}</p>
-      <p><strong>Total entries:</strong> ${rows.length - 1} (excluding header)</p>
-      <p>The attached CSV file contains all tracking data.</p>
+      <p><strong>Daily entries:</strong> ${rows.length - 1} (excluding header)</p>
+      <p><strong>ECG readings:</strong> ${ecgRows ? ecgRows.length - 1 : 0} (excluding header)</p>
+      <p>The attached CSV files contain all tracking data.</p>
       <hr>
       <p style="color: #666; font-size: 12px;">
         This backup was automatically generated by the CFS Tracker app.
         Keep this email for your records.
       </p>
     `,
-        attachments: [
-            {
-                filename: fileName,
-                content: csvBase64,
-                type: 'text/csv',
-            }
-        ]
+        attachments: attachments
     };
 
     const response = await fetch('https://api.resend.com/emails', {
