@@ -67,6 +67,46 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-21 - Data Security & Backup System (Session 33)
+
+**Session Summary:**
+Implemented comprehensive data backup and redundancy system to protect against accidental data loss in Google Sheets.
+
+**New Features:**
+
+1. **Automated Daily Backups (`api/backup-data.js`)**
+   - Backs up 3 sheets: Sheet1, ECG_Readings, ECG_Waveforms
+   - Creates timestamped backup sheets: `Backup_YYYY-MM-DD`, `ECG_Backup_YYYY-MM-DD`, `Waveform_Backup_YYYY-MM-DD`
+   - 30-day retention with automatic pruning of old backups
+   - Runs daily at 5 AM ET via Vercel cron
+   - Includes anomaly detection (warns if row count drops unexpectedly)
+
+2. **Write-Ahead Audit Logging (`api/submit-entry.js`)**
+   - Logs every entry submission to `AuditLog` sheet BEFORE writing to Sheet1
+   - Stores full JSON payload for data replay capability
+   - Enables recovery if Sheet1 is ever corrupted
+
+3. **Monthly Email Backups**
+   - On 1st of each month, emails CSV attachments to both addresses
+   - Includes all 3 data sheets as separate CSV files
+   - Requires `RESEND_API_KEY` env var (not yet configured)
+
+**Files Created:**
+- `api/backup-data.js` - New backup serverless function
+
+**Files Modified:**
+- `api/submit-entry.js` - Added audit logging
+- `vercel.json` - Added daily backup cron job
+- `docs/ARCHITECTURE.md` - Added "Data Backup & Redundancy" section
+
+**Testing:**
+- ✅ Daily backup creates all 3 backup sheets
+- ✅ Audit logging creates AuditLog sheet on first submission
+- ✅ 30-day pruning logic verified
+- ⏳ Monthly email backup pending RESEND_API_KEY setup
+
+---
+
 ### 2026-01-17 - Brain Time Display Bug Fix (Session 32)
 
 **Session Summary:**

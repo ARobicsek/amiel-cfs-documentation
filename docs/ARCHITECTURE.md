@@ -167,14 +167,17 @@ The app implements multiple layers of data protection:
 │         ▼                                              │
 │  /api/backup-data                                      │
 │         │                                              │
-│         ├──► Copy Sheet1 → Backup_YYYY-MM-DD           │
+│         ├──► Sheet1       → Backup_YYYY-MM-DD          │
+│         ├──► ECG_Readings → ECG_Backup_YYYY-MM-DD      │
+│         ├──► ECG_Waveforms→ Waveform_Backup_YYYY-MM-DD │
 │         │                                              │
 │         └──► Prune backups older than 30 days          │
 └────────────────────────────────────────────────────────┘
 ```
 
 - Creates timestamped backup sheets within the same spreadsheet
-- Retains 30 days of daily backups
+- Backs up all three data sheets: Sheet1, ECG_Readings, ECG_Waveforms
+- Retains 30 days of daily backups (90 backup sheets total)
 - Includes anomaly detection (warns if row count drops unexpectedly)
 
 ### 2. Write-Ahead Audit Log
@@ -183,7 +186,7 @@ Every entry submission is logged to an `AuditLog` sheet BEFORE the main write:
 
 | Timestamp | Action | DateFor | RequestBody (JSON) |
 |-----------|--------|---------|-------------------|
-| 01/21/2025, 19:30:00 | SUBMIT_ENTRY | 01/21/2025 | {"hours": 6.5, ...} |
+| 01/21/2026, 19:30:00 | SUBMIT_ENTRY | 01/21/2026 | {"hours": 6.5, ...} |
 
 This enables:
 - Complete data replay if Sheet1 is corrupted
@@ -192,9 +195,14 @@ This enables:
 
 ### 3. Monthly Email Backups
 
-On the 1st of each month, a CSV backup is emailed to:
+On the 1st of each month, CSV backups are emailed to:
 - amiel.robicsek@gmail.com
 - ari.robicsek@gmail.com
+
+Attachments include:
+- `cfs-tracker-entries-YYYY-MM.csv` (Sheet1)
+- `cfs-tracker-ecg-readings-YYYY-MM.csv` (ECG_Readings)
+- `cfs-tracker-ecg-waveforms-YYYY-MM.csv` (ECG_Waveforms)
 
 **Setup required**: Add `RESEND_API_KEY` to Vercel environment variables.
 
@@ -214,5 +222,6 @@ To prevent accidental manual edits:
 
 | File | Purpose |
 |------|---------|
-| `api/backup-data.js` | Daily backup + monthly email |
+| `api/backup-data.js` | Daily backup (3 sheets) + monthly email |
 | `api/submit-entry.js` | Entry submission + audit logging |
+
