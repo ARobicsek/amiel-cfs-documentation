@@ -49,11 +49,12 @@ export default async function handler(req, res) {
         const day = String(etDate.getDate()).padStart(2, '0');
         const backupSheetName = `Backup_${year}-${month}-${day}`;
         const ecgBackupSheetName = `ECG_Backup_${year}-${month}-${day}`;
+        const waveformBackupSheetName = `Waveform_Backup_${year}-${month}-${day}`;
 
-        console.log(`Starting backup: ${backupSheetName} and ${ecgBackupSheetName}`);
+        console.log(`Starting backup: ${backupSheetName}, ${ecgBackupSheetName}, ${waveformBackupSheetName}`);
 
-        // Step 1: Fetch all data from Sheet1 and ECG_Readings
-        const [sourceData, ecgData] = await Promise.all([
+        // Step 1: Fetch all data from Sheet1, ECG_Readings, and ECG_Waveforms
+        const [sourceData, ecgData, waveformData] = await Promise.all([
             sheets.spreadsheets.values.get({
                 spreadsheetId,
                 range: 'Sheet1!A:Z', // Get all columns
@@ -61,15 +62,21 @@ export default async function handler(req, res) {
             sheets.spreadsheets.values.get({
                 spreadsheetId,
                 range: 'ECG_Readings!A:Z',
-            }).catch(() => ({ data: { values: [] } })) // Handle if ECG sheet doesn't exist
+            }).catch(() => ({ data: { values: [] } })), // Handle if sheet doesn't exist
+            sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: 'ECG_Waveforms!A:Z',
+            }).catch(() => ({ data: { values: [] } })) // Handle if sheet doesn't exist
         ]);
 
         const rows = sourceData.data.values || [];
         const ecgRows = ecgData.data.values || [];
+        const waveformRows = waveformData.data.values || [];
         const rowCount = rows.length;
         const ecgRowCount = ecgRows.length;
+        const waveformRowCount = waveformRows.length;
 
-        console.log(`Fetched ${rowCount} rows from Sheet1, ${ecgRowCount} rows from ECG_Readings`);
+        console.log(`Fetched ${rowCount} rows from Sheet1, ${ecgRowCount} from ECG_Readings, ${waveformRowCount} from ECG_Waveforms`);
 
         // Anomaly detection: Alert if row count suddenly dropped
         // (This could indicate accidental deletion)
@@ -91,6 +98,9 @@ export default async function handler(req, res) {
         }
         if (!existingSheets.includes(ecgBackupSheetName) && ecgRowCount > 0) {
             sheetsToCreate.push({ addSheet: { properties: { title: ecgBackupSheetName } } });
+        }
+        if (!existingSheets.includes(waveformBackupSheetName) && waveformRowCount > 0) {
+            sheetsToCreate.push({ addSheet: { properties: { title: waveformBackupSheetName } } });
         }
 
         if (sheetsToCreate.length > 0) {
@@ -126,8 +136,19 @@ export default async function handler(req, res) {
             );
         }
 
+        if (waveformRows.length > 0) {
+            writePromises.push(
+                sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: `${waveformBackupSheetName}!A1`,
+                    valueInputOption: 'RAW',
+                    requestBody: { values: waveformRows },
+                })
+            );
+        }
+
         await Promise.all(writePromises);
-        console.log(`Wrote ${rowCount} rows to ${backupSheetName}, ${ecgRowCount} rows to ${ecgBackupSheetName}`);
+        console.log(`Wrote ${rowCount} to ${backupSheetName}, ${ecgRowCount} to ${ecgBackupSheetName}, ${waveformRowCount} to ${waveformBackupSheetName}`);
 
         // Step 5: Prune old backups (keep last 30 days)
         const RETENTION_DAYS = 30;
@@ -137,10 +158,10 @@ export default async function handler(req, res) {
         const sheetsToDelete = [];
         for (const sheet of spreadsheet.data.sheets) {
             const title = sheet.properties.title;
-            // Match both Backup_ and ECG_Backup_ sheets
-            if (title.startsWith('Backup_') || title.startsWith('ECG_Backup_')) {
-                // Parse date from sheet name (handles both prefixes)
-                const dateMatch = title.match(/(?:ECG_)?Backup_(\d{4})-(\d{2})-(\d{2})/);
+            // Match Backup_, ECG_Backup_, and Waveform_Backup_ sheets
+            if (title.startsWith('Backup_') || title.startsWith('ECG_Backup_') || title.startsWith('Waveform_Backup_')) {
+                // Parse date from sheet name (handles all prefixes)
+                const dateMatch = title.match(/(?:ECG_|Waveform_)?Backup_(\d{4})-(\d{2})-(\d{2})/);
                 if (dateMatch) {
                     const backupDate = new Date(dateMatch[1], dateMatch[2] - 1, dateMatch[3]);
                     if (backupDate < cutoffDate) {
@@ -171,7 +192,7 @@ export default async function handler(req, res) {
         let emailSent = false;
         if (etDate.getDate() === 1) {
             try {
-                emailSent = await sendMonthlyEmailBackup(rows, ecgRows, etDate);
+                emailSent = await sendMonthlyEmailBackup(rows, ecgRows, waveformRows, etDate);
             } catch (emailError) {
                 console.error('Failed to send monthly email backup:', emailError.message);
                 // Don't fail the whole backup just because email failed
@@ -182,8 +203,10 @@ export default async function handler(req, res) {
             success: true,
             backupSheet: backupSheetName,
             ecgBackupSheet: ecgBackupSheetName,
+            waveformBackupSheet: waveformBackupSheetName,
             rowCount: rowCount,
             ecgRowCount: ecgRowCount,
+            waveformRowCount: waveformRowCount,
             prunedBackups: sheetsToDelete.length,
             emailSent: emailSent,
             timestamp: now.toISOString(),
@@ -201,7 +224,7 @@ export default async function handler(req, res) {
 /**
  * Send monthly email backup to configured recipients
  */
-async function sendMonthlyEmailBackup(rows, ecgRows, date) {
+async function sendMonthlyEmailBackup(rows, ecgRows, waveformRows, date) {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
     if (!RESEND_API_KEY) {
@@ -240,8 +263,17 @@ async function sendMonthlyEmailBackup(rows, ecgRows, date) {
     // Only attach ECG data if it exists
     if (ecgRows && ecgRows.length > 0) {
         attachments.push({
-            filename: `cfs-tracker-ecg-${datePrefix}.csv`,
+            filename: `cfs-tracker-ecg-readings-${datePrefix}.csv`,
             content: Buffer.from(toCsv(ecgRows)).toString('base64'),
+            type: 'text/csv',
+        });
+    }
+
+    // Only attach waveform data if it exists
+    if (waveformRows && waveformRows.length > 0) {
+        attachments.push({
+            filename: `cfs-tracker-ecg-waveforms-${datePrefix}.csv`,
+            content: Buffer.from(toCsv(waveformRows)).toString('base64'),
             type: 'text/csv',
         });
     }
@@ -256,6 +288,7 @@ async function sendMonthlyEmailBackup(rows, ecgRows, date) {
       <p><strong>Date:</strong> ${monthName}</p>
       <p><strong>Daily entries:</strong> ${rows.length - 1} (excluding header)</p>
       <p><strong>ECG readings:</strong> ${ecgRows ? ecgRows.length - 1 : 0} (excluding header)</p>
+      <p><strong>ECG waveforms:</strong> ${waveformRows ? waveformRows.length - 1 : 0} (excluding header)</p>
       <p>The attached CSV files contain all tracking data.</p>
       <hr>
       <p style="color: #666; font-size: 12px;">
