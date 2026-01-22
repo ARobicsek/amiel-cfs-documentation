@@ -153,3 +153,66 @@ The secret URL approach is appropriate because:
 - Non-critical data (hours tracking)
 - Private URL not shared publicly
 - Token rotatable if compromised
+
+## Data Backup & Redundancy
+
+The app implements multiple layers of data protection:
+
+### 1. Automated Daily Backups
+
+```
+┌────────────────────────────────────────────────────────┐
+│  Vercel Cron (5 AM ET daily)                           │
+│         │                                              │
+│         ▼                                              │
+│  /api/backup-data                                      │
+│         │                                              │
+│         ├──► Copy Sheet1 → Backup_YYYY-MM-DD           │
+│         │                                              │
+│         └──► Prune backups older than 30 days          │
+└────────────────────────────────────────────────────────┘
+```
+
+- Creates timestamped backup sheets within the same spreadsheet
+- Retains 30 days of daily backups
+- Includes anomaly detection (warns if row count drops unexpectedly)
+
+### 2. Write-Ahead Audit Log
+
+Every entry submission is logged to an `AuditLog` sheet BEFORE the main write:
+
+| Timestamp | Action | DateFor | RequestBody (JSON) |
+|-----------|--------|---------|-------------------|
+| 01/21/2025, 19:30:00 | SUBMIT_ENTRY | 01/21/2025 | {"hours": 6.5, ...} |
+
+This enables:
+- Complete data replay if Sheet1 is corrupted
+- Debugging and troubleshooting historical issues
+- Audit trail of all modifications
+
+### 3. Monthly Email Backups
+
+On the 1st of each month, a CSV backup is emailed to:
+- amiel.robicsek@gmail.com
+- ari.robicsek@gmail.com
+
+**Setup required**: Add `RESEND_API_KEY` to Vercel environment variables.
+
+### 4. Google Sheets Version History
+
+Google Sheets automatically maintains version history for ~30 days. Access via:
+1. File → Version history → See version history
+2. Select a previous version to view/restore
+
+### Protected Ranges (Manual Setup)
+
+To prevent accidental manual edits:
+1. Open the Google Sheet
+2. Select header row (Row 1)
+3. Right-click → "Protect range"
+4. Set permissions to only allow the service account to edit
+
+| File | Purpose |
+|------|---------|
+| `api/backup-data.js` | Daily backup + monthly email |
+| `api/submit-entry.js` | Entry submission + audit logging |

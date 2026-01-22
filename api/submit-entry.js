@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   }
 
   // Parse and validate body
-  const { 
+  const {
     date, dateFor, hours, comments, oxaloacetate, exercise, brainTime, modafinil, willDoECG,
     // New Meds (Columns K-V)
     vitaminD, venlafaxine, tirzepatide, oxaloacetateNew, nyquil, modafinilNew, dextromethorphan, dayquil, amitriptyline,
@@ -92,6 +92,62 @@ export default async function handler(req, res) {
         day: '2-digit'
       });
     }
+
+    // ========== AUDIT LOGGING (Write-Ahead Log) ==========
+    // Log incoming request BEFORE modifying data - enables replay if data is lost
+    try {
+      // Check if AuditLog sheet exists
+      const spreadsheet = await sheets.spreadsheets.get({
+        spreadsheetId,
+        fields: 'sheets.properties.title',
+      });
+
+      const sheetExists = spreadsheet.data.sheets.some(
+        s => s.properties.title === 'AuditLog'
+      );
+
+      if (!sheetExists) {
+        // Create AuditLog sheet with headers
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [{
+              addSheet: {
+                properties: { title: 'AuditLog' },
+              },
+            }],
+          },
+        });
+
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: 'AuditLog!A1:D1',
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [['Timestamp', 'Action', 'DateFor', 'RequestBody (JSON)']],
+          },
+        });
+      }
+
+      // Log the incoming request
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: 'AuditLog!A:D',
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [[
+            timestamp,
+            'SUBMIT_ENTRY',
+            entryDateFor,
+            JSON.stringify(req.body)
+          ]],
+        },
+      });
+    } catch (auditError) {
+      // Log but don't fail the submission if audit logging fails
+      console.error('Audit logging failed:', auditError.message);
+    }
+    // ========== END AUDIT LOGGING ==========
 
     // Check if an entry for this date already exists (one row per date-for)
     const existingData = await sheets.spreadsheets.values.get({

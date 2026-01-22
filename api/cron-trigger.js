@@ -60,7 +60,8 @@ export default async function handler(req, res) {
       const row = settingsResponse.data.values?.[0];
       if (row && row.length > 0) {
         settings.firstReminderTime = row[0] || '20:00';
-        settings.repeatInterval = parseInt(row[1]) || 60;
+        const parsedInterval = parseInt(row[1]);
+        settings.repeatInterval = !isNaN(parsedInterval) ? parsedInterval : 60;
         settings.stopAfterLog = row[2] === 'true';
         settings.snoozeUntil = row[4] || null;  // Column E
       }
