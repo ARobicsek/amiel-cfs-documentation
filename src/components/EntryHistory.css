@@ -175,3 +175,72 @@
     border-color: rgba(236, 72, 153, 0.3);
   }
 }
+
+/* Health Metrics Section */
+.entry-health-metrics {
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.health-section-title {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  opacity: 0.8;
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.health-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--bg-secondary);
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.health-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.health-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.health-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.health-value small {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 1px;
+}
+
+.health-sub {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+/* Dark mode tweaks for health items */
+@media (prefers-color-scheme: dark) {
+  .health-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+}

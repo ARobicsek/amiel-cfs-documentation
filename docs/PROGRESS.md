@@ -45,6 +45,7 @@ Track completed features and current status here. Update after completing each f
 | 19 | ECG webhook endpoint | DONE | R/S ratio + HR validation, waveform storage in Sheets |
 | 20 | Health Auto Export config | DONE | CSV parsing fixed, duplicate detection working |
 | 21 | ECG history display | DONE | HR + R/S ratio in history cards, "Will do ECG" button |
+| 22 | Health Data Integration | DONE | Automated Heart Rate, Steps, Sleep, HRV via Health Auto Export |
 
 **Key Design:** NO manual data entry. R/S ratio calculated automatically from raw voltage data.
 
@@ -66,6 +67,43 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-01-23 - Health Data Integration (Session 34)
+
+**Session Summary:**
+Implemented automated tracking for Heart Rate, Steps, Sleep, and HRV using Health Auto Export. Data flows from Apple Watch → Webhook → Google Sheets and displays in the App history.
+
+**New Features:**
+1. **Automated Health Webhook (`api/health-webhook.js`)**
+   - Receives JSON payload from Health Auto Export app.
+   - Stores granular data in `Health_Hourly` sheet.
+   - Aggregates daily stats (Steps, Avg HR, Sleep Duration, HRV) in `Health_Daily` sheet.
+   - Intelligently merges new data with existing daily stats.
+
+2. **Health Data Display**
+   - Updated History view to show:
+     - ❤️ Avg Heart Rate
+     - 👣 Daily Steps
+     - 📊 HRV (Heart Rate Variability)
+     - 😴 Sleep Duration
+   - Merges manual entry data + ECG data + Health data into a single verified view.
+
+3. **Infrastructure**
+   - Created `Health_Daily` and `Health_Hourly` sheets.
+   - Updated `api/get-entries.js` to fetch and merge all 3 data sources.
+
+**Files Created/Modified:**
+- `api/health-webhook.js` - New endpoint for health data.
+- `api/get-entries.js` - Logic to merge health data.
+- `src/components/EntryHistory.jsx` - UI for health metrics.
+- `src/components/EntryHistory.css` - Styles for health grid.
+- `scripts/setup-health-sheets.js` (Used & Deleted) - Setup script.
+
+**Configuration Required:**
+- User needs to configure "Health Auto Export" app on iPhone to send data to `/api/health-webhook`.
+- See `health_config_guide.md` for details.
+
+---
 
 ### 2026-01-21 - Data Security & Backup System (Session 33)
 

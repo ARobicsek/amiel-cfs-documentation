@@ -1,9 +1,8 @@
 /**
  * GET /api/get-entries
  *
- * Fetches recent entries from Google Sheets, including ECG data.
- * Merges daily entries with ECG readings by date.
- * ECG data is attributed to collection date (not documentation date).
+ * Fetches recent entries from Google Sheets, including ECG and Health data.
+ * Merges daily entries with ECG readings and Health Auto Export stats by date.
  *
  * Query params:
  *   limit: number (default: 10, max: 30)
@@ -110,8 +109,8 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
 
-    // Fetch both daily entries (Sheet1) and ECG readings in parallel
-    const [entriesResponse, ecgResponse] = await Promise.all([
+    // Fetch daily entries, ECG readings, and Health Data in parallel
+    const [entriesResponse, ecgResponse, healthResponse] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId,
         range: 'Sheet1!A:V', // Extended to include all meds (K-V)
@@ -119,7 +118,11 @@ export default async function handler(req, res) {
       sheets.spreadsheets.values.get({
         spreadsheetId,
         range: 'ECG_Readings!A:E', // Timestamp, Date, Classification, Avg HR, R/S Ratio
-      }).catch(() => ({ data: { values: [] } })) // Handle if ECG sheet doesn't exist
+      }).catch(() => ({ data: { values: [] } })), // Handle if ECG sheet doesn't exist
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'Health_Daily!A:K', // Date, Steps, AvgHR, RestHR, MinHR, MaxHR, HRV, SleepDur, Eff, Deep, REM
+      }).catch(() => ({ data: { values: [] } })) // Handle if Health sheet doesn't exist
     ]);
 
     // Process daily entries - index by normalized date
@@ -147,9 +150,9 @@ export default async function handler(req, res) {
           vitaminD: row[10] || null,
           venlafaxine: row[11] || null,
           tirzepatide: row[12] || null,
-          oxaloacetateNew: row[13] || null, // New oxaloacetate column, distinct from old row[4]
+          oxaloacetateNew: row[13] || null,
           nyquil: row[14] || null,
-          modafinilNew: row[15] || null, // Distinct from old modafinil col H to avoid confusion
+          modafinilNew: row[15] || null,
           dextromethorphan: row[16] || null,
           dayquil: row[17] || null,
           amitriptyline: row[18] || null,
@@ -175,7 +178,6 @@ export default async function handler(req, res) {
     const ecgByDate = {};
     for (const row of ecgDataRows) {
       // Use Column B (actual ECG date/time) NOT Column A (received timestamp)
-      // Column B is when the ECG was actually taken on the Apple Watch
       const { date: normalizedDate, timestamp } = parseECGTimestamp(row[1]); // Column B is ECG date
       if (normalizedDate) {
         // Keep track of most recent ECG per day (by actual ECG time)
@@ -190,11 +192,37 @@ export default async function handler(req, res) {
       }
     }
 
+    // Process Health Data (Health_Daily)
+    const healthRows = healthResponse.data.values || [];
+    const healthDataRows = healthRows.slice(1); // Skip header
+    const healthByDate = {};
+
+    for (const row of healthDataRows) {
+      // Row: Date(0), Steps(1), AvgHR(2), RestHR(3), MinHR(4), MaxHR(5), HRV(6), SleepDur(7), Eff(8), Deep(9), REM(10)
+      const dateStr = row[0];
+      const normalizedDate = normalizeDate(dateStr);
+      if (normalizedDate) {
+        healthByDate[normalizedDate] = {
+          steps: row[1] ? parseInt(row[1]) : null,
+          avgHR: row[2] ? parseFloat(row[2]) : null,
+          restingHR: row[3] ? parseFloat(row[3]) : null,
+          minHR: row[4] ? parseFloat(row[4]) : null,
+          maxHR: row[5] ? parseFloat(row[5]) : null,
+          hrv: row[6] ? parseFloat(row[6]) : null,
+          sleepMinutes: row[7] ? parseFloat(row[7]) : null,
+          sleepEff: row[8] || null,
+          deepSleep: row[9] ? parseFloat(row[9]) : null,
+          remSleep: row[10] ? parseFloat(row[10]) : null,
+        };
+      }
+    }
+
     // Merge all unique dates from all three sources
     const allDates = new Set([
       ...Object.keys(entriesByDate),
       ...Object.keys(ecgByDate),
-      ...Object.keys(ecgPlanByDate)
+      ...Object.keys(ecgPlanByDate),
+      ...Object.keys(healthByDate)
     ]);
 
     // Build combined entries
@@ -202,7 +230,8 @@ export default async function handler(req, res) {
     for (const date of allDates) {
       const entry = entriesByDate[date] || {};
       const ecg = ecgByDate[date] || {};
-      const willDoECG = ecgPlanByDate[date] || false; // willDoECG attributed to ECG Plan Date
+      const health = healthByDate[date] || {};
+      const willDoECG = ecgPlanByDate[date] || false;
 
       combinedEntries.push({
         normalizedDate: date,
@@ -232,9 +261,24 @@ export default async function handler(req, res) {
         ecgHR: ecg.avgHR ?? null,
         ecgRSRatio: ecg.rsRatio ?? null,
         ecgClassification: ecg.classification || null,
-        // Flag to indicate data source
+        // Health Data
+        health: {
+          steps: health.steps,
+          avgHR: health.avgHR,
+          restingHR: health.restingHR,
+          minHR: health.minHR,
+          maxHR: health.maxHR,
+          hrv: health.hrv,
+          sleepMinutes: health.sleepMinutes,
+          deepSleep: health.deepSleep,
+          remSleep: health.remSleep,
+          sleepEff: health.sleepEff
+        },
+
+        // Flags
         hasEntryData: !!entriesByDate[date],
         hasECGData: !!ecgByDate[date],
+        hasHealthData: !!healthByDate[date]
       });
     }
 

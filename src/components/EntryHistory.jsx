@@ -186,6 +186,59 @@ function EntryCard({ entry, previousEntry }) {
         </div>
       )}
 
+      {/* Row 3: Health Data (Auto-Imported) */}
+      {entry.hasHealthData && entry.health && (
+        <div className="entry-health-metrics">
+          <div className="health-section-title">Health Data (Auto)</div>
+          <div className="health-grid">
+
+            {/* Heart Rate */}
+            {(entry.health.avgHR > 0) && (
+              <div className="health-item">
+                <span className="health-icon">❤️</span>
+                <div className="health-details">
+                  <span className="health-value">{Math.round(entry.health.avgHR)} <small>bpm</small></span>
+                  <span className="health-sub">Avg HR</span>
+                </div>
+              </div>
+            )}
+
+            {/* HRV */}
+            {(entry.health.hrv > 0) && (
+              <div className="health-item">
+                <span className="health-icon">📊</span>
+                <div className="health-details">
+                  <span className="health-value">{Math.round(entry.health.hrv)} <small>ms</small></span>
+                  <span className="health-sub">HRV</span>
+                </div>
+              </div>
+            )}
+
+            {/* Steps */}
+            {(entry.health.steps > 0) && (
+              <div className="health-item">
+                <span className="health-icon">👣</span>
+                <div className="health-details">
+                  <span className="health-value">{entry.health.steps.toLocaleString()}</span>
+                  <span className="health-sub">Steps</span>
+                </div>
+              </div>
+            )}
+
+            {/* Sleep */}
+            {(entry.health.sleepMinutes > 0) && (
+              <div className="health-item">
+                <span className="health-icon">😴</span>
+                <div className="health-details">
+                  <span className="health-value">{(entry.health.sleepMinutes / 60).toFixed(1)} <small>hrs</small></span>
+                  <span className="health-sub">Sleep</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ECG-only indicator */}
       {!entry.hasEntryData && entry.hasECGData && (
         <div className="ecg-only-notice">ECG data only</div>
