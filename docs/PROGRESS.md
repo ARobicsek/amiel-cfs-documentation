@@ -138,7 +138,32 @@ Enhanced health webhook data quality with NULL handling, timezone fixes, and dev
 2. Run first archival when approaching 35,000 rows (~6-10 months)
 3. Continue testing health metrics display in app
 
-### 2026-01-24 - Health Webhook Fixes & Schema Enhancement (Session 36)
+### 2026-01-24 - Health Data "Awake Minutes" Bug Fix (Session 38)
+
+**Session Summary:**
+Fixed a bug where "Awake Minutes" was being zeroed out when partial health data (like steps) arrived without sleep data. Extended API to correctly surface new health metrics.
+
+**Accomplishments:**
+1. **Fixed "Awake Minutes" Zeroing Bug**
+   - Modified `api/health-webhook.js` to only update "Awake Minutes" when value > 0
+   - Prevents overwriting existing empty cells with 0 during intra-day updates
+   - Preserves existing data integrity
+
+2. **Extended API Schema**
+   - Updated `api/get-entries.js` to fetch full 15 columns (A-O)
+   - Mapped new fields: `hrCount` (Col M), `hrvCount` (Col N), `awakeMinutes` (Col O)
+   - App can now display these metrics if needed
+
+**Files Modified:**
+- `api/health-webhook.js` - Added conditional check for awake minutes
+- `api/get-entries.js` - Extended range and added new field mappings
+
+**Status at End of Session:**
+- ✅ Awake minutes no longer overwritten by empty updates
+- ✅ API returning full set of health metrics
+- ✅ Lint checks passed
+
+### 2026-01-24 - Health Webhook Fixes & Schema Enhancement (Session 37)
 
 **Session Summary:**
 Fixed webhook deployment issue and enhanced health data schema to properly capture heart rate Min/Max values. Webhook now successfully receives and processes data from iPhone.

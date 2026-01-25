@@ -175,15 +175,15 @@ export default async function handler(req, res) {
                 // New Row
                 rowIndex = existingRows.length + updates.length; // virtual index
                 // Initialize empty row based on schema
-                // Date, Steps, Avg HR, Resting HR, Min HR, Max HR, HRV, Sleep Dur, Sleep Eff, Deep, REM, LastUpdate
-                // Use empty strings for fields that might not have data, 0 for cumulative fields
-                rowData = [dateStr, '', '', '', '', '', '', '', '', '', '', ''];
+                // Date, Steps, Avg HR, RestHR, MinHR, MaxHR, HRV, SleepDur, Sleep Eff, Deep, REM, LastUpdate, HRCount, HRVCount, AwakeMins
+                // Initialize 15 columns (A-O) with empty strings
+                rowData = [dateStr, '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
                 updates.push({ index: rowIndex, date: dateStr, isNew: true, data: rowData });
             } else {
                 // Existing Row
                 rowData = [...existingRows[rowIndex]]; // Copy
-                // Ensure length
-                while (rowData.length < 12) rowData.push('');
+                // Ensure length of 15
+                while (rowData.length < 15) rowData.push('');
                 updates.push({ index: rowIndex, date: dateStr, isNew: false, data: rowData });
             }
 
@@ -268,15 +268,28 @@ export default async function handler(req, res) {
                 u[10] = Number(u[10] || 0) + newStats.remSleepMinutes;
             }
 
-            // Sleep Efficiency: (Total - Awake) / Total? Or just use Core+Deep+Rem / Total?
-            // Let's just store simple calc:
-            // Eff = (TotalSleep / (TotalSleep + Awake)) * 100
-            const awake = Number(u[14] || 0) + newStats.awakeMinutes;
-            u[14] = awake; // Store awake mins in Col O
+            // Sleep Efficiency: (Total - Awake) / Total
+            const totalSleep = u[7]; // already sums the sleep phases (Core + Deep + REM)
 
-            const totalSleep = u[7]; // already sums the sleep phases
-            if (totalSleep + awake > 0) {
-                u[8] = Math.round((totalSleep / (totalSleep + awake)) * 100) + '%';
+            // Awake Minutes (Col O, index 14)
+            // Fix: Only update if we actually received awake minutes data. 
+            // Avoids overwriting existing empty cells with 0.
+            if (newStats.awakeMinutes > 0) {
+                const currentAwake = Number(u[14] || 0);
+                const newAwake = currentAwake + newStats.awakeMinutes;
+                u[14] = newAwake;
+
+                // Recalculate Efficiency if we have sleep data
+                // Note: Sleep Efficiency needs both Total Sleep and Awake Minutes
+                // We'll calculate it if we have a valid total sleep > 0
+                if (totalSleep + newAwake > 0) {
+                    u[8] = Math.round((totalSleep / (totalSleep + newAwake)) * 100) + '%';
+                }
+            } else if (u[14] !== '' && totalSleep > 0) {
+                // If we didn't get new awake minutes, but we have existing awake minutes and total sleep, 
+                // we might want to update efficiency? 
+                // Actually, if we are just updating steps, totalSleep and u[14] won't change, so efficiency matches.
+                // So no need for else block here.
             }
 
             u[11] = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
@@ -404,7 +417,7 @@ function parseSource(rawSource, metricName) {
 
     const watchMetrics = ['heart_rate', 'heart_rate_variability', 'resting_heart_rate'];
     const sleepMetrics = ['sleep_analysis', 'sleep_asleep', 'sleep_awake', 'sleep_in_bed',
-                         'sleep_asleep_core', 'sleep_asleep_deep', 'sleep_asleep_rem'];
+        'sleep_asleep_core', 'sleep_asleep_deep', 'sleep_asleep_rem'];
 
     if (watchMetrics.includes(metricName) || sleepMetrics.some(m => metricName.startsWith('sleep_'))) {
         // Prioritize Apple Watch

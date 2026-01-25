@@ -13,12 +13,9 @@
       "Bash(copy:*)",
       "Bash(del:*)",
       "Bash(npm run dev:*)",
-      "Bash(vercel dev:*)",
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix medication bugs: missing dose carry-forward and deprecated columns\n\nFixes two medication issues:\n\n1. Missing medication carry-forward for Senna, Melatonin, Metoprolol\n   - Extended get-entries.js to fetch columns T, U, V \\(was only fetching up to S\\)\n   - Added senna, melatonin, metoprolol to API response payload\n   - Renamed oxaloacetate to oxaloacetateNew to avoid conflicts with deprecated column E\n\n2. Deprecated columns displayed in History cards\n   - Removed old modafinil \\(column H\\) and oxaloacetate \\(column E\\) from history display\n   - Added comprehensive medication list showing all 12 meds with doses\n   - Medications only show when taken \\(not \"Off\"\\)\n\nFiles modified:\n- api/get-entries.js: Extended range from A:S to A:V, added missing med fields\n- src/components/EntryHistory.jsx: Replaced deprecated med display with new med list\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git commit:*)",
-      "Bash(vercel --prod:*)",
-      "Bash(npm run build:*)"
+      "Bash(ls:*)",
+      "Bash(vercel:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
