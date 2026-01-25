@@ -300,6 +300,10 @@ export default async function handler(req, res) {
             });
         }
 
+        // C. SORT BOTH SHEETS CHRONOLOGICALLY
+        // After all updates, sort Health_Hourly by timestamp and Health_Daily by date
+        await sortSheetsByDate(sheets, SHEET_ID);
+
         return res.status(200).json({
             success: true,
             processed: incomingData.length,
@@ -434,4 +438,69 @@ function cleanDeviceName(deviceStr) {
     }
 
     return cleaned;
+}
+
+async function sortSheetsByDate(sheets, spreadsheetId) {
+    // Sort both Health sheets chronologically by their date/timestamp column (A)
+
+    try {
+        // First, get the sheet metadata to find the sheet IDs
+        const spreadsheet = await sheets.spreadsheets.get({
+            spreadsheetId,
+            fields: 'sheets(properties(sheetId,title))'
+        });
+
+        const sheetsList = spreadsheet.data.sheets || [];
+        const hourlySheet = sheetsList.find(s => s.properties.title === 'Health_Hourly');
+        const dailySheet = sheetsList.find(s => s.properties.title === 'Health_Daily');
+
+        const requests = [];
+
+        // Sort Health_Hourly by timestamp (Column A), skip header row
+        if (hourlySheet) {
+            requests.push({
+                sortRange: {
+                    range: {
+                        sheetId: hourlySheet.properties.sheetId,
+                        startRowIndex: 1, // Skip header
+                        startColumnIndex: 0,
+                        endColumnIndex: 9 // Columns A-I
+                    },
+                    sortSpecs: [{
+                        dimensionIndex: 0, // Column A (Timestamp)
+                        sortOrder: 'ASCENDING'
+                    }]
+                }
+            });
+        }
+
+        // Sort Health_Daily by date (Column A), skip header row
+        if (dailySheet) {
+            requests.push({
+                sortRange: {
+                    range: {
+                        sheetId: dailySheet.properties.sheetId,
+                        startRowIndex: 1, // Skip header
+                        startColumnIndex: 0,
+                        endColumnIndex: 15 // Columns A-O
+                    },
+                    sortSpecs: [{
+                        dimensionIndex: 0, // Column A (Date)
+                        sortOrder: 'ASCENDING'
+                    }]
+                }
+            });
+        }
+
+        // Execute batch update if we have requests
+        if (requests.length > 0) {
+            await sheets.spreadsheets.batchUpdate({
+                spreadsheetId,
+                requestBody: { requests }
+            });
+        }
+    } catch (error) {
+        // Log but don't fail the webhook if sorting fails
+        console.error('Error sorting sheets:', error);
+    }
 }
