@@ -68,6 +68,50 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-24 - Health Webhook Fixes & Schema Enhancement (Session 36)
+
+**Session Summary:**
+Fixed webhook deployment issue and enhanced health data schema to properly capture heart rate Min/Max values. Webhook now successfully receives and processes data from iPhone.
+
+**Accomplishments:**
+1. **Fixed Webhook Deployment Issue**
+   - Identified cause of 500 error: `GOOGLE_SHEET_ID` in Vercel had trailing newline character (`%0A`)
+   - User corrected environment variable in Vercel dashboard
+   - Webhook now successfully connects to Google Sheets
+
+2. **Enhanced Health Data Schema**
+   - **Health_Hourly**: Added Min and Max columns for heart rate data (now 9 columns total: A-I)
+   - **Health_Daily**: Added missing headers for columns M, N, O: "HR Sample Count", "HRV Sample Count", "Awake Minutes"
+   - Updated `scripts/setup-health-sheets.js` to reflect new schema
+
+3. **Improved Heart Rate Parsing**
+   - Modified webhook to extract `Avg`, `Min`, and `Max` from Apple Watch heart rate format
+   - Heart rate data structure: `{Avg: 72, Min: 70, Max: 75, date: "..."}`
+   - Now populates Value (Avg), Min, and Max columns separately for easy analysis
+
+4. **Data Analysis Insights**
+   - Confirmed Apple Health automatically deduplicates steps from iPhone + Apple Watch
+   - Identified that HRV is only measured during rest/sleep periods (typically 3-5 readings per day)
+   - Verified step count distribution across individual minutes is normal behavior
+
+**Files Modified:**
+- `api/health-webhook.js` - Enhanced HR parsing with Min/Max support
+- `scripts/setup-health-sheets.js` - Updated headers for both Health sheets
+
+**Status at End of Session:**
+- ✅ Webhook deployment complete and verified working
+- ✅ Schema updated with Min/Max heart rate columns
+- ⏳ Ready for user to clear test data and run fresh automation test
+- ⏳ Daily aggregations need verification
+- ⏳ App UI needs testing to ensure health metrics display correctly
+
+**Next Session Tasks:**
+1. Clear test data from Health_Hourly and Health_Daily sheets
+2. Run Health Auto Export automation to send fresh data
+3. Verify daily aggregations calculate correctly (Avg HR, Min HR, Max HR)
+4. Test History view in app to confirm health metrics display
+5. Check for any edge cases with null/missing data
+
 ### 2026-01-24 - Health Data Integration Deployment (Session 35)
 
 **Session Summary:**
@@ -87,18 +131,6 @@ Started verification of Health Data Integration with real iPhone data. Configure
 
 3. **Documentation Updates**
    - Added note about manual Vercel deployment (not auto-deployed from GitHub)
-
-**Status at End of Session:**
-- ⏳ Vercel deployment in progress (user deploying manually)
-- ⏳ Waiting for deployment to complete before testing real data flow
-- ⏳ Once deployed, user will run Health Auto Export automation from iPhone
-
-**Next Session Tasks:**
-1. Test Health Auto Export automation after deployment completes
-2. Verify data appears in `Health_Daily` and `Health_Hourly` sheets
-3. Check app UI displays health metrics correctly
-4. Fix any parsing or display bugs
-5. Remove test data before going live
 
 **Files Modified:**
 - `vercel.json` - Added health-webhook function configuration
