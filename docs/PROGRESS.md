@@ -68,6 +68,43 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-24 - Health Data Integration Deployment (Session 35)
+
+**Session Summary:**
+Started verification of Health Data Integration with real iPhone data. Configured Health Auto Export automation and deployed health webhook to production.
+
+**Accomplishments:**
+1. **Health Auto Export Configuration**
+   - Guided user through iPhone configuration
+   - Set up webhook URL and authentication secret
+   - Changed format from CSV to JSON (webhook currently JSON-only)
+   - Selected health metrics: Steps, Heart Rate, HRV, Resting HR, Sleep
+
+2. **Production Deployment Fix**
+   - Discovered `api/health-webhook.js` wasn't deployed to production (404 error)
+   - Added health-webhook configuration to `vercel.json` (maxDuration: 30s)
+   - Committed and pushed changes for manual Vercel deployment
+
+3. **Documentation Updates**
+   - Added note about manual Vercel deployment (not auto-deployed from GitHub)
+
+**Status at End of Session:**
+- ⏳ Vercel deployment in progress (user deploying manually)
+- ⏳ Waiting for deployment to complete before testing real data flow
+- ⏳ Once deployed, user will run Health Auto Export automation from iPhone
+
+**Next Session Tasks:**
+1. Test Health Auto Export automation after deployment completes
+2. Verify data appears in `Health_Daily` and `Health_Hourly` sheets
+3. Check app UI displays health metrics correctly
+4. Fix any parsing or display bugs
+5. Remove test data before going live
+
+**Files Modified:**
+- `vercel.json` - Added health-webhook function configuration
+
+---
+
 ### 2026-01-23 - Health Data Integration (Session 34)
 
 **Session Summary:**
@@ -1193,6 +1230,15 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 
 ## Next Up
 
+**IMMEDIATE PRIORITY: Health Data Integration Verification (Session 36)**
+
+1. ✅ Vercel deployment should be complete
+2. ⏳ Test Health Auto Export automation from iPhone
+3. ⏳ Verify data appears in `Health_Daily` and `Health_Hourly` sheets
+4. ⏳ Check app UI displays health metrics correctly (formatting, units, null handling)
+5. ⏳ Fix any parsing or display bugs
+6. ⏳ Remove test data before going live
+
 **Phase 4: ECG Integration - COMPLETE!**
 
 All ECG features are now functional:
@@ -1232,6 +1278,23 @@ All ECG features are now functional:
 ---
 
 ## Blockers / Notes
+
+### ⚠️ IMPORTANT: Manual Vercel Deployment Required
+
+**Vercel is NOT connected to the GitHub repository.** When code changes are pushed to GitHub, they do NOT automatically deploy to production.
+
+**Deployment Process:**
+1. Make code changes locally
+2. Commit and push to GitHub
+3. **User must manually deploy via Vercel dashboard or CLI**
+4. Wait for deployment to complete before testing
+
+**Why This Matters:**
+- Changes to API endpoints won't be available until manually deployed
+- Frontend changes won't be visible until manually deployed
+- Always verify deployment status before testing new features
+
+---
 
 ### iOS Push Notification Troubleshooting Guide
 
