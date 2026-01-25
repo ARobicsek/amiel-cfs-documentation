@@ -64,13 +64,13 @@ async function setupSheets() {
 
   // Header Definitions
   const dailyHeaders = [
-    'Date', 'Steps', 'Avg HR', 'Resting HR', 'Min HR', 'Max HR', 
+    'Date', 'Steps', 'Avg HR', 'Resting HR', 'Min HR', 'Max HR',
     'HRV (SDNN)', 'Sleep Duration (min)', 'Sleep Efficiency', 'Deep Sleep (min)', 'REM Sleep (min)',
-    'Last Updated'
+    'Last Updated', 'HR Sample Count', 'HRV Sample Count', 'Awake Minutes'
   ];
 
   const hourlyHeaders = [
-    'Timestamp', 'Date', 'Hour', 'Metric', 'Value', 'Source', 'Raw Data'
+    'Timestamp', 'Date', 'Hour', 'Metric', 'Value', 'Min', 'Max', 'Source', 'Raw Data'
   ];
 
   // Update Headers
@@ -78,14 +78,14 @@ async function setupSheets() {
   
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: 'Health_Daily!A1:L1',
+    range: 'Health_Daily!A1:O1',
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [dailyHeaders] }
   });
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: 'Health_Hourly!A1:G1',
+    range: 'Health_Hourly!A1:I1',
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [hourlyHeaders] }
   });

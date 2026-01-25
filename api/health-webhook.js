@@ -68,6 +68,8 @@ export default async function handler(req, res) {
                 hourStr,   // Hour (0-23)
                 item.name, // Metric Name
                 item.value,// Value
+                item.min !== undefined ? item.min : '', // Min (for HR)
+                item.max !== undefined ? item.max : '', // Max (for HR)
                 item.source || 'Auto',
                 JSON.stringify(item.raw || {}) // Raw data if any
             ]);
@@ -144,7 +146,7 @@ export default async function handler(req, res) {
         if (hourlyRows.length > 0) {
             await sheets.spreadsheets.values.append({
                 spreadsheetId: SHEET_ID,
-                range: 'Health_Hourly!A:G', // Append to cols A-G
+                range: 'Health_Hourly!A:I', // Append to cols A-I
                 valueInputOption: 'USER_ENTERED',
                 requestBody: { values: hourlyRows },
             });
@@ -307,10 +309,20 @@ function normalizePayload(body) {
         if (!metric.data) continue;
 
         for (const point of metric.data) {
-            // point = { date: '...', qty: 72, ... }
-            // Sometimes it's 'qty', sometimes 'value'? App uses 'qty' usually.
+            // point can be:
+            // - { date: '...', qty: 72, ... } for steps, HRV
+            // - { date: '...', Avg: 72, Min: 70, Max: 75 } for heart rate from Apple Watch
             let val = point.qty !== undefined ? point.qty : point.value;
             const date = point.date || point.startDate; // Sleep often has startDate/endDate
+
+            let minVal, maxVal;
+
+            // Heart rate specific handling (Apple Watch format)
+            if (name === 'heart_rate' && point.Avg !== undefined) {
+                val = point.Avg;
+                minVal = point.Min;
+                maxVal = point.Max;
+            }
 
             // Sleep specific handling for duration
             if (name.startsWith('sleep_')) {
@@ -328,6 +340,8 @@ function normalizePayload(body) {
             result.push({
                 name,
                 value: val,
+                min: minVal,
+                max: maxVal,
                 date: date,
                 source: point.sourceName || point.source || 'Auto',
                 raw: point
