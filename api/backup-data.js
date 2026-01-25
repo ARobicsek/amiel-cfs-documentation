@@ -50,11 +50,13 @@ export default async function handler(req, res) {
         const backupSheetName = `Backup_${year}-${month}-${day}`;
         const ecgBackupSheetName = `ECG_Backup_${year}-${month}-${day}`;
         const waveformBackupSheetName = `Waveform_Backup_${year}-${month}-${day}`;
+        const healthHourlyBackupName = `HealthHourly_Backup_${year}-${month}-${day}`;
+        const healthDailyBackupName = `HealthDaily_Backup_${year}-${month}-${day}`;
 
-        console.log(`Starting backup: ${backupSheetName}, ${ecgBackupSheetName}, ${waveformBackupSheetName}`);
+        console.log(`Starting backup: ${backupSheetName}, ${ecgBackupSheetName}, ${waveformBackupSheetName}, ${healthHourlyBackupName}, ${healthDailyBackupName}`);
 
-        // Step 1: Fetch all data from Sheet1, ECG_Readings, and ECG_Waveforms
-        const [sourceData, ecgData, waveformData] = await Promise.all([
+        // Step 1: Fetch all data from Sheet1, ECG_Readings, ECG_Waveforms, and Health sheets
+        const [sourceData, ecgData, waveformData, healthHourlyData, healthDailyData] = await Promise.all([
             sheets.spreadsheets.values.get({
                 spreadsheetId,
                 range: 'Sheet1!A:Z', // Get all columns
@@ -66,17 +68,29 @@ export default async function handler(req, res) {
             sheets.spreadsheets.values.get({
                 spreadsheetId,
                 range: 'ECG_Waveforms!A:Z',
+            }).catch(() => ({ data: { values: [] } })), // Handle if sheet doesn't exist
+            sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: 'Health_Hourly!A:I',
+            }).catch(() => ({ data: { values: [] } })), // Handle if sheet doesn't exist
+            sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: 'Health_Daily!A:O',
             }).catch(() => ({ data: { values: [] } })) // Handle if sheet doesn't exist
         ]);
 
         const rows = sourceData.data.values || [];
         const ecgRows = ecgData.data.values || [];
         const waveformRows = waveformData.data.values || [];
+        const healthHourlyRows = healthHourlyData.data.values || [];
+        const healthDailyRows = healthDailyData.data.values || [];
         const rowCount = rows.length;
         const ecgRowCount = ecgRows.length;
         const waveformRowCount = waveformRows.length;
+        const healthHourlyRowCount = healthHourlyRows.length;
+        const healthDailyRowCount = healthDailyRows.length;
 
-        console.log(`Fetched ${rowCount} rows from Sheet1, ${ecgRowCount} from ECG_Readings, ${waveformRowCount} from ECG_Waveforms`);
+        console.log(`Fetched ${rowCount} rows from Sheet1, ${ecgRowCount} from ECG_Readings, ${waveformRowCount} from ECG_Waveforms, ${healthHourlyRowCount} from Health_Hourly, ${healthDailyRowCount} from Health_Daily`);
 
         // Anomaly detection: Alert if row count suddenly dropped
         // (This could indicate accidental deletion)
@@ -101,6 +115,12 @@ export default async function handler(req, res) {
         }
         if (!existingSheets.includes(waveformBackupSheetName) && waveformRowCount > 0) {
             sheetsToCreate.push({ addSheet: { properties: { title: waveformBackupSheetName } } });
+        }
+        if (!existingSheets.includes(healthHourlyBackupName) && healthHourlyRowCount > 0) {
+            sheetsToCreate.push({ addSheet: { properties: { title: healthHourlyBackupName } } });
+        }
+        if (!existingSheets.includes(healthDailyBackupName) && healthDailyRowCount > 0) {
+            sheetsToCreate.push({ addSheet: { properties: { title: healthDailyBackupName } } });
         }
 
         if (sheetsToCreate.length > 0) {
@@ -147,8 +167,30 @@ export default async function handler(req, res) {
             );
         }
 
+        if (healthHourlyRows.length > 0) {
+            writePromises.push(
+                sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: `${healthHourlyBackupName}!A1`,
+                    valueInputOption: 'RAW',
+                    requestBody: { values: healthHourlyRows },
+                })
+            );
+        }
+
+        if (healthDailyRows.length > 0) {
+            writePromises.push(
+                sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: `${healthDailyBackupName}!A1`,
+                    valueInputOption: 'RAW',
+                    requestBody: { values: healthDailyRows },
+                })
+            );
+        }
+
         await Promise.all(writePromises);
-        console.log(`Wrote ${rowCount} to ${backupSheetName}, ${ecgRowCount} to ${ecgBackupSheetName}, ${waveformRowCount} to ${waveformBackupSheetName}`);
+        console.log(`Wrote ${rowCount} to ${backupSheetName}, ${ecgRowCount} to ${ecgBackupSheetName}, ${waveformRowCount} to ${waveformBackupSheetName}, ${healthHourlyRowCount} to ${healthHourlyBackupName}, ${healthDailyRowCount} to ${healthDailyBackupName}`);
 
         // Step 5: Prune old backups (keep last 30 days)
         const RETENTION_DAYS = 30;
@@ -158,10 +200,13 @@ export default async function handler(req, res) {
         const sheetsToDelete = [];
         for (const sheet of spreadsheet.data.sheets) {
             const title = sheet.properties.title;
-            // Match Backup_, ECG_Backup_, and Waveform_Backup_ sheets
-            if (title.startsWith('Backup_') || title.startsWith('ECG_Backup_') || title.startsWith('Waveform_Backup_')) {
+            // Match all backup sheet patterns
+            const backupPrefixes = ['Backup_', 'ECG_Backup_', 'Waveform_Backup_', 'HealthHourly_Backup_', 'HealthDaily_Backup_'];
+            const isBackupSheet = backupPrefixes.some(prefix => title.startsWith(prefix));
+
+            if (isBackupSheet) {
                 // Parse date from sheet name (handles all prefixes)
-                const dateMatch = title.match(/(?:ECG_|Waveform_)?Backup_(\d{4})-(\d{2})-(\d{2})/);
+                const dateMatch = title.match(/(?:ECG_|Waveform_|HealthHourly_|HealthDaily_)?Backup_(\d{4})-(\d{2})-(\d{2})/);
                 if (dateMatch) {
                     const backupDate = new Date(dateMatch[1], dateMatch[2] - 1, dateMatch[3]);
                     if (backupDate < cutoffDate) {
@@ -192,7 +237,7 @@ export default async function handler(req, res) {
         let emailSent = false;
         if (etDate.getDate() === 1) {
             try {
-                emailSent = await sendMonthlyEmailBackup(rows, ecgRows, waveformRows, etDate);
+                emailSent = await sendMonthlyEmailBackup(rows, ecgRows, waveformRows, healthHourlyRows, healthDailyRows, etDate);
             } catch (emailError) {
                 console.error('Failed to send monthly email backup:', emailError.message);
                 // Don't fail the whole backup just because email failed
@@ -204,9 +249,13 @@ export default async function handler(req, res) {
             backupSheet: backupSheetName,
             ecgBackupSheet: ecgBackupSheetName,
             waveformBackupSheet: waveformBackupSheetName,
+            healthHourlyBackupSheet: healthHourlyBackupName,
+            healthDailyBackupSheet: healthDailyBackupName,
             rowCount: rowCount,
             ecgRowCount: ecgRowCount,
             waveformRowCount: waveformRowCount,
+            healthHourlyRowCount: healthHourlyRowCount,
+            healthDailyRowCount: healthDailyRowCount,
             prunedBackups: sheetsToDelete.length,
             emailSent: emailSent,
             timestamp: now.toISOString(),
@@ -224,7 +273,7 @@ export default async function handler(req, res) {
 /**
  * Send monthly email backup to configured recipients
  */
-async function sendMonthlyEmailBackup(rows, ecgRows, waveformRows, date) {
+async function sendMonthlyEmailBackup(rows, ecgRows, waveformRows, healthHourlyRows, healthDailyRows, date) {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
     if (!RESEND_API_KEY) {
@@ -278,6 +327,24 @@ async function sendMonthlyEmailBackup(rows, ecgRows, waveformRows, date) {
         });
     }
 
+    // Only attach health hourly data if it exists
+    if (healthHourlyRows && healthHourlyRows.length > 0) {
+        attachments.push({
+            filename: `cfs-tracker-health-hourly-${datePrefix}.csv`,
+            content: Buffer.from(toCsv(healthHourlyRows)).toString('base64'),
+            type: 'text/csv',
+        });
+    }
+
+    // Only attach health daily data if it exists
+    if (healthDailyRows && healthDailyRows.length > 0) {
+        attachments.push({
+            filename: `cfs-tracker-health-daily-${datePrefix}.csv`,
+            content: Buffer.from(toCsv(healthDailyRows)).toString('base64'),
+            type: 'text/csv',
+        });
+    }
+
     const emailBody = {
         from: 'CFS Tracker <noreply@resend.dev>',
         to: recipients,
@@ -289,6 +356,8 @@ async function sendMonthlyEmailBackup(rows, ecgRows, waveformRows, date) {
       <p><strong>Daily entries:</strong> ${rows.length - 1} (excluding header)</p>
       <p><strong>ECG readings:</strong> ${ecgRows ? ecgRows.length - 1 : 0} (excluding header)</p>
       <p><strong>ECG waveforms:</strong> ${waveformRows ? waveformRows.length - 1 : 0} (excluding header)</p>
+      <p><strong>Health hourly data:</strong> ${healthHourlyRows ? healthHourlyRows.length - 1 : 0} (excluding header)</p>
+      <p><strong>Health daily data:</strong> ${healthDailyRows ? healthDailyRows.length - 1 : 0} (excluding header)</p>
       <p>The attached CSV files contain all tracking data.</p>
       <hr>
       <p style="color: #666; font-size: 12px;">
