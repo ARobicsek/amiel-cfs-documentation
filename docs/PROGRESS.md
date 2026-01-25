@@ -68,6 +68,76 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-24 - Health Data Quality & Backup System (Session 37)
+
+**Session Summary:**
+Enhanced health webhook data quality with NULL handling, timezone fixes, and device parsing. Added Health sheets to backup system with 30-day retention and safe archival tool for long-term storage management.
+
+**Accomplishments:**
+
+1. **Health Webhook Data Quality Improvements**
+   - Fixed NULL handling: Empty cells instead of sentinel values (999/0) for missing data
+   - Fixed timezone: All timestamps and hour extraction now use ET (was UTC on Vercel)
+   - Intelligent device source parsing:
+     - Heart Rate/HRV/Sleep → Shows "Apple Watch"
+     - Steps → Shows "iPhone" (prioritized as primary walking source)
+     - Clean device names without possessive or model numbers
+   - Chronological sorting: Both sheets auto-sorted after each update
+   - Only writes values when actual data exists (no more zeros for empty fields)
+
+2. **Steps Distribution Investigation**
+   - Investigated identical fractional step values (e.g., 20.869 repeated)
+   - Confirmed as **expected Health Auto Export behavior**
+   - App distributes step totals evenly across time intervals
+   - Not a bug - this is how the export app works
+
+3. **Backup System Integration**
+   - Added `Health_Hourly` and `Health_Daily` to daily backup routine
+   - 30-day retention with automatic pruning
+   - Monthly email backups include Health data as CSV attachments
+   - Same robust safety checks as existing backup system
+
+4. **Safe Archival System** (NEW)
+   - Created `/api/archive-health-data` endpoint
+   - Dry-run mode to preview what would be archived
+   - Requires explicit confirmation to proceed
+   - Only archives data older than threshold (default: 90 days)
+   - Creates verified archive BEFORE deleting any data
+   - Multiple safety checks (95% threshold, verification)
+   - Moves old data to `Health_Hourly_Archive_YYYY` sheets
+   - Detailed logging and error handling
+   - Nothing is ever lost - all data preserved in archives
+
+5. **Documentation**
+   - Created `docs/HEALTH_DATA_ARCHIVAL.md` with complete usage guide
+   - Includes dry-run examples, safety features, troubleshooting
+
+**Files Modified:**
+- `api/health-webhook.js` - Data quality improvements (NULL handling, timezone, sorting, device parsing)
+- `api/backup-data.js` - Added Health sheets to backup system
+- `api/archive-health-data.js` - **NEW** Safe archival endpoint
+
+**Files Created:**
+- `docs/HEALTH_DATA_ARCHIVAL.md` - **NEW** Archival documentation
+
+**Storage Analysis:**
+- Health_Hourly: ~140 rows/day × 365 days = ~51,000 rows/year
+- Health_Daily: 1 row/day × 365 days = 365 rows/year
+- Google Sheets limit: 40,000 rows per sheet
+- Timeline: First archival needed in ~6-10 months
+
+**Status at End of Session:**
+- ✅ Health webhook data quality significantly improved
+- ✅ NULL handling, timezone, and device parsing fixed
+- ✅ Backups running automatically (daily + monthly email)
+- ✅ Archival tool deployed and documented
+- ✅ Ready for production use with long-term storage strategy
+
+**Next Steps:**
+1. Monitor Health_Hourly row count over time
+2. Run first archival when approaching 35,000 rows (~6-10 months)
+3. Continue testing health metrics display in app
+
 ### 2026-01-24 - Health Webhook Fixes & Schema Enhancement (Session 36)
 
 **Session Summary:**
