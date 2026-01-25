@@ -56,16 +56,19 @@ export default async function handler(req, res) {
         for (const item of incomingData) {
             // item = { name: 'heart_rate', date: 'ISO', value: 72, unit: 'bpm', source: 'Apple Watch' }
 
-            // Prepare Hourly Row
+            // Prepare Hourly Row (all in ET timezone)
             const dateObj = new Date(item.date);
             const dateStr = dateObj.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
-            const timeStr = dateObj.toLocaleTimeString('en-US', { timeZone: 'America/New_York' });
-            const hourStr = dateObj.getHours().toString();
+            const timeStr = dateObj.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false });
+            // Extract hour in ET timezone (timeStr format: "HH:MM:SS")
+            const hourStr = timeStr.split(':')[0];
+            // Format full timestamp in ET
+            const timestampET = dateObj.toLocaleString('en-US', { timeZone: 'America/New_York' });
 
             hourlyRows.push([
-                item.date, // Timestamp (ISO)
+                timestampET, // Timestamp in ET
                 dateStr,   // US Date
-                hourStr,   // Hour (0-23)
+                hourStr,   // Hour (0-23) in ET
                 item.name, // Metric Name
                 item.value,// Value
                 item.min !== undefined ? item.min : '', // Min (for HR)
@@ -85,8 +88,8 @@ export default async function handler(req, res) {
                     // Heart Rate
                     hrSum: 0,
                     hrCount: 0,
-                    hrMin: 999,
-                    hrMax: 0,
+                    hrMin: null,
+                    hrMax: null,
 
                     // HRV
                     hrvSum: 0,
@@ -110,8 +113,8 @@ export default async function handler(req, res) {
                 const val = Number(item.value);
                 day.hrSum += val;
                 day.hrCount++;
-                if (val < day.hrMin) day.hrMin = val;
-                if (val > day.hrMax) day.hrMax = val;
+                day.hrMin = day.hrMin === null ? val : Math.min(day.hrMin, val);
+                day.hrMax = day.hrMax === null ? val : Math.max(day.hrMax, val);
             }
             else if (item.name === 'heart_rate_variability') {
                 day.hrvSum += Number(item.value);
@@ -173,7 +176,8 @@ export default async function handler(req, res) {
                 rowIndex = existingRows.length + updates.length; // virtual index
                 // Initialize empty row based on schema
                 // Date, Steps, Avg HR, Resting HR, Min HR, Max HR, HRV, Sleep Dur, Sleep Eff, Deep, REM, LastUpdate
-                rowData = [dateStr, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ''];
+                // Use empty strings for fields that might not have data, 0 for cumulative fields
+                rowData = [dateStr, '', '', '', '', '', '', '', '', '', '', ''];
                 updates.push({ index: rowIndex, date: dateStr, isNew: true, data: rowData });
             } else {
                 // Existing Row
@@ -210,14 +214,20 @@ export default async function handler(req, res) {
             // actually, let's keep it simple: Just REPLACE the daily stats with the aggregates from *this payload* merged with *existing extremes*.
             // Or better: relying on the fact that syncs are "new data".
 
-            // STEPS: Additive
-            u[1] = Number(u[1] || 0) + newStats.steps;
+            // STEPS: Additive (only write if > 0)
+            if (newStats.steps > 0) {
+                u[1] = Number(u[1] || 0) + newStats.steps;
+            }
 
-            // MIN/MAX HR: Comparative
-            const currentMin = parseFloat(u[4]) || 999;
-            const currentMax = parseFloat(u[5]) || 0;
-            u[4] = Math.min(currentMin, newStats.hrMin); // Min
-            u[5] = Math.max(currentMax, newStats.hrMax); // Max
+            // MIN/MAX HR: Comparative (only update if we have new data)
+            if (newStats.hrMin !== null) {
+                const currentMin = u[4] !== '' && u[4] !== null ? parseFloat(u[4]) : null;
+                u[4] = currentMin === null ? newStats.hrMin : Math.min(currentMin, newStats.hrMin);
+            }
+            if (newStats.hrMax !== null) {
+                const currentMax = u[5] !== '' && u[5] !== null ? parseFloat(u[5]) : null;
+                u[5] = currentMax === null ? newStats.hrMax : Math.max(currentMax, newStats.hrMax);
+            }
 
             // AVG HR: Weighted Average (We need count...)
             // Let's use column M (13th, index 12) for "HR Sample Count" (hidden-ish)
@@ -225,10 +235,12 @@ export default async function handler(req, res) {
             const currentHrCount = Number(u[12] || 0);
             const currentHrAvg = Number(u[2] || 0);
 
-            let newTotalHr = (currentHrAvg * currentHrCount) + newStats.hrSum;
-            let newTotalCount = currentHrCount + newStats.hrCount;
-            u[2] = newTotalCount > 0 ? Math.round(newTotalHr / newTotalCount) : 0; // Avg HR
-            u[12] = newTotalCount; // Store count in Col M
+            if (newStats.hrCount > 0) {
+                let newTotalHr = (currentHrAvg * currentHrCount) + newStats.hrSum;
+                let newTotalCount = currentHrCount + newStats.hrCount;
+                u[2] = Math.round(newTotalHr / newTotalCount); // Avg HR
+                u[12] = newTotalCount; // Store count in Col M
+            }
 
             // Resting HR: Take latest non-zero
             if (newStats.restingHr) u[3] = newStats.restingHr;
@@ -238,15 +250,23 @@ export default async function handler(req, res) {
             const currentHrvCount = Number(u[13] || 0);
             const currentHrvAvg = Number(u[6] || 0);
 
-            let newTotalHrv = (currentHrvAvg * currentHrvCount) + newStats.hrvSum;
-            let newTotalHrvCount = currentHrvCount + newStats.hrvCount;
-            u[6] = newTotalHrvCount > 0 ? Math.round((newTotalHrv / newTotalHrvCount) * 10) / 10 : 0;
-            u[13] = newTotalHrvCount;
+            if (newStats.hrvCount > 0) {
+                let newTotalHrv = (currentHrvAvg * currentHrvCount) + newStats.hrvSum;
+                let newTotalHrvCount = currentHrvCount + newStats.hrvCount;
+                u[6] = Math.round((newTotalHrv / newTotalHrvCount) * 10) / 10;
+                u[13] = newTotalHrvCount;
+            }
 
-            // Sleep: Additive (Assuming sync sends non-duplicated intervals? Health Auto Export usually sends *new* samples)
-            u[7] = Number(u[7] || 0) + newStats.sleepMinutes;
-            u[9] = Number(u[9] || 0) + newStats.deepSleepMinutes;
-            u[10] = Number(u[10] || 0) + newStats.remSleepMinutes;
+            // Sleep: Additive (only write if > 0)
+            if (newStats.sleepMinutes > 0) {
+                u[7] = Number(u[7] || 0) + newStats.sleepMinutes;
+            }
+            if (newStats.deepSleepMinutes > 0) {
+                u[9] = Number(u[9] || 0) + newStats.deepSleepMinutes;
+            }
+            if (newStats.remSleepMinutes > 0) {
+                u[10] = Number(u[10] || 0) + newStats.remSleepMinutes;
+            }
 
             // Sleep Efficiency: (Total - Awake) / Total? Or just use Core+Deep+Rem / Total?
             // Let's just store simple calc:
@@ -337,13 +357,17 @@ function normalizePayload(body) {
                 }
             }
 
+            // Parse source to show most likely device
+            const rawSource = point.sourceName || point.source || 'Auto';
+            const parsedSource = parseSource(rawSource, name);
+
             result.push({
                 name,
                 value: val,
                 min: minVal,
                 max: maxVal,
                 date: date,
-                source: point.sourceName || point.source || 'Auto',
+                source: parsedSource,
                 raw: point
             });
         }
@@ -359,4 +383,55 @@ function normalizeName(rawName) {
     // Actually the payload often splits them or provides 'sleep_analysis' with sub-values.
     // We'll trust the prep done by 'normalizePayload' logic or just pass through.
     return rawName;
+}
+
+function parseSource(rawSource, metricName) {
+    // Health Auto Export sends sources like "Ari's Apple Watch|iPhone (18)"
+    // Parse this to show the most likely contributing device
+
+    if (!rawSource || rawSource === 'Auto') return 'Auto';
+
+    // Split by pipe to get individual devices
+    const devices = rawSource.split('|').map(d => d.trim());
+
+    // For certain metrics, we know which device is most likely:
+    // - Heart Rate, HRV, Sleep: Almost always Apple Watch
+    // - Steps: Could be either, but often iPhone when walking
+
+    const watchMetrics = ['heart_rate', 'heart_rate_variability', 'resting_heart_rate'];
+    const sleepMetrics = ['sleep_analysis', 'sleep_asleep', 'sleep_awake', 'sleep_in_bed',
+                         'sleep_asleep_core', 'sleep_asleep_deep', 'sleep_asleep_rem'];
+
+    if (watchMetrics.includes(metricName) || sleepMetrics.some(m => metricName.startsWith('sleep_'))) {
+        // Prioritize Apple Watch
+        const watch = devices.find(d => d.includes('Watch'));
+        if (watch) return cleanDeviceName(watch);
+    }
+
+    if (metricName === 'step_count') {
+        // For steps, prioritize iPhone if present (more common for walking)
+        const iphone = devices.find(d => d.includes('iPhone'));
+        if (iphone) return cleanDeviceName(iphone);
+    }
+
+    // Default: return first device or show both if multiple
+    if (devices.length === 1) {
+        return cleanDeviceName(devices[0]);
+    } else {
+        // Show both devices in cleaner format
+        return devices.map(d => cleanDeviceName(d)).join(' + ');
+    }
+}
+
+function cleanDeviceName(deviceStr) {
+    // Clean up device name: "Ari's Apple Watch" -> "Apple Watch"
+    // Remove model numbers like "(18)"
+    let cleaned = deviceStr.replace(/\([^)]*\)/g, '').trim();
+
+    // Remove possessive form ("Ari's ")
+    if (cleaned.includes("'s ")) {
+        cleaned = cleaned.split("'s ")[1] || cleaned;
+    }
+
+    return cleaned;
 }
