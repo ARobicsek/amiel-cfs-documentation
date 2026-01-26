@@ -92,6 +92,10 @@ Implemented robust deduplication in local health webhook processing to resolve p
 - ✅ Committed fix to repo.
 - ✅ Ready for deployment.
 
+**Next Steps:**
+1. Monitor the next automated health sync (or manual trigger) to confirm duplicates are resolved.
+2. Verify that the "Self-Healing" logic clears the secondary rows in `Health_Daily` as expected.
+
 ### 2026-01-25 - Sleep Data Verification & Fixes (Session 40)
 
 **Session Summary:**
