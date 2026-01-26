@@ -356,20 +356,37 @@ export default async function handler(req, res) {
                 finalEfficiency = Math.round((sleepMinutes / (sleepMinutes + awakeMinutes)) * 100) + '%';
             }
 
-            // Find Row Index to Update
-            let rowIndex = dailyDates.indexOf(dateStr);
-            if (rowIndex === -1) {
+            // Find Row Index to Update (Robust Deduplication)
+            // We search for ALL occurrences of this date to handle duplicates
+            const matchingIndices = [];
+            dailyDates.forEach((d, index) => {
+                if (d && d.trim() === dateStr) {
+                    matchingIndices.push(index);
+                }
+            });
+
+            let rowIndex;
+
+            if (matchingIndices.length === 0) {
                 // New Row needed
-                // We'll append it to the end of our local knowledge + whatever exists
-                // Actually the `dailyDates` array helps us find existing. If not found, it's new.
-                // But `dailyUpdates` logic below is creating a localized list of update requests.
-                // We should handle the "append vs update" logic carefully.
-                // If it's -1, we assume it goes to `dailyDates.length + 1` (row index + header = +2?)
-                // Actually, let's just use `dailyDates.length + offset`.
-                // BUT, better to just Append if new.
-                // Complex if we have multiple new dates.
-                dailyDates.push(dateStr); // Add to our tracking so next loop finds it?
+                dailyDates.push(dateStr);
                 rowIndex = dailyDates.length - 1;
+            } else {
+                // Existing Row(s) found
+                // Update the first one
+                rowIndex = matchingIndices[0];
+
+                // If duplicates exist, clear them (Self-healing)
+                if (matchingIndices.length > 1) {
+                    for (let k = 1; k < matchingIndices.length; k++) {
+                        const dupIndex = matchingIndices[k];
+                        const sheetRow = dupIndex + 2; // +2 for Header + 0-based index
+                        dailyUpdates.push({
+                            range: `Health_Daily!A${sheetRow}:O${sheetRow}`,
+                            values: [Array(15).fill('')] // Clear row content
+                        });
+                    }
+                }
             }
 
             // Construct Row Data (15 cols)
