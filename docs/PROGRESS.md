@@ -68,6 +68,30 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-26 - Daily Data Deduplication Fix (Session 41)
+
+**Session Summary:**
+Implemented robust deduplication in local health webhook processing to resolve permanent duplicate rows in the Daily tab caused by race conditions. The system now self-heals by identifying all duplicate rows for a given date, updating the primary one, and clearing the others.
+
+**Accomplishments:**
+1. **Robust Deduplication Logic**
+   - Modified `api/health-webhook.js` to scan for ALL rows matching a date instead of just the first.
+   - Updates the first occurrence found.
+   - Clears content of any subsequent duplicate rows (sets to empty strings).
+   - Ensures that next update cycle restores a clean single-row state.
+
+2. **Concurrency Mitigation**
+   - Addressed issue where rapid-fire updates (common with Health Auto Export) could race to append duplicate rows before the first one was indexed.
+   - The new logic serves as a "cleanup on write" mechanism.
+
+**Files Modified:**
+- `api/health-webhook.js` - Added multi-index duplicate detection and clearing logic.
+
+**Status at End of Session:**
+- ✅ Validated logic changes.
+- ✅ Committed fix to repo.
+- ✅ Ready for deployment.
+
 ### 2026-01-25 - Sleep Data Verification & Fixes (Session 40)
 
 **Session Summary:**
