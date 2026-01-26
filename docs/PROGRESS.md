@@ -68,6 +68,68 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-25 - Sleep Data Verification & Fixes (Session 40)
+
+**Session Summary:**
+Verified and fixed sleep data granularity. Confirmed that Apple Health sleep stages (Core, Deep, REM) are mutually exclusive and exhaustive. Updated webhook to use `sleepEnd` timestamps and break down sleep data into individual rows for detailed tracking.
+
+**Accomplishments:**
+1. **Sleep Data Schema Verification**
+   - Confirmed `totalSleep` = `core` + `deep` + `rem` exactly.
+   - Validated that `asleep` (unspecified) is not being used when detailed stages are available.
+   - Verified via web search and data analysis script.
+
+2. **Granular Data Logging**
+   - Updated `api/health-webhook.js` to "explode" sleep analysis into separate rows:
+     - `sleep_deep`, `sleep_rem`, `sleep_core`, `sleep_awake`.
+   - Ensures distinct tracking for each sleep stage in `Health_Hourly`.
+
+3. **Timestamp Fixes**
+   - Updated webhook to use `sleepEnd` time for sleep records (instead of start time).
+   - Created and ran `scripts/fix-sync-issues-v2.js` to:
+     - Remove persistent duplicate rows.
+     - Retroactively update timestamps for Jan 24/25 sleep data.
+
+**Files Modified:**
+- `api/health-webhook.js` - Added granular sleep row generation and `sleepEnd` timestamp logic.
+- `scripts/fix-sync-issues.js` & `v2` (Created) - cleanup tools.
+
+**Status at End of Session:**
+- ✅ Sleep data now shows detailed breakup in hourly sheet.
+- ✅ Timestamps align with wake-up time (sleepEnd).
+- ✅ Duplicate daily rows resolved.
+
+### 2026-01-25 - Health Data Ingestion Fixes (Session 39)
+
+**Session Summary:**
+Fixed critical logic errors in health data aggregation that were causing step count double-counting and missing sleep analysis. Implemented robust deduplication and re-aggregation logic.
+
+**Accomplishments:**
+1.  **Fixed Data Aggregation Logic**
+    -   Implemented **Deduplication**: Webhook now checks against existing `Health_Hourly` records to prevent double-counting.
+    -   Implemented **Re-aggregation**: Daily stats are now recalculated from the full hourly history for the affected day, ensuring accuracy even with out-of-order data.
+    -   Fixed **Step Count Inflation**: Validated that daily steps now match the sum of hourly records (102 vs 265 previously).
+
+2.  **Sleep Analysis Parsing**
+    -   Added parsing for `sleep_analysis` JSON metric.
+    -   Correctly extracts Core, Deep, REM, and Total Sleep durations.
+    -   Handles multiple sleep sessions per day (sums them up).
+    -   Verified correct extraction (e.g., 188 mins for Jan 25).
+
+3.  **Verification Tooling**
+    -   Created `scripts/investigate-data.js` to reproduce discrepancies.
+    -   Created `scripts/verify-fix.js` to validate the new logic against static data.
+
+**Files Modified:**
+-   `api/health-webhook.js` - Complete rewrite of aggregation logic.
+-   `scripts/investigate-data.js` (Created)
+-   `scripts/verify-fix.js` (Created)
+
+**Status at End of Session:**
+-   ✅ Step counts are now accurate.
+-   ✅ Sleep data is correctly populating.
+-   ✅ System handles duplicates and overlaps gracefully.
+
 ### 2026-01-24 - Health Data Quality & Backup System (Session 37)
 
 **Session Summary:**

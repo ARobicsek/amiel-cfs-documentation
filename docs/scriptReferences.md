@@ -70,3 +70,4 @@ Frontend helper modules.
 | `eslint.config.js` | ESLint flat config with React hooks/refresh plugins. | [eslint.config.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/eslint.config.js) |
 | `validate-keys.js` | Utility script to validate VAPID keys are correctly configured. | [validate-keys.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/validate-keys.js) |
 | `update_icons.js` | Utility script to copy F15_icon.png to all PWA icon locations. | [update_icons.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/update_icons.js) |
+| `fix-sync-issues-v2.js` | One-off script to cleanup duplicates and fix sleep timestamps (Jan 2026). | [fix-sync-issues-v2.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/scripts/fix-sync-issues-v2.js) |
