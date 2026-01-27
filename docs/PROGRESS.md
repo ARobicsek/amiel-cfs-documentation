@@ -68,6 +68,48 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-26 - Duplicate Daily Rows Fix & Sleep Overlap Handling (Session 42)
+
+**Session Summary:**
+Fixed the root cause of duplicate daily rows (an off-by-one row index bug) and implemented overlap-aware sleep session merging to correctly handle multiple Apple Watch sleep sessions per day — critical for CFS patients who nap frequently.
+
+**Bug Fixes:**
+
+1. **Off-By-One Row Index Bug (Root Cause of Duplicate Daily Rows)**
+   - **Root Cause:** `Health_Daily!A:A` range included the header row, making `dailyDates[0]` = "Date" (header). The formula `rowIndex + 2` was then off by one — every update wrote to the row BELOW the intended target, creating a duplicate. The sort at the end masked this by reordering rows, but the misplaced write persisted.
+   - **Fix:** Changed fetch range to `Health_Daily!A2:A` (skips header), so `dailyDates[0]` = first data row (sheet row 2). Now `index + 2` correctly maps to the actual sheet row.
+   - **Additional:** New dates now use the Sheets `append` API instead of calculated row indices, preventing race conditions from concurrent webhook requests.
+
+2. **Removed Health_Daily Sort from Webhook**
+   - The sort was causing row index chaos when concurrent webhook requests arrived — one request's sort would invalidate another request's pre-calculated row indices.
+   - Health_Daily is no longer sorted per-webhook. Data uses append for new rows and update-in-place for existing rows, so row order doesn't affect correctness.
+   - Health_Hourly sort is preserved (append-only sheet, no update conflicts).
+
+3. **Overlapping Sleep Session Double-Counting**
+   - **Problem:** Apple Watch records separate `sleep_analysis` entries for each detected sleep session. When a sub-session overlaps a longer session (e.g., wake-up detection mid-sleep creates a nested session), the old code summed ALL sessions, giving Jan 26 a total of 521 min (~8.7 hrs) when actual sleep was 329 min (~5.5 hrs).
+   - **Fix:** New overlap merge algorithm:
+     - Collects all `sleep_analysis` entries with their `sleepStart`/`sleepEnd` timestamps.
+     - Sorts by start time, then merges overlapping sessions (keeps the longer one's data).
+     - Non-overlapping sessions (genuine naps) are correctly summed.
+     - Component data (deep/rem/core/awake) is now sourced from `sleep_analysis` JSON rather than exploded rows, preventing double-counting.
+   - **Verified:** Jan 26 data now correctly shows 329 min (5.5 hrs) instead of 521 min (8.7 hrs). Non-overlapping nap+night test also passes.
+
+**Files Modified:**
+- `api/health-webhook.js` — Off-by-one fix (A2:A range), append API for new rows, sleep overlap merge, removed daily sort, renamed `sortSheetsByDate` → `sortHourlySheet`.
+
+**Status at End of Session:**
+- ✅ Off-by-one bug fixed and verified with unit test
+- ✅ Sleep overlap merge tested with real Jan 26 data
+- ✅ Non-overlapping nap scenario tested
+- ✅ Build and lint pass cleanly
+- ✅ Self-healing dedup retained as safety net
+- ⏳ Needs Vercel deployment and monitoring of next webhook
+
+**Next Steps:**
+1. Deploy to Vercel and monitor next Health Auto Export webhook
+2. Verify Jan 25/26 duplicate rows get cleaned by self-healing on next data sync
+3. Verify Jan 26 sleep total corrects to ~329 min on next re-aggregation
+
 ### 2026-01-26 - Daily Data Deduplication Fix (Session 41)
 
 **Session Summary:**
