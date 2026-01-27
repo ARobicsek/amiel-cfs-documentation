@@ -1489,14 +1489,14 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 
 ## Next Up
 
-**IMMEDIATE PRIORITY: Health Data Integration Verification (Session 36)**
+**IMMEDIATE PRIORITY: Deploy Session 42 Fixes & Verify (Session 43)**
 
-1. ✅ Vercel deployment should be complete
-2. ⏳ Test Health Auto Export automation from iPhone
-3. ⏳ Verify data appears in `Health_Daily` and `Health_Hourly` sheets
-4. ⏳ Check app UI displays health metrics correctly (formatting, units, null handling)
-5. ⏳ Fix any parsing or display bugs
-6. ⏳ Remove test data before going live
+1. ⏳ Deploy to Vercel (manual deploy required)
+2. ⏳ Monitor next Health Auto Export webhook — confirm no duplicate daily rows created
+3. ⏳ Verify Jan 25/26 duplicate rows get self-healed (cleared) on next data sync
+4. ⏳ Verify Jan 26 sleep total corrects to ~329 min (was 521 min due to overlap double-count)
+5. ⏳ Check app UI displays health metrics correctly (formatting, units, null handling)
+6. ⏳ Clean up any remaining empty rows left by self-healing dedup in Health_Daily
 
 **Phase 4: ECG Integration - COMPLETE!**
 
