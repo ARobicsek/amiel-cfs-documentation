@@ -515,7 +515,7 @@ async function sortHourlySheet(sheets, spreadsheetId) {
                                 startColumnIndex: 0,
                                 endColumnIndex: 9
                             },
-                            sortSpecs: [{ dimensionIndex: 0, sortOrder: 'ASCENDING' }]
+                            sortSpecs: [{ dimensionIndex: 0, sortOrder: 'DESCENDING' }]
                         }
                     }]
                 }
