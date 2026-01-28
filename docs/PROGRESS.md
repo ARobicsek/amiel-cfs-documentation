@@ -68,6 +68,39 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-28 - Health Data Sorting & Sleep Verification (Session 43)
+
+**Session Summary:**
+Addressed user requests to reorganize the Health_Hourly sheet sorting and verify sleep data aggregation for Jan 27, 2026. Confirmed accurate sleep aggregation logic despite corrupted source data for that specific date.
+
+**Accomplishments:**
+1.  **Health_Hourly Sorting Update**
+    -   Modified `api/health-webhook.js` to change the sort order of `Health_Hourly` from `ASCENDING` to `DESCENDING`.
+    -   Most recent hourly data will now appear at the top of the sheet, improving readability.
+
+2.  **Sleep Data Aggregation Verification (Jan 27, 2026)**
+    -   Investigation revealed that the aggregation logic correctly calculated 278 minutes of sleep.
+    -   **Finding:** The source data contained two distinct sessions:
+        -   Morning Nap (97 min): Ends 5:25 AM.
+        -   Evening Sleep (181 min): Ends 5:30 PM. (Logic correctly merged 3 overlapping records by taking the max value).
+    -   **Data Quality Issue:** The specific `sleep_analysis` row for Jan 27 contained "undefined" in the `Raw Data` column, preventing programmatic re-calculation in the verification script, though the daily aggregate value (278) was correct on the sheet.
+
+3.  **Manual Sleep Calculation Tool**
+    -   Created `scripts/manual_sleep_calc.js` to manually parse, deduplicate, and sum sleep rows from the raw hourly text file.
+    -   Provides a step-by-step breakdown of sleep sessions to transparently explain the total to the user.
+
+**Files Modified:**
+-   `api/health-webhook.js` - Changed sort order to `DESCENDING`.
+-   `scripts/manual_sleep_calc.js` (Created) - Tool for manual sleep data verification.
+
+**Status at End of Session:**
+-   ✅ Health_Hourly sorting updated.
+-   ✅ Jan 27 Sleep aggregation verified and explained.
+-   ✅ Apple sets de-duplication confirmed (yes, handled by HealthKit).
+
+**Next Steps:**
+1.  Monitor future data to see if "undefined" raw data persists in `sleep_analysis` rows.
+
 ### 2026-01-26 - Duplicate Daily Rows Fix & Sleep Overlap Handling (Session 42)
 
 **Session Summary:**
