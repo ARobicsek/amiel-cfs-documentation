@@ -30,12 +30,13 @@ Track completed features and current status here. Update after completing each f
 | 15 | Settings page | DONE | Enable/disable notifications UI complete |
 | 16 | Manual Alert Trigger | DONE | Custom message support + Parent UI |
 
-### Phase 3: Polish (ON HOLD)
+### Phase 3: Stats & Visualization
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 16 | Data trends/charts | TODO | ON HOLD - 7-day visualization |
-| 17 | Streak animations | TODO | ON HOLD - Motivation feature |
+| 16 | Stats Tab - Single Day View | PLANNED | HR scatter + activity bar (sleep/walking/blank), 24h timeline. See `docs/stats_feature_plan.md` |
+| 17 | Stats Tab - Multi Day View | PLANNED | Trends dashboard: HR box plots, sleep stacked bars, steps/HRV/feet/brain line charts |
+| 18 | Streak animations | TODO | ON HOLD - Motivation feature |
 
 ### Phase 4: ECG Integration (COMPLETE - Fully Automatic)
 
@@ -67,6 +68,48 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-01-29 - Stats Feature Planning (Session 44)
+
+**Session Summary:**
+Planning-only session. Designed the Stats feature in detail through an interactive interview process. No code changes — only documentation.
+
+**Accomplishments:**
+
+1. **Comprehensive Stats Feature Plan** (`docs/stats_feature_plan.md`)
+   - Analyzed real Health_Hourly data (1.4MB, ~40 days) to understand data shapes, gaps, and quirks
+   - Designed Single Day view: 24h HR scatter plot + activity broken bar (ASLEEP/WALKING/BLANK)
+   - Designed Multi Day view: 6 stacked metric charts (Feet on Ground, Brain Time, HR box plots, Sleep stacked bars, Steps, HRV)
+   - Chose Chart.js + react-chartjs-2 over Recharts for mobile Canvas performance
+   - Planned 2 new API endpoints (`get-hourly-data.js`, `get-health-stats.js`) with server-side aggregation
+   - Designed component architecture: 7 new files under `src/components/Stats/`
+
+2. **Nested Session Differencing Algorithm** (key innovation)
+   - Discovered that overlapping `sleep_analysis` sessions from Apple Watch can be subtracted from each other to determine which time segments had dense vs sparse sleep
+   - Example: Jan 29 parent session spans 11 hours, but differencing reveals only 3h 45m was solid sleep (1:13-4:59 AM); the other 7+ hours was mostly awake/resting
+   - Uses a 50% density threshold to classify segments as ASLEEP vs BLANK
+   - Prevents massive overestimation of sleep that would occur from using raw session boundaries
+
+3. **False-Positive Step Suppression Design**
+   - Two-layer filter: suppress steps during sleep sessions + suppress steps < 2/minute as sensor noise
+   - Addresses known issue of Apple Watch recording wrist movements as steps during sleep
+
+4. **Key Design Decisions** (from user interview)
+   - Navigation: Today | History | Stats | Settings
+   - Orientation: Fullscreen button per chart (Fullscreen API + landscape lock)
+   - Offline: Online only (no caching needed)
+   - HR multi-day: Box plots (min/Q1/median/Q3/max)
+   - Time range: Full 24 hours (midnight to midnight)
+   - Data sources: Mix manual + automated metrics in multi-day view
+   - Medications: Not in v1
+   - Touch: Tap for tooltip (not drag cursor)
+
+**Files Modified:**
+- `docs/stats_feature_plan.md` - Complete rewrite with finalized plan
+
+**Status at End of Session:**
+- ✅ Stats feature fully planned and documented
+- ✅ Ready to implement in Session 45
 
 ### 2026-01-28 - Health Data Sorting & Sleep Verification (Session 43)
 
@@ -1522,14 +1565,29 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 
 ## Next Up
 
-**IMMEDIATE PRIORITY: Deploy Session 42 Fixes & Verify (Session 43)**
+**NEXT: Build Stats Feature (Session 45)**
 
-1. ⏳ Deploy to Vercel (manual deploy required)
-2. ⏳ Monitor next Health Auto Export webhook — confirm no duplicate daily rows created
-3. ⏳ Verify Jan 25/26 duplicate rows get self-healed (cleared) on next data sync
-4. ⏳ Verify Jan 26 sleep total corrects to ~329 min (was 521 min due to overlap double-count)
-5. ⏳ Check app UI displays health metrics correctly (formatting, units, null handling)
-6. ⏳ Clean up any remaining empty rows left by self-healing dedup in Health_Daily
+Full plan in `docs/stats_feature_plan.md`. Implementation order:
+
+**Phase A: Foundation**
+1. Install `chart.js`, `react-chartjs-2`, `chartjs-chart-box-and-violin-plot`
+2. Create `api/get-hourly-data.js` — fetch Health_Hourly for one date
+3. Create `src/utils/statsDataService.js` — data processing (sleep detection, step filtering)
+4. Create `StatsTab.jsx` with Single/Multi toggle
+5. Add Stats tab to `App.jsx` navigation (4th tab)
+
+**Phase B: Single Day View**
+6. Create HR scatter chart + activity bar + date navigation
+7. Create fullscreen chart wrapper (Fullscreen API)
+
+**Phase C: Multi-Day API + View**
+8. Create `api/get-health-stats.js` — server-side aggregation (HR box plots, sleep, steps, etc.)
+9. Create multi-day charts: line charts, box plots, stacked bars
+10. Compose `MultiDayView.jsx` with metric toggles
+
+**Still pending from earlier sessions:**
+- ⏳ Deploy Session 42 fixes to Vercel (manual deploy required)
+- ⏳ Monitor Health Auto Export webhook for duplicate daily rows
 
 **Phase 4: ECG Integration - COMPLETE!**
 
