@@ -174,6 +174,48 @@ Planning-only session. Designed the Stats feature in detail through an interacti
 - ✅ Stats feature fully planned and documented
 - ✅ Ready to implement in Session 45
 
+### 2026-01-29 - Stats Improvements & Bug Fixes (Session 46 - Current)
+
+**Session Summary:**
+Refined the Stats Single Day view based on user feedback. Combined HR and Activity charts, implemented HR data averaging, fixed fullscreen functionality, and resolved a critical sleep data parsing bug.
+
+**Accomplishments:**
+
+1.  **Combined Chart Implementation**
+    -   Merged `HRScatterChart` and `ActivityBar` into a single `CombinedChart.jsx`.
+    -   **Visualization:** HR scatter points (foreground) overlaid on Activity bars (background).
+    -   **Benefits:** Directly correlates heart rate spikes with activity (walking) or rest (sleep).
+
+2.  **Heart Rate Averaging**
+    -   Updated `statsDataService.js` to aggregate multiple HR readings per minute.
+    -   Calculates the average BPM for each minute bucket.
+    -   **Benefit:** cleaner scatter plot, reduces visual noise from high-frequency sampling (e.g. during workouts).
+
+3.  **Sleep Data Parsing Fix**
+    -   **Bug:** Sleep regions were not appearing for certain days (e.g. Jan 28) despite valid data.
+    -   **Root Cause:** Browser `Date.parse()` failure with custom timestamp format `YYYY-MM-DD HH:mm:ss -ZZZZ`.
+    -   **Fix:** Implemented robust `parseTimestamp` fallback in `statsDataService.js` to normalize non-standard formats to ISO 8601.
+    -   **Result:** Sleep periods now correctly visualize as blue background regions.
+
+4.  **UI/UX Improvements**
+    -   **Fullscreen Fix:** Rewrote `FullscreenChart.jsx` toggle logic to be more robust across browsers and handle promise rejections.
+    -   **Cleanup:** Removed obsolete separate chart components.
+
+**Files Modified:**
+-   `src/utils/statsDataService.js` - Average HR logic + Date parsing fix.
+-   `src/components/Stats/FullscreenChart.jsx` - Robust toggle.
+-   `src/components/Stats/SingleDayView.jsx` - Integrated CombinedChart.
+-   `src/components/Stats/charts/CombinedChart.jsx` **(New)**
+-   `src/components/Stats/charts/HRScatterChart.jsx` **(Deleted)**
+-   `src/components/Stats/charts/ActivityBar.jsx` **(Deleted)**
+
+**Status at End of Session:**
+-   ✅ Charts merged into single view.
+-   ✅ Sleep data parsing bug fixed.
+-   ✅ Fullscreen button operational.
+-   ✅ HR points averaged per minute.
+-   ⏳ Ready for deployment and user verification.
+
 ### 2026-01-28 - Health Data Sorting & Sleep Verification (Session 43)
 
 **Session Summary:**

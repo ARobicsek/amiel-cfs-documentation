@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import HRScatterChart from './charts/HRScatterChart';
-import ActivityBar from './charts/ActivityBar';
+import CombinedChart from './charts/CombinedChart';
 import FullscreenChart from './FullscreenChart';
 import { processSingleDayData, formatMinutes } from '../../utils/statsDataService';
 import { getSecretToken } from '../../utils/auth';
@@ -102,24 +101,13 @@ export default function SingleDayView({ isDark }) {
 
       {!loading && !error && data && !data.empty && (
         <>
-          {/* HR Scatter Chart */}
-          <FullscreenChart title="Heart Rate">
-            <HRScatterChart hrPoints={data.hrPoints} isDark={isDark} />
-          </FullscreenChart>
-
-          {/* Activity Bar */}
-          <FullscreenChart title="Activity">
-            <ActivityBar activityMinutes={data.activityMinutes} isDark={isDark} />
-            {/* Shared X-axis labels */}
-            <div className="activity-time-labels">
-              <span>12AM</span>
-              <span>4AM</span>
-              <span>8AM</span>
-              <span>12PM</span>
-              <span>4PM</span>
-              <span>8PM</span>
-              <span>12AM</span>
-            </div>
+          {/* Combined Chart (Heart Rate + Activity) */}
+          <FullscreenChart title="Heart Rate & Activity">
+            <CombinedChart
+              hrPoints={data.hrPoints}
+              activityMinutes={data.activityMinutes}
+              isDark={isDark}
+            />
           </FullscreenChart>
 
           {/* Summary Stats */}

@@ -15,29 +15,39 @@ export default function FullscreenChart({ title, children }) {
     const el = containerRef.current;
     if (!el) return;
 
-    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      try {
+    try {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        // Enter fullscreen
         if (el.requestFullscreen) {
           await el.requestFullscreen();
         } else if (el.webkitRequestFullscreen) {
           await el.webkitRequestFullscreen();
+        } else {
+          // No API support, fallback immediately
+          setIsFullscreen(true);
+          return;
         }
-        // Try landscape lock (Android only, fails silently on iOS)
+
+        // Try landscape lock (Android only)
         try {
-          await screen.orientation?.lock?.('landscape');
-        } catch {
-          // Expected to fail on most platforms
+          if (screen.orientation && screen.orientation.lock) {
+            await screen.orientation.lock('landscape');
+          }
+        } catch (e) {
+          console.warn('Landscape lock not supported or failed:', e);
         }
-      } catch {
-        // Fullscreen not supported - use fallback
-        setIsFullscreen(true);
+      } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        }
       }
-    } else {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        await document.webkitExitFullscreen();
-      }
+    } catch (err) {
+      console.error('Fullscreen toggle error:', err);
+      // Fallback to CSS fullscreen if API fails (e.g. permission denied)
+      setIsFullscreen(prev => !prev);
     }
   }, []);
 

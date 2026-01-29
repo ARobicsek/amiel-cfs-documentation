@@ -11,8 +11,28 @@
  */
 function parseTimestamp(str) {
   if (!str) return null;
-  const d = new Date(str);
-  return isNaN(d.getTime()) ? null : d;
+  let d = new Date(str);
+  if (!isNaN(d.getTime())) return d;
+
+  // Fallback: manually handle "2026-01-28 06:49:53 -0500" format
+  // Replace space between date and time with T, and ensure timezone colon
+  try {
+    let iso = str.trim();
+    // 1. Replace first space with T if YYYY-MM-DD HH...
+    if (/^\d{4}-\d{2}-\d{2}\s\d{2}:/.test(iso)) {
+      iso = iso.replace(' ', 'T');
+    }
+    // 2. Fix timezone "-0500" -> "-05:00" if no colon exists
+    // Look for +/- followed by 4 digits at end
+    const tzMatch = iso.match(/([+-])(\d{2})(\d{2})$/);
+    if (tzMatch) {
+      iso = iso.slice(0, tzMatch.index) + `${tzMatch[1]}${tzMatch[2]}:${tzMatch[3]}`;
+    }
+    d = new Date(iso);
+    return isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -347,7 +367,9 @@ export function processSingleDayData(rows, dateStr) {
   });
 
   // 6. Parse heart_rate rows → collect { minuteOfDay, bpm }
-  const hrPoints = [];
+  // Aggregate multiple readings per minute into an average
+  const hrMap = new Map(); // minute -> { sum, count }
+
   rows.forEach(row => {
     if (row.metric === 'heart_rate') {
       const parsed = parseHRRawData(row.rawData);
@@ -359,12 +381,22 @@ export function processSingleDayData(rows, dateStr) {
       const minuteOfDay = min !== null ? min : (row.hour !== null ? row.hour * 60 : null);
       if (minuteOfDay === null) return;
 
-      hrPoints.push({ minuteOfDay, bpm: Math.round(bpm) });
+      if (!hrMap.has(minuteOfDay)) {
+        hrMap.set(minuteOfDay, { sum: 0, count: 0 });
+      }
+      const entry = hrMap.get(minuteOfDay);
+      entry.sum += bpm;
+      entry.count += 1;
     }
   });
 
-  // Sort HR points by time
-  hrPoints.sort((a, b) => a.minuteOfDay - b.minuteOfDay);
+  // Convert map to array of averages
+  const hrPoints = Array.from(hrMap.entries())
+    .map(([minuteOfDay, { sum, count }]) => ({
+      minuteOfDay,
+      bpm: Math.round(sum / count)
+    }))
+    .sort((a, b) => a.minuteOfDay - b.minuteOfDay);
 
   // 7. Compute summary stats
   const totalSleepMin = activityMinutes.filter(m => m === 'ASLEEP').length;
