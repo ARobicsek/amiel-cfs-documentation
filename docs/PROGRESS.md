@@ -210,11 +210,17 @@ Refined the Stats Single Day view based on user feedback. Combined HR and Activi
 -   `src/components/Stats/charts/ActivityBar.jsx` **(Deleted)**
 
 **Status at End of Session:**
--   ✅ Charts merged into single view.
--   ✅ Sleep data parsing bug fixed.
+-   ✅ Charts merged into single view with HR averaging.
 -   ✅ Fullscreen button operational.
--   ✅ HR points averaged per minute.
--   ⏳ Ready for deployment and user verification.
+-   ⚠️ **Open Bug:** Sleep data showing as "0m" on Jan 28 despite parsing fix. Needs further investigation (likely browser-specific regex or timezone issue).
+-   ⚠️ **New Requests:** Add 2h ticks, Min/Max HR labels, and swipe-to-change-date in fullscreen.
+
+**Next Steps (Session 47):**
+1.  **Debug Sleep 0m:** The `parseTimestamp` fix wasn't enough. Need to debug why `sleep_analysis` isn't parsing correctly in the browser environment (possibly Safari). Check `statsDataService.js` regex again.
+2.  **Enhance Chart:**
+    -   Add x-axis tick marks every 2 hours (currently auto).
+    -   Add visual labels/annotations for Min and Max HR on the chart.
+3.  **Fullscreen Swipe:** Implement date navigation (swipe or buttons) inside the fullscreen view.
 
 ### 2026-01-28 - Health Data Sorting & Sleep Verification (Session 43)
 

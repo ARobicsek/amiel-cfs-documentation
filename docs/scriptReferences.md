@@ -46,8 +46,7 @@ Frontend helper modules.
 | `Stats/StatsTab.jsx` | Top-level Stats tab with Single/Multi Day toggle and dark mode detection. | [StatsTab.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/StatsTab.jsx) |
 | `Stats/SingleDayView.jsx` | Single Day stats: date navigation, HR scatter chart, activity bar, summary stats. | [SingleDayView.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/SingleDayView.jsx) |
 | `Stats/FullscreenChart.jsx` | Wrapper providing fullscreen capability for charts (Fullscreen API + CSS fallback). | [FullscreenChart.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/FullscreenChart.jsx) |
-| `Stats/charts/HRScatterChart.jsx` | 24h HR scatter plot using Chart.js (tap-for-tooltip). | [HRScatterChart.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/charts/HRScatterChart.jsx) |
-| `Stats/charts/ActivityBar.jsx` | Canvas-rendered broken bar (ASLEEP/WALKING/BLANK across 1440 minutes). | [ActivityBar.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/charts/ActivityBar.jsx) |
+| `Stats/charts/CombinedChart.jsx` | Combined HR scatter + Activity background chart (Chart.js). | [CombinedChart.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/charts/CombinedChart.jsx) |
 
 ---
 
