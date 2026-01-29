@@ -11,7 +11,6 @@ Server-side Vercel functions. All require `Authorization: Bearer <SECRET_TOKEN>`
 |------|-------------|------|
 | `backup-data.js` | Creates daily Google Sheets backups and sends monthly CSV email backups. | [backup-data.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/backup-data.js) |
 | `cron-trigger.js` | Runs every 15 min via Vercel cron; checks if it's time to send a push notification reminder. | [cron-trigger.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/cron-trigger.js) |
-| `debug-env.js` | Debug endpoint that returns which environment variables are set (no token required). | [debug-env.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/debug-env.js) |
 | `ecg-webhook.js` | Receives ECG data from Health Auto Export (multipart/CSV), parses it, calculates R/S ratio, and stores in Sheets. | [ecg-webhook.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/ecg-webhook.js) |
 | `health-webhook.js` | Receives JSON health data (HR, Steps, Sleep), aggregates daily stats, and stores in Sheets. | [health-webhook.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/health-webhook.js) |
 | `get-entries.js` | Fetches recent daily entries from Google Sheets, merging in ECG data by date. | [get-entries.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/get-entries.js) |
