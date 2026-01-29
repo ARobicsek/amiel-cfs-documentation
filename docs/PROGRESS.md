@@ -34,7 +34,7 @@ Track completed features and current status here. Update after completing each f
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 16 | Stats Tab - Single Day View | PLANNED | HR scatter + activity bar (sleep/walking/blank), 24h timeline. See `docs/stats_feature_plan.md` |
+| 16 | Stats Tab - Single Day View | DONE | HR scatter + activity bar (sleep/walking/blank), 24h timeline, date navigation, summary stats |
 | 17 | Stats Tab - Multi Day View | PLANNED | Trends dashboard: HR box plots, sleep stacked bars, steps/HRV/feet/brain line charts |
 | 18 | Streak animations | TODO | ON HOLD - Motivation feature |
 
@@ -68,6 +68,69 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-01-29 - Stats Single Day View Implementation (Session 45)
+
+**Session Summary:**
+Built the complete Stats tab with Single Day view (Phases A + B from `stats_feature_plan.md`). Installed charting dependencies, created API endpoint, implemented the Nested Session Differencing algorithm, and wired up all UI components.
+
+**Accomplishments:**
+
+1. **Chart Dependencies Installed**
+   - `chart.js` ^4.4.7, `react-chartjs-2` ^5.3.0, `chartjs-chart-box-and-violin-plot` ^4.0.0
+   - Fixed version mismatch: box-and-violin-plot latest is 4.0.0, not 4.4.3 as originally planned
+
+2. **API Endpoint: `api/get-hourly-data.js`**
+   - Fetches all Health_Hourly rows for a single date (YYYY-MM-DD)
+   - Handles both `M/D/YYYY` and `YYYY-MM-DD` date formats from the sheet
+   - Returns structured objects: timestamp, date, hour, metric, value, min, max, source, rawData
+
+3. **Data Processing: `src/utils/statsDataService.js`**
+   - `processSingleDayData()` — main processing function
+   - **Nested Session Differencing Algorithm**: clusters overlapping sleep_analysis sessions, computes density per segment, applies 50% threshold to classify ASLEEP vs BLANK
+   - **Two-layer step suppression**: suppresses steps during sleep session windows + noise filter (< 2 steps/min)
+   - HR point extraction with minute-of-day precision from raw data timestamps
+   - Summary computation: total sleep, steps, walking time, avg HR, avg HRV, HR count
+   - Helper formatters: `formatMinutes()`, `formatTime()`
+
+4. **Stats Components (7 new files under `src/components/Stats/`)**
+   - `StatsTab.jsx` — Top-level container with Single/Multi Day segmented toggle, dark mode via `useSyncExternalStore`
+   - `SingleDayView.jsx` — Date navigation (arrows, Today indicator), data fetching, composition of charts + summary
+   - `charts/HRScatterChart.jsx` — 24h Chart.js scatter plot (X: 0-1440 minutes, Y: BPM), tap-for-tooltip
+   - `charts/ActivityBar.jsx` — Canvas-rendered broken bar (1440 minute slots: blue=ASLEEP, green=WALKING, transparent=BLANK)
+   - `FullscreenChart.jsx` — Fullscreen API wrapper with webkit prefix, landscape lock attempt, CSS fallback
+   - `StatsTab.css` — Complete styling: toggle, date nav, charts, summary grid, fullscreen, dark/light mode
+
+5. **App.jsx Integration**
+   - Added Stats as 4th navigation tab: Today | History | Stats | Settings
+   - Imported StatsTab component
+
+**Files Created:**
+- `api/get-hourly-data.js`
+- `src/utils/statsDataService.js`
+- `src/components/Stats/StatsTab.jsx`
+- `src/components/Stats/StatsTab.css`
+- `src/components/Stats/SingleDayView.jsx`
+- `src/components/Stats/FullscreenChart.jsx`
+- `src/components/Stats/charts/HRScatterChart.jsx`
+- `src/components/Stats/charts/ActivityBar.jsx`
+
+**Files Modified:**
+- `package.json` — Added chart.js, react-chartjs-2, chartjs-chart-box-and-violin-plot
+- `src/App.jsx` — Added Stats tab (4th nav item)
+
+**Build & Lint:**
+- Production build passes (379KB JS, 23.5KB CSS)
+- Zero lint errors in all new files
+
+**Status at End of Session:**
+- ✅ Stats tab visible in navigation
+- ✅ Single Day view with HR scatter, activity bar, summary stats
+- ✅ Date navigation (left/right arrows, Today detection)
+- ✅ Nested Session Differencing algorithm implemented
+- ✅ Fullscreen chart wrapper ready
+- ⏳ Needs Vercel manual deployment for live testing
+- ⏳ Multi Day view stubbed as "coming soon" (Phase C/D)
 
 ### 2026-01-29 - Stats Feature Planning (Session 44)
 
@@ -1565,29 +1628,24 @@ let vapidSubject = process.env.VAPID_EMAIL ? process.env.VAPID_EMAIL.trim() : nu
 
 ## Next Up
 
-**NEXT: Build Stats Feature (Session 45)**
+**NEXT: Stats Multi-Day View (Session 46)**
 
-Full plan in `docs/stats_feature_plan.md`. Implementation order:
+Phases A + B complete (Session 45). Full plan in `docs/stats_feature_plan.md`.
 
-**Phase A: Foundation**
-1. Install `chart.js`, `react-chartjs-2`, `chartjs-chart-box-and-violin-plot`
-2. Create `api/get-hourly-data.js` — fetch Health_Hourly for one date
-3. Create `src/utils/statsDataService.js` — data processing (sleep detection, step filtering)
-4. Create `StatsTab.jsx` with Single/Multi toggle
-5. Add Stats tab to `App.jsx` navigation (4th tab)
-
-**Phase B: Single Day View**
-6. Create HR scatter chart + activity bar + date navigation
-7. Create fullscreen chart wrapper (Fullscreen API)
+**Immediate: Deploy & verify Single Day view**
+- ⏳ Manual Vercel deployment required to test Single Day view live
+- Test against Jan 28 data: expect 1545 HR readings, ~465 min sleep, ~1450 steps
 
 **Phase C: Multi-Day API + View**
-8. Create `api/get-health-stats.js` — server-side aggregation (HR box plots, sleep, steps, etc.)
-9. Create multi-day charts: line charts, box plots, stacked bars
-10. Compose `MultiDayView.jsx` with metric toggles
+1. Create `api/get-health-stats.js` — server-side aggregation (HR box plots, sleep, steps, etc.)
+2. Modify `api/get-entries.js` — add date range filtering for Feet on Ground / Brain Time
+3. Create multi-day charts: `MetricLineChart.jsx`, `HRBoxPlotChart.jsx`, `SleepStackedBar.jsx`
+4. Compose `MultiDayView.jsx` with metric toggles + date range selector
 
-**Still pending from earlier sessions:**
-- ⏳ Deploy Session 42 fixes to Vercel (manual deploy required)
-- ⏳ Monitor Health Auto Export webhook for duplicate daily rows
+**Phase D: Polish**
+5. Responsive testing on iPhone
+6. Fullscreen landscape lock behavior
+7. Edge cases: days with no data, partial data
 
 **Phase 4: ECG Integration - COMPLETE!**
 
