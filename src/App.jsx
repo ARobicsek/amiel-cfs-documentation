@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import DailyEntry from './components/DailyEntry'
 import EntryHistory from './components/EntryHistory'
+import StatsTab from './components/Stats/StatsTab'
 import Settings from './components/Settings'
 import { submitEntry } from './utils/api'
 import {
@@ -14,7 +15,7 @@ import { getSecretToken } from './utils/auth'
 import './App.css'
 
 function App() {
-  const [view, setView] = useState('entry') // 'entry' | 'history' | 'settings'
+  const [view, setView] = useState('entry') // 'entry' | 'history' | 'stats' | 'settings'
   const [lastSaved, setLastSaved] = useState(null)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [pendingCount, setPendingCount] = useState(0)
@@ -273,6 +274,9 @@ function App() {
         {view === 'history' && (
           <EntryHistory />
         )}
+        {view === 'stats' && (
+          <StatsTab />
+        )}
         {view === 'settings' && (
           <Settings />
         )}
@@ -290,6 +294,12 @@ function App() {
           onClick={() => setView('history')}
         >
           History
+        </button>
+        <button
+          className={view === 'stats' ? 'active' : ''}
+          onClick={() => setView('stats')}
+        >
+          Stats
         </button>
         <button
           className={view === 'settings' ? 'active' : ''}
