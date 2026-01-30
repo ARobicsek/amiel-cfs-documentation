@@ -287,11 +287,11 @@
 }
 
 .fs-nav-prev {
-  left: calc(50% - 60px);
+  left: calc(25% - 26px);
 }
 
 .fs-nav-next {
-  left: calc(50% + 24px);
+  right: calc(25% - 4px);
 }
 
 /* Adjust for landscape mobile */
@@ -304,10 +304,10 @@
   }
 
   .fs-nav-prev {
-    left: calc(50% - 60px);
+    left: calc(25% - 26px);
   }
 
   .fs-nav-next {
-    left: calc(50% + 24px);
+    right: calc(25% - 4px);
   }
 }
