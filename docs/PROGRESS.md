@@ -70,6 +70,39 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-30 - Fullscreen Chart UI + Sleep Data Accuracy (Session 51)
+
+**Session Summary:**
+Fixed fullscreen chart usability on portrait phones, corrected sleep data discrepancies between single-day and multi-day/history views, and improved display formatting.
+
+**Accomplishments:**
+
+1. **Step tooltip rounding** — Added `Math.round()` to step count tooltip in CombinedChart so values display as whole numbers instead of decimals.
+
+2. **Force landscape in fullscreen** — Added CSS `@media (orientation: portrait)` rule that rotates the fullscreen container 90deg via `transform: rotate(90deg)`. This ensures the chart always appears in landscape layout regardless of phone orientation, fixing the X-close-button not working in portrait mode.
+
+3. **Shared sleep validation library** — Created `lib/sleepValidation.js` extracting the cluster + awake-score + best-session algorithm into a shared module used by both API endpoints. Mirrors client-side `statsDataService.js`.
+
+4. **Multi-day sleep accuracy** — Updated `get-hourly-data.js` multi-day mode to compute sleep from raw `Health_Hourly` data using the validated algorithm, instead of reading stale pre-computed values from `Health_Daily`. Fixed Jan 27 showing 4h38m → now shows 5h3m (matching single-day view).
+
+5. **History tab sleep accuracy + format** — Updated `get-entries.js` to compute validated sleep from `Health_Hourly`. Changed sleep display from decimal hours ("4.6 hrs") to "Xh Ym" format ("5h 3m").
+
+**Files Created:**
+- `lib/sleepValidation.js` — Shared sleep validation (clusterSleepSessions, findBestSessionInCluster, computeValidatedSleepByDate)
+
+**Files Modified:**
+- `src/components/Stats/charts/CombinedChart.jsx` — Step tooltip rounding
+- `src/components/Stats/StatsTab.css` — Portrait→landscape CSS rotation for fullscreen
+- `api/get-hourly-data.js` — Validated sleep in multi-day mode
+- `api/get-entries.js` — Validated sleep + Health_Hourly fetch
+- `src/components/EntryHistory.jsx` — formatSleepMinutes helper, updated sleep display
+- `docs/scriptReferences.md` — Added lib/ section
+
+**Architecture Note:**
+All three views (single-day, multi-day, history) now compute sleep from raw `Health_Hourly` data using the same validated algorithm, eliminating discrepancies from stale `Health_Daily` values.
+
+---
+
 ### 2026-01-30 - Sleep Validation Bug Fixes + Step Tooltip (Session 50)
 
 **Session Summary:**
