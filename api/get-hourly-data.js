@@ -236,8 +236,8 @@ async function handleMultiDay(req, res, startDate, endDate) {
     const sheets = google.sheets({ version: 'v4', auth });
     const sheetId = process.env.GOOGLE_SHEET_ID.trim();
 
-    // Fetch all three sheets in parallel
-    const [hourlyResponse, dailyResponse, sheet1Response] = await Promise.all([
+    // Fetch all four sheets in parallel
+    const [hourlyResponse, dailyResponse, sheet1Response, ecgResponse] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
         range: 'Health_Hourly!A2:I',
@@ -249,6 +249,10 @@ async function handleMultiDay(req, res, startDate, endDate) {
       sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
         range: 'Sheet1!A2:G',
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: 'ECG_Readings!A2:E',  // Timestamp, Date, Classification, Avg HR, R/S Ratio
       }),
     ]);
 
@@ -331,12 +335,43 @@ async function handleMultiDay(req, res, startDate, endDate) {
       };
     }
 
-    // --- 4. Merge all data by date ---
+    // --- 4. ECG R/S Ratio and HR from ECG_Readings ---
+    // Column B = Date, D = Avg HR (Apple), E = R/S Ratio
+    const ecgRows = ecgResponse.data.values || [];
+    const ecgByDate = {};
+
+    for (const row of ecgRows) {
+      const dateStr = row[1];  // Date column (B)
+      if (!dateStr) continue;
+
+      const parsed = parseDateStr(dateStr);
+      const isoDate = toISODate(parsed);
+      if (!isoDate) continue;
+      if (isoDate < startDate || isoDate > endDate) continue;
+
+      const avgHr = row[3] ? parseFloat(row[3]) : null;  // Column D
+      const rsRatio = row[4] ? parseFloat(row[4]) : null;  // Column E
+
+      if (rsRatio == null || isNaN(rsRatio)) continue;
+
+      if (!ecgByDate[isoDate]) {
+        ecgByDate[isoDate] = { hrSum: 0, hrCount: 0, rsSum: 0, rsCount: 0 };
+      }
+      ecgByDate[isoDate].rsSum += rsRatio;
+      ecgByDate[isoDate].rsCount += 1;
+      if (avgHr != null && !isNaN(avgHr)) {
+        ecgByDate[isoDate].hrSum += avgHr;
+        ecgByDate[isoDate].hrCount += 1;
+      }
+    }
+
+    // --- 6. Merge all data by date ---
     const allDates = new Set([
       ...Object.keys(hrByDate),
       ...Object.keys(dailyByDate),
       ...Object.keys(manualByDate),
       ...Object.keys(validatedSleep),
+      ...Object.keys(ecgByDate),
     ]);
 
     const days = [];
@@ -345,6 +380,7 @@ async function handleMultiDay(req, res, startDate, endDate) {
       const daily = dailyByDate[date] || {};
       const manual = manualByDate[date] || {};
       const vSleep = validatedSleep[date];
+      const ecgData = ecgByDate[date];
 
       // Use validated sleep from hourly data (accurate), falling back to Health_Daily
       let sleep = null;
@@ -371,6 +407,16 @@ async function handleMultiDay(req, res, startDate, endDate) {
         };
       }
 
+      // ECG data: average R/S ratio and HR if multiple readings that day
+      let ecg = null;
+      if (ecgData && ecgData.rsCount > 0) {
+        ecg = {
+          avgRsRatio: Math.round((ecgData.rsSum / ecgData.rsCount) * 100) / 100,
+          avgHr: ecgData.hrCount > 0 ? Math.round(ecgData.hrSum / ecgData.hrCount) : null,
+          count: ecgData.rsCount,
+        };
+      }
+
       days.push({
         date,
         hr,
@@ -379,6 +425,7 @@ async function handleMultiDay(req, res, startDate, endDate) {
         hrv: daily.avgHRV != null ? { avg: daily.avgHRV, count: daily.hrvCount } : null,
         feetOnGround: manual.feetOnGround,
         brainTime: manual.brainTime,
+        ecg,
       });
     }
 

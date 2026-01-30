@@ -217,15 +217,19 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
 
         const minute = Math.floor(scales.x.getValueForPixel(mouseX));
 
-        // 2. Check for steps at this minute
-        if (walkMin && walkMin[minute] && steps && steps[minute] > 0) {
-            setTooltipState({
-                visible: true,
-                x: event.native.offsetX,
-                y: event.native.offsetY - 40,
-                text: `${formatTime(minute)}: ${Math.round(steps[minute])} steps`
-            });
-            return;
+        // 2. Check for steps at this minute (prioritize over sleep)
+        // Check nearby minutes (+/- 2) to handle touch imprecision on mobile
+        const checkMinutes = [minute, minute - 1, minute + 1, minute - 2, minute + 2].filter(m => m >= 0 && m < 1440);
+        for (const m of checkMinutes) {
+            if (steps && steps[m] > 0 && walkMin && walkMin[m]) {
+                setTooltipState({
+                    visible: true,
+                    x: event.native.offsetX,
+                    y: event.native.offsetY - 40,
+                    text: `${formatTime(m)}: ${Math.round(steps[m])} steps`
+                });
+                return;
+            }
         }
 
         // 3. Check for Sleep Segment

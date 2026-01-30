@@ -45,11 +45,12 @@ const RANGE_PRESETS = [
 
 const METRIC_CONFIGS = [
   { key: 'feetOnGround', label: 'Feet on Ground', defaultOn: true },
-  { key: 'brainTime', label: 'Brain Time', defaultOn: true },
-  { key: 'hr', label: 'HR', defaultOn: true },
-  { key: 'sleep', label: 'Sleep', defaultOn: true },
   { key: 'steps', label: 'Steps', defaultOn: true },
+  { key: 'sleep', label: 'Sleep', defaultOn: true },
+  { key: 'hr', label: 'HR', defaultOn: true },
   { key: 'hrv', label: 'HRV', defaultOn: true },
+  { key: 'rsRatio', label: 'R/S Ratio', defaultOn: true },
+  { key: 'brainTime', label: 'Brain Time', defaultOn: true },
 ];
 
 /**
@@ -128,7 +129,16 @@ export default function MultiDayView({ isDark }) {
   // Extract HRV values from nested structure
   const hrvExtractor = useCallback((day) => day.hrv?.avg ?? null, []);
 
+  // Extract R/S ratio values from nested structure
+  const rsRatioExtractor = useCallback((day) => day.ecg?.avgRsRatio ?? null, []);
+
   const days = data?.days || [];
+
+  // Date range string for fullscreen display
+  const dateRangeStr = formatDateRange(startDate, endDate);
+
+  // Check if any days have ECG data
+  const hasEcgData = days.some(d => d.ecg?.avgRsRatio != null);
 
   return (
     <div className="multi-day-view">
@@ -176,9 +186,15 @@ export default function MultiDayView({ isDark }) {
       {/* Charts */}
       {!loading && !error && days.length > 0 && (
         <div className="multi-day-charts">
-          {/* Feet on Ground */}
+          {/* 1. Feet on Ground */}
           {visibleMetrics.feetOnGround && (
-            <FullscreenChart title="Feet on Ground">
+            <FullscreenChart
+              title="Feet on Ground"
+              date={dateRangeStr}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              canNext={canNext}
+            >
               {({ isFullscreen }) => (
                 <MetricLineChart
                   days={days}
@@ -193,52 +209,15 @@ export default function MultiDayView({ isDark }) {
             </FullscreenChart>
           )}
 
-          {/* Brain Time */}
-          {visibleMetrics.brainTime && (
-            <FullscreenChart title="Brain Time">
-              {({ isFullscreen }) => (
-                <MetricLineChart
-                  days={days}
-                  valueKey="brainTime"
-                  label="Brain Time"
-                  unit="hours"
-                  color="#8b5cf6"
-                  isDark={isDark}
-                  isFullscreen={isFullscreen}
-                />
-              )}
-            </FullscreenChart>
-          )}
-
-          {/* Heart Rate Box Plots */}
-          {visibleMetrics.hr && (
-            <FullscreenChart title="Heart Rate">
-              {({ isFullscreen }) => (
-                <HRBoxPlotChart
-                  days={days}
-                  isDark={isDark}
-                  isFullscreen={isFullscreen}
-                />
-              )}
-            </FullscreenChart>
-          )}
-
-          {/* Sleep Stacked Bars */}
-          {visibleMetrics.sleep && (
-            <FullscreenChart title="Sleep">
-              {({ isFullscreen }) => (
-                <SleepStackedBar
-                  days={days}
-                  isDark={isDark}
-                  isFullscreen={isFullscreen}
-                />
-              )}
-            </FullscreenChart>
-          )}
-
-          {/* Steps */}
+          {/* 2. Steps */}
           {visibleMetrics.steps && (
-            <FullscreenChart title="Steps">
+            <FullscreenChart
+              title="Steps"
+              date={dateRangeStr}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              canNext={canNext}
+            >
               {({ isFullscreen }) => (
                 <MetricLineChart
                   days={days}
@@ -254,9 +233,53 @@ export default function MultiDayView({ isDark }) {
             </FullscreenChart>
           )}
 
-          {/* HRV */}
+          {/* 3. Sleep Stacked Bars */}
+          {visibleMetrics.sleep && (
+            <FullscreenChart
+              title="Sleep"
+              date={dateRangeStr}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              canNext={canNext}
+            >
+              {({ isFullscreen }) => (
+                <SleepStackedBar
+                  days={days}
+                  isDark={isDark}
+                  isFullscreen={isFullscreen}
+                />
+              )}
+            </FullscreenChart>
+          )}
+
+          {/* 4. Heart Rate Box Plots */}
+          {visibleMetrics.hr && (
+            <FullscreenChart
+              title="Heart Rate"
+              date={dateRangeStr}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              canNext={canNext}
+            >
+              {({ isFullscreen }) => (
+                <HRBoxPlotChart
+                  days={days}
+                  isDark={isDark}
+                  isFullscreen={isFullscreen}
+                />
+              )}
+            </FullscreenChart>
+          )}
+
+          {/* 5. HRV */}
           {visibleMetrics.hrv && (
-            <FullscreenChart title="HRV">
+            <FullscreenChart
+              title="HRV"
+              date={dateRangeStr}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              canNext={canNext}
+            >
               {({ isFullscreen }) => (
                 <MetricLineChart
                   days={days}
@@ -267,6 +290,54 @@ export default function MultiDayView({ isDark }) {
                   isDark={isDark}
                   isFullscreen={isFullscreen}
                   formatValue={(v) => `${v.toFixed(1)} ms`}
+                />
+              )}
+            </FullscreenChart>
+          )}
+
+          {/* 6. R/S Ratio (only show if ECG data exists) */}
+          {visibleMetrics.rsRatio && hasEcgData && (
+            <FullscreenChart
+              title="Avg R/S Ratio"
+              date={dateRangeStr}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              canNext={canNext}
+            >
+              {({ isFullscreen }) => (
+                <MetricLineChart
+                  days={days}
+                  valueExtractor={rsRatioExtractor}
+                  label="R/S Ratio"
+                  unit=""
+                  color="#ef4444"
+                  isDark={isDark}
+                  isFullscreen={isFullscreen}
+                  formatValue={(v) => v.toFixed(2)}
+                  tooltipExtra={(day) => day.ecg?.avgHr ? `ECG HR: ${Math.round(day.ecg.avgHr)} BPM` : null}
+                />
+              )}
+            </FullscreenChart>
+          )}
+
+          {/* 7. Brain Time */}
+          {visibleMetrics.brainTime && (
+            <FullscreenChart
+              title="Brain Time"
+              date={dateRangeStr}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              canNext={canNext}
+            >
+              {({ isFullscreen }) => (
+                <MetricLineChart
+                  days={days}
+                  valueKey="brainTime"
+                  label="Brain Time"
+                  unit="hours"
+                  color="#8b5cf6"
+                  isDark={isDark}
+                  isFullscreen={isFullscreen}
                 />
               )}
             </FullscreenChart>

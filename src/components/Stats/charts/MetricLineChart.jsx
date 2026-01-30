@@ -25,6 +25,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
  *   isDark: boolean
  *   isFullscreen: boolean
  *   formatValue: function(value) => string - optional formatter for tooltip
+ *   tooltipExtra: function(day) => string|null - optional extra line for tooltip
  */
 export default function MetricLineChart({
   days = [],
@@ -36,6 +37,7 @@ export default function MetricLineChart({
   isDark,
   isFullscreen,
   formatValue,
+  tooltipExtra,
 }) {
   const { labels, values } = useMemo(() => {
     const labels = [];
@@ -127,6 +129,13 @@ export default function MetricLineChart({
             }
             return `${label}: ${typeof val === 'number' ? val.toLocaleString() : val} ${unit}`;
           },
+          afterLabel: (item) => {
+            if (!tooltipExtra) return '';
+            const idx = item.dataIndex;
+            const day = days[idx];
+            if (!day) return '';
+            return tooltipExtra(day) || '';
+          },
         },
         backgroundColor: isDark ? '#1e293b' : '#ffffff',
         titleColor: isDark ? '#f8fafc' : '#0f172a',
@@ -135,7 +144,7 @@ export default function MetricLineChart({
         borderWidth: 1,
       },
     },
-  }), [isDark, isFullscreen, days, label, unit, formatValue]);
+  }), [isDark, isFullscreen, days, label, unit, formatValue, tooltipExtra]);
 
   const hasData = values.some(v => v != null);
   if (days.length === 0 || !hasData) {

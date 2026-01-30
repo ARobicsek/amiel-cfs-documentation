@@ -139,7 +139,16 @@ export default function SleepStackedBar({ days = [], isDark, isFullscreen }) {
             const mins = Math.round(hours * 60);
             const h = Math.floor(mins / 60);
             const m = mins % 60;
-            return `${item.dataset.label}: ${h}h ${m}m`;
+
+            // Calculate percentage of total sleep
+            const idx = item.dataIndex;
+            const sleep = days[idx]?.sleep;
+            let pct = '';
+            if (sleep && sleep.total > 0 && mins > 0) {
+              const percentage = Math.round((mins / sleep.total) * 100);
+              pct = ` (${percentage}%)`;
+            }
+            return `${item.dataset.label}: ${h}h ${m}m${pct}`;
           },
           afterBody: (items) => {
             if (!items.length) return '';
