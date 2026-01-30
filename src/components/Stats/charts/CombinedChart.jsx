@@ -169,8 +169,6 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 const y = yScale.getPixelForValue(point.bpm);
 
                 ctx.fillStyle = dark ? '#ffffff' : '#000000';
-                ctx.strokeStyle = dark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)';
-                ctx.lineWidth = 4;
 
                 const text = `${label}: ${point.bpm}`;
                 const textHeight = 14;
@@ -179,7 +177,6 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 if (isMax && (y + yOffset - textHeight) < scales.y.top) yOffset = 25;
                 if (!isMax && (y + yOffset) > scales.y.bottom) yOffset = -12;
 
-                ctx.strokeText(text, x, y + yOffset);
                 ctx.fillText(text, x, y + yOffset);
             };
 
