@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState, useLayoutEffect, useCallback } from 'react';
+import { useRef, useMemo, useState, useLayoutEffect, useCallback, useEffect } from 'react';
 import { Scatter } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -31,7 +31,9 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
     const activityMinutesRef = useRef(activityMinutes);
     const walkingMinutesRef = useRef(walkingMinutes);
     const sleepSessionsRef = useRef(sleepSessions);
-    const isDarkRef = useRef(isDark); // We need this in the plugin too
+    const isDarkRef = useRef(isDark);
+    const isFullscreenRef = useRef(isFullscreen);
+    const hrPointsRef = useRef(hrPoints);
 
     // Update refs on every render (sync with DOM paint)
     useLayoutEffect(() => {
@@ -39,7 +41,16 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
         walkingMinutesRef.current = walkingMinutes;
         sleepSessionsRef.current = sleepSessions;
         isDarkRef.current = isDark;
+        isFullscreenRef.current = isFullscreen;
+        hrPointsRef.current = hrPoints;
     }); // No dep array intended: run on every commit
+
+    // Force chart redraw when fullscreen changes so min/max labels appear
+    useEffect(() => {
+        if (chartRef.current) {
+            chartRef.current.update('none');
+        }
+    }, [isFullscreen]);
 
     // Memoize chart data
     const data = useMemo(() => ({
@@ -126,24 +137,24 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
         }
     }), []); // Empty deps = stable instance forever! Refs handle updates.
 
-    // Min/Max Label Plugin 
+    // Min/Max Label Plugin - reads from refs for stable identity
     const minMaxPlugin = useMemo(() => ({
         id: 'minMaxLabels',
         afterDatasetsDraw: (chart) => {
-            // Needed fresh data for points directly? 
-            // hrPoints IS passed in dependencies for this plugin because it's safer to recreate 
-            // (it changes less often than hover states) and we need the calculated min/max.
-            // But we can stick to using the props in closure here since we re-create this plugin when hrPoints changes.
-            if (!isFullscreen || hrPoints.length === 0) return;
+            const points = hrPointsRef.current;
+            const fullscreen = isFullscreenRef.current;
+            const dark = isDarkRef.current;
+
+            if (!fullscreen || !points || points.length === 0) return;
 
             const { ctx, scales } = chart;
             const xScale = scales.x;
             const yScale = scales.y;
 
-            let minPoint = hrPoints[0];
-            let maxPoint = hrPoints[0];
+            let minPoint = points[0];
+            let maxPoint = points[0];
 
-            hrPoints.forEach(p => {
+            points.forEach(p => {
                 if (p.bpm < minPoint.bpm) minPoint = p;
                 if (p.bpm > maxPoint.bpm) maxPoint = p;
             });
@@ -157,8 +168,8 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 const x = xScale.getPixelForValue(point.minuteOfDay);
                 const y = yScale.getPixelForValue(point.bpm);
 
-                ctx.fillStyle = isDark ? '#ffffff' : '#000000';
-                ctx.strokeStyle = isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)';
+                ctx.fillStyle = dark ? '#ffffff' : '#000000';
+                ctx.strokeStyle = dark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)';
                 ctx.lineWidth = 4;
 
                 const text = `${label}: ${point.bpm}`;
@@ -176,7 +187,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
             drawLabel(minPoint, 'Min', false);
             ctx.restore();
         }
-    }), [hrPoints, isFullscreen, isDark]); // This one CAN be reactive, it's cheap and only changes on day switch
+    }), []); // Stable - reads from refs
 
     // Stable Hover Handler
     const handleChartHover = useCallback((event, chartElement, chart) => {
@@ -209,8 +220,8 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
 
         const minute = Math.floor(scales.x.getValueForPixel(mouseX));
 
-        // Find sleep session
-        const activeSession = sessions.find(s => minute >= s.startMin && minute <= s.endMin && s.isAsleep);
+        // Find sleep block (merged contiguous ASLEEP region)
+        const activeSession = sessions.find(s => minute >= s.startMin && minute < s.endMin && s.isAsleep);
 
         if (activeSession) {
             const start = activeSession.startMin;

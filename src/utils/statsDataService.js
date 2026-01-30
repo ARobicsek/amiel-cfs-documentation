@@ -339,6 +339,25 @@ export function processSingleDayData(rows, dateStr) {
     }
   });
 
+  // 4b. Merge contiguous ASLEEP regions into consolidated sleep blocks for tooltips.
+  // The user sees one blue box for each contiguous sleep region, so the tooltip
+  // should show the full duration of that region, not individual sub-segments.
+  const mergedSleepBlocks = [];
+  let blockStart = -1;
+  for (let m = 0; m < 1440; m++) {
+    if (activityMinutes[m] === 'ASLEEP') {
+      if (blockStart === -1) blockStart = m;
+    } else {
+      if (blockStart !== -1) {
+        mergedSleepBlocks.push({ startMin: blockStart, endMin: m, isAsleep: true });
+        blockStart = -1;
+      }
+    }
+  }
+  if (blockStart !== -1) {
+    mergedSleepBlocks.push({ startMin: blockStart, endMin: 1440, isAsleep: true });
+  }
+
   // 5. Parse step_count rows and apply two-layer filter
   let totalSteps = 0;
   rows.forEach(row => {
@@ -419,7 +438,7 @@ export function processSingleDayData(rows, dateStr) {
     hrPoints,
     activityMinutes, // Contains only SLEEP and BLANK
     walkingMinutes,  // Contains booleans for steps layer
-    sleepSessions: allSegments,
+    sleepSessions: mergedSleepBlocks,
     summary: {
       totalSleepMin,
       totalSteps: Math.round(totalSteps),

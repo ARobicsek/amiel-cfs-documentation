@@ -118,16 +118,27 @@ export default function FullscreenChart({ title, children, onPrev, onNext, canNe
               <span style={{ fontSize: '14px', color: '#94a3b8', marginTop: '4px' }}>{date}</span>
             )}
           </div>
-          {(fsSupported || !isFullscreen) && (
+          {!isFullscreen && (
             <button
               className="fullscreen-btn"
-              onClick={isFullscreen && !fsSupported ? exitFallback : toggleFullscreen}
-              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              onClick={toggleFullscreen}
+              title="Fullscreen"
             >
-              {isFullscreen ? '\u2715' : '\u26F6'}
+              {'\u26F6'}
             </button>
           )}
         </div>
+      )}
+
+      {/* Close (X) button at top-right in fullscreen */}
+      {isFullscreen && (
+        <button
+          className="fs-close-btn"
+          onClick={fsSupported ? toggleFullscreen : exitFallback}
+          title="Exit fullscreen"
+        >
+          &times;
+        </button>
       )}
 
       {/* Navigation Overlay (only in fullscreen) */}
@@ -156,12 +167,6 @@ export default function FullscreenChart({ title, children, onPrev, onNext, canNe
           : children
         }
       </div>
-
-      {isFullscreen && !fsSupported && (
-        <button className="fullscreen-close-btn" onClick={exitFallback}>
-          Close
-        </button>
-      )}
     </div>
   );
 }

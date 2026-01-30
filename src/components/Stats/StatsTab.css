@@ -232,36 +232,43 @@
   color: var(--text-primary);
 }
 
-.fullscreen-close-btn {
-  position: fixed;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0.75rem 2rem;
-  background: var(--accent);
-  color: white;
+/* Fullscreen close X button (top-right) */
+.fs-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
   border: none;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.25);
+  color: var(--text-primary);
+  font-size: 1.4rem;
+  line-height: 1;
   cursor: pointer;
-  z-index: 10000;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: background 0.2s;
+}
+
+.fs-close-btn:hover {
+  background: rgba(148, 163, 184, 0.45);
 }
 
 /* Fullscreen Date Navigation Arrows */
 .fs-nav-btn {
-  position: fixed;
-  /* Fixed relative to viewport (or container context?) */
-  top: 60px;
-  /* Below standard header area */
-  width: 50px;
-  height: 50px;
+  position: absolute;
+  top: 8px;
+  width: 36px;
+  height: 36px;
   border: none;
   border-radius: 50%;
   background: rgba(148, 163, 184, 0.2);
-  /* Subtle overlay */
   color: var(--text-primary);
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   cursor: pointer;
   z-index: 10000;
   display: flex;
@@ -279,34 +286,28 @@
   transform: scale(0.95);
 }
 
-/* Center them horizontally separated by some space, or place at edges? */
-/* User asked for "side by side". Let's place them centered at top, below date */
 .fs-nav-prev {
-  left: calc(50% - 60px);
+  left: 8px;
 }
 
 .fs-nav-next {
-  right: calc(50% - 60px);
+  right: 52px; /* Inward from the X button */
 }
 
 /* Adjust for landscape mobile */
 @media (orientation: landscape) and (max-height: 500px) {
   .fs-nav-btn {
-    top: 10px;
-    /* Move up in landscape */
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
+    top: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
   }
 
-  /* Move arrows to edges in landscape to clear header */
   .fs-nav-prev {
-    left: 20px;
+    left: 8px;
   }
 
   .fs-nav-next {
-    right: 20px;
-    left: auto;
-    /* Reset left */
+    right: 52px;
   }
 }
