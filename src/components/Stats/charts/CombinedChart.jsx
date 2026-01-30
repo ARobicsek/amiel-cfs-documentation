@@ -23,7 +23,7 @@ ChartJS.register(LinearScale, PointElement, Tooltip, TimeScale, Title);
  *   activityMinutes: Array(1440) of 'ASLEEP' | 'WALKING' | 'BLANK'
  *   isDark: boolean
  */
-export default function CombinedChart({ hrPoints = [], activityMinutes = [], isDark, isFullscreen }) {
+export default function CombinedChart({ hrPoints = [], activityMinutes = [], walkingMinutes = [], sleepSessions = [], isDark, isFullscreen }) {
     const chartRef = useRef(null);
     const [tooltipState, setTooltipState] = useState({ visible: false, x: 0, y: 0, text: '' });
 
@@ -37,6 +37,8 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
                 pointRadius: 2.5,
                 pointHoverRadius: 6,
                 pointHoverBackgroundColor: '#FF6B6B',
+                // Add a hit radius to make it easier to touch
+                pointHitRadius: 15,
             },
         ],
     }), [hrPoints, isDark]);
@@ -45,50 +47,65 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
     const activityPlugin = useMemo(() => ({
         id: 'activityBackground',
         beforeDraw: (chart) => {
-            if (!activityMinutes || activityMinutes.length === 0) return;
-
             const { ctx, chartArea, scales } = chart;
-            const { left, right, top, bottom, width, height } = chartArea;
+            const { top, height } = chartArea;
             const xScale = scales.x;
 
             ctx.save();
 
-            // Colors
-            const colors = {
-                ASLEEP: isDark ? 'rgba(107, 141, 181, 0.3)' : 'rgba(147, 181, 213, 0.3)', // Blueish
-                WALKING: isDark ? 'rgba(123, 198, 126, 0.3)' : 'rgba(106, 191, 110, 0.3)', // Greenish
-            };
+            // 1. Draw Sleep (Blue) from activityMinutes
+            const sleepColor = isDark ? 'rgba(107, 141, 181, 0.3)' : 'rgba(147, 181, 213, 0.3)';
 
-            // Optimization: Group consecutive minutes with same state to reduce fillRect calls
-            let startM = 0;
-            let currentState = activityMinutes[0];
+            if (activityMinutes && activityMinutes.length > 0) {
+                ctx.fillStyle = sleepColor;
+                let startM = 0;
+                let isAsleep = activityMinutes[0] === 'ASLEEP';
 
-            const drawSegment = (start, end, state) => {
-                if (state === 'BLANK' || !state) return;
-
-                const x1 = xScale.getPixelForValue(start);
-                const x2 = xScale.getPixelForValue(end + 1); // +1 to include the full minute width
-
-                if (colors[state]) {
-                    ctx.fillStyle = colors[state];
+                const drawSleepSegment = (start, end) => {
+                    const x1 = xScale.getPixelForValue(start);
+                    const x2 = xScale.getPixelForValue(end + 1);
                     ctx.fillRect(x1, top, x2 - x1, height);
-                }
-            };
+                };
 
-            for (let m = 1; m < 1440; m++) {
-                const state = activityMinutes[m];
-                if (state !== currentState) {
-                    drawSegment(startM, m - 1, currentState);
-                    currentState = state;
-                    startM = m;
+                for (let m = 1; m < 1440; m++) {
+                    const currentAsleep = activityMinutes[m] === 'ASLEEP';
+                    if (currentAsleep !== isAsleep) {
+                        if (isAsleep) drawSleepSegment(startM, m - 1);
+                        isAsleep = currentAsleep;
+                        startM = m;
+                    }
                 }
+                if (isAsleep) drawSleepSegment(startM, 1439);
             }
-            // Draw last segment
-            drawSegment(startM, 1439, currentState);
+
+            // 2. Draw Walking (Green) from walkingMinutes - ON TOP
+            const walkColor = isDark ? 'rgba(123, 198, 126, 0.6)' : 'rgba(106, 191, 110, 0.6)';
+
+            if (walkingMinutes && walkingMinutes.length > 0) {
+                ctx.fillStyle = walkColor;
+                let startW = 0;
+                let isWalking = walkingMinutes[0];
+
+                const drawWalkSegment = (start, end) => {
+                    const x1 = xScale.getPixelForValue(start);
+                    const x2 = xScale.getPixelForValue(end + 1);
+                    ctx.fillRect(x1, top, x2 - x1, height);
+                };
+
+                for (let m = 1; m < 1440; m++) {
+                    const currentWalk = walkingMinutes[m];
+                    if (currentWalk !== isWalking) {
+                        if (isWalking) drawWalkSegment(startW, m - 1);
+                        isWalking = currentWalk;
+                        startW = m;
+                    }
+                }
+                if (isWalking) drawWalkSegment(startW, 1439);
+            }
 
             ctx.restore();
         }
-    }), [activityMinutes, isDark]);
+    }), [activityMinutes, walkingMinutes, isDark]);
 
     // Min/Max Label Plugin (Only in Fullscreen)
     const minMaxPlugin = useMemo(() => ({
@@ -110,7 +127,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
             });
 
             ctx.save();
-            ctx.font = 'bold 12px sans-serif';
+            ctx.font = 'bold 14px sans-serif'; // Increased font size
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
 
@@ -120,19 +137,19 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
 
                 // Colors
                 ctx.fillStyle = isDark ? '#ffffff' : '#000000';
-                ctx.strokeStyle = isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)';
-                ctx.lineWidth = 3;
+                ctx.strokeStyle = isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)';
+                ctx.lineWidth = 4;
 
                 const text = `${label}: ${point.bpm}`;
-                const textHeight = 12;
-                let yOffset = isMax ? -10 : 20; // Max above, Min below
+                const textHeight = 14;
+                let yOffset = isMax ? -12 : 25; // Max above, Min below
 
                 // Collision detection
                 if (isMax && (y + yOffset - textHeight) < scales.y.top) {
-                    yOffset = 15;
+                    yOffset = 25; // Flip to below if blocked above
                 }
                 if (!isMax && (y + yOffset) > scales.y.bottom) {
-                    yOffset = -10;
+                    yOffset = -12; // Flip to above if blocked below
                 }
 
                 ctx.strokeText(text, x, y + yOffset);
@@ -148,15 +165,22 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
     }), [hrPoints, isFullscreen, isDark]);
 
     const handleChartHover = (event, chartElement, chart) => {
+        // 1. Check for HR points (Chart.js interaction)
+        const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
+
+        if (points.length > 0) {
+            // Hovering over an HR point - let Chart.js tooltip show (hide custom tooltip)
+            setTooltipState({ visible: false, x: 0, y: 0, text: '' });
+            return;
+        }
+
+        // 2. Check for Sleep Segment
         if (!activityMinutes || activityMinutes.length === 0) {
             setTooltipState({ visible: false, x: 0, y: 0, text: '' });
             return;
         }
 
-        const { canvas, scales } = chart;
-        const rect = canvas.getBoundingClientRect();
-
-        // Use relative coordinates from the chart event
+        const { scales } = chart;
         const mouseX = event.x;
         const mouseY = event.y;
 
@@ -168,27 +192,15 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
 
         const minute = Math.floor(scales.x.getValueForPixel(mouseX));
 
-        // Ensure minute is within bounds
-        if (minute < 0 || minute >= 1440) {
-            setTooltipState({ visible: false, x: 0, y: 0, text: '' });
-            return;
-        }
+        // Find which sleep session this minute belongs to (if any)
+        // activityMinutes tells us if it is ASLEEP, but sleepSessions gives us the full clean block
+        const activeSession = sleepSessions.find(s => minute >= s.startMin && minute <= s.endMin && s.isAsleep);
 
-        const state = activityMinutes[minute];
+        if (activeSession) {
+            const start = activeSession.startMin;
+            const end = activeSession.endMin;
 
-        if (state === 'ASLEEP') {
-            // Found sleep! Calculate duration of this block
-            let start = minute;
-            while (start > 0 && activityMinutes[start - 1] === 'ASLEEP') {
-                start--;
-            }
-
-            let end = minute;
-            while (end < 1439 && activityMinutes[end + 1] === 'ASLEEP') {
-                end++;
-            }
-
-            const durationMinutes = end - start + 1;
+            const durationMinutes = end - start; // duration
             const hours = Math.floor(durationMinutes / 60);
             const mins = durationMinutes % 60;
             const durationText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
@@ -199,8 +211,8 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
 
             setTooltipState({
                 visible: true,
-                x: event.native.offsetX, // Use native offset for DOM positioning
-                y: event.native.offsetY - 40, // Shift up
+                x: event.native.offsetX,
+                y: event.native.offsetY - 40,
                 text: `Sleep: ${durationText} (${startTime} - ${endTime})`
             });
         } else {
@@ -229,7 +241,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
         interaction: {
             mode: 'nearest',
             intersect: true,
-            axis: 'x'
+            axis: 'xy' // Allow finding closest point in 2D
         },
         scales: {
             x: {
@@ -237,23 +249,14 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
                 min: 0,
                 max: 1440,
                 ticks: {
-                    stepSize: isFullscreen ? 120 : 240, // 2h in FS, 4h otherwise
+                    stepSize: isFullscreen ? 120 : 240,
                     callback: (value) => {
                         const h = Math.floor(value / 60);
-                        // Every 4 hours normally (0, 4, 8, 12, 16, 20)
-                        // Every 2 hours in fullscreen
-                        if (h % 2 !== 0 && !isFullscreen) return ''; // Skip odd hours if not FS
-                        if (h % 2 !== 0 && isFullscreen) {
-                            // Odd hours logic handled by stepSize + callback
-                        }
-
-                        const period = h >= 12 ? 'PM' : 'AM';
-                        const h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
-
-                        // We only want to label multiples of 2 if isFullscreen, else multiples of 4
                         if (!isFullscreen && h % 4 !== 0) return '';
                         if (isFullscreen && h % 2 !== 0) return '';
 
+                        const period = h >= 12 ? 'PM' : 'AM';
+                        const h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
                         return `${h12}${period}`;
                     },
                     color: isDark ? '#94a3b8' : '#64748b',
@@ -284,7 +287,9 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
             },
         },
         plugins: {
-            tooltip: { // Standard Chart.js tooltip
+            tooltip: {
+                // We want Chart.js tooltip for HR points
+                enabled: true,
                 callbacks: {
                     title: (items) => {
                         if (items.length === 0) return '';
@@ -325,16 +330,16 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
                         left: tooltipState.x,
                         top: tooltipState.y,
                         transform: 'translate(-50%, -100%)',
-                        backgroundColor: isDark ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                        backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
                         color: isDark ? '#f8fafc' : '#0f172a',
                         padding: '6px 10px',
                         borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
+                        fontSize: '13px',
+                        fontWeight: '600',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                         border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
                         pointerEvents: 'none',
-                        zIndex: 10,
+                        zIndex: 20,
                         whiteSpace: 'nowrap'
                     }}
                 >

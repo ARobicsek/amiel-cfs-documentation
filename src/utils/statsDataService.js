@@ -306,8 +306,9 @@ function differenceCluster(cluster, targetDateStr) {
  * @returns {Object} { hrPoints, activityMinutes, sleepSessions, summary }
  */
 export function processSingleDayData(rows, dateStr) {
-  // 1. Initialize 1440-element activity array (all BLANK)
-  const activityMinutes = new Array(1440).fill('BLANK');
+  // 1. Initialize 1440-element arrays
+  const activityMinutes = new Array(1440).fill('BLANK'); // SLEEP layer
+  const walkingMinutes = new Array(1440).fill(false);    // STEPS layer
 
   // 2. Parse sleep_analysis rows (only the parent rows, not explosion rows)
   const sleepSessions = [];
@@ -329,27 +330,12 @@ export function processSingleDayData(rows, dateStr) {
     allSegments.push(...segments);
   });
 
-  // 4. Mark ASLEEP minutes
+  // 4. Mark ASLEEP minutes in the base activity layer
   allSegments.forEach(seg => {
     if (seg.isAsleep) {
       for (let m = seg.startMin; m < seg.endMin && m < 1440; m++) {
         if (m >= 0) activityMinutes[m] = 'ASLEEP';
       }
-    }
-  });
-
-  // Build a set of "sleep minutes" for step suppression
-  const sleepMinutes = new Set();
-  for (let m = 0; m < 1440; m++) {
-    if (activityMinutes[m] === 'ASLEEP') sleepMinutes.add(m);
-  }
-
-  // Also build a broader "sleep session window" for step suppression
-  // (suppress steps during ANY sleep session window, not just high-density segments)
-  const sleepWindowMinutes = new Set();
-  allSegments.forEach(seg => {
-    for (let m = seg.startMin; m < seg.endMin && m < 1440; m++) {
-      if (m >= 0) sleepWindowMinutes.add(m);
     }
   });
 
@@ -366,15 +352,11 @@ export function processSingleDayData(rows, dateStr) {
 
       if (min === null) return;
 
-      // Layer 1: REMOVED Suppress steps during sleep session windows
-      // We want to see steps even if they overlap with sleep logic
-      // if (sleepWindowMinutes.has(min)) return;
-
       // Layer 2: Suppress steps < 2 per minute (sensor noise)
       if (qty < 2) return;
 
-      // Mark as WALKING
-      activityMinutes[min] = 'WALKING';
+      // Mark as WALKING in the overlay layer
+      walkingMinutes[min] = true;
     }
   });
 
@@ -412,7 +394,9 @@ export function processSingleDayData(rows, dateStr) {
 
   // 7. Compute summary stats
   const totalSleepMin = activityMinutes.filter(m => m === 'ASLEEP').length;
-  const totalWalkingMin = activityMinutes.filter(m => m === 'WALKING').length;
+  // Count walking minutes from the separate array
+  const totalWalkingMin = walkingMinutes.filter(isWalking => isWalking).length;
+
   const avgHR = hrPoints.length > 0
     ? Math.round(hrPoints.reduce((sum, p) => sum + p.bpm, 0) / hrPoints.length)
     : null;
@@ -433,7 +417,8 @@ export function processSingleDayData(rows, dateStr) {
 
   return {
     hrPoints,
-    activityMinutes,
+    activityMinutes, // Contains only SLEEP and BLANK
+    walkingMinutes,  // Contains booleans for steps layer
     sleepSessions: allSegments,
     summary: {
       totalSleepMin,

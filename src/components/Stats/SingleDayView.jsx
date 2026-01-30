@@ -23,7 +23,7 @@ export default function SingleDayView({ isDark }) {
   const fetchData = useCallback(async (dateStr) => {
     setLoading(true);
     setError(null);
-    setData(null);
+    // REMOVED: setData(null); -- Keep showing old data while loading to prevent FullscreenChart unmount
 
     try {
       const token = getSecretToken();
@@ -122,6 +122,8 @@ export default function SingleDayView({ isDark }) {
                 <CombinedChart
                   hrPoints={data.hrPoints}
                   activityMinutes={data.activityMinutes}
+                  walkingMinutes={data.walkingMinutes}
+                  sleepSessions={data.sleepSessions}
                   isDark={isDark}
                   isFullscreen={isFullscreen}
                 />

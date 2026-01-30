@@ -174,43 +174,45 @@ Planning-only session. Designed the Stats feature in detail through an interacti
 - ✅ Stats feature fully planned and documented
 - ✅ Ready to implement in Session 45
 
-### 2026-01-29 - Stats Improvements & Bug Fixes (Session 46 - Current)
+### 2026-01-29 - Stats Improvements & Bug Fixes (Session 46)
 
 **Session Summary:**
-Refined the Stats Single Day view based on user feedback. Fixed critical bugs regarding sleep data visibility and sleep tooltip. Enhanced chart visualization with Min/Max labels, Fullscreen improvements using the `CombinedChart` component, and prioritized activity visibility.
+Refined the Stats Single Day view based on user feedback. Implemented "Steps on Top" visualization, fixed sleep tooltips to show full session duration, and optimized Fullscreen mode with side-by-side navigation arrows and better layout.
 
 **Accomplishments:**
 
 1.  **Combined Chart Implementation**
     -   Merged HR scatter and Activity bars into a single canvas-based chart using custom filtering.
-    -   Implemented "Steps Overlay": Steps (Green) now render on top of Sleep (Blue) to show activity bursts during sleep.
-    -   Added robust "Sleep Duration Tooltip" on hover.
+    -   **Steps on Top**: Steps (Green) now render ON TOP of Sleep (Blue) to ensure activity bursts during sleep are visible.
+    -   **Smart Tooltips**: Touch interaction prioritizes HR points. If no point is hit, shows "Sleep Duration Tooltip" with the *complete* session time (Start - End) even if tapping a middle segment.
 
 2.  **Chart Visualization Enhancements**
-    -   **Min/Max Labels**: Labels for Min and Max HR now appear on the chart with collision detection (flipped if close to edges).
-    -   **Fullscreen Header**: Added date display to the fullscreen header.
-    -   **Persistent State**: Navigating between dates in fullscreen mode no longer unmounts the component.
+    -   **Min/Max Labels**: Large, bold labels for Min and Max HR with smart collision detection.
+    -   **Fullscreen Header**: Added date display and reduced vertical padding.
+    -   **Side-by-Side Arrows**: Navigation arrows in fullscreen are now centered side-by-side for easier reach.
+    -   **Persistent State**: Navigating between dates in fullscreen mode no longer unmounts the component, preventing accidental exit.
 
 3.  **Sleep Data Parsing Fix**
-    -   Fixed `parseTimestamp` logic in `statsDataService.js` to handle `YYYY-MM-DD HH:mm:ss -ZZZZ` format robustly across browsers.
+    -   Fixed `parseTimestamp` logic in `statsDataService.js` to handle `YYYY-MM-DD HH:mm:ss -ZZZZ` format robustly.
     -   Resolved "0m Sleep" bug for Jan 28.
 
 4.  **Local Development Fix**
-    -   Identified issue with `npm run dev` serving source code for API routes.
     -   Added `npm run dev:api` script to use `vercel dev` for correct serverless function emulation.
 
 **Files Modified:**
--   `src/utils/statsDataService.js` - Date parsing, activity prioritization (Steps > Sleep).
--   `src/components/Stats/charts/CombinedChart.jsx` - Tooltips, Min/Max labels, padding.
+-   `src/utils/statsDataService.js` - Data layering (Walking vs Sleep), date parsing.
+-   `src/components/Stats/charts/CombinedChart.jsx` - Canvas rendering order (Green > Blue), tooltip priority logic.
 -   `src/components/Stats/FullscreenChart.jsx` - Date header, navigation persistence.
--   `src/components/Stats/SingleDayView.jsx` - State preservation during loading.
+-   `src/components/Stats/StatsTab.css` - Side-by-side arrows, improved fullscreen layout.
+-   `src/components/Stats/SingleDayView.jsx` - State preservation.
 -   `package.json` - Added `dev:api` script.
 
 **Status at End of Session:**
 -   ✅ Sleep data visible and correct.
--   ✅ Fullscreen navigation works without closing.
--   ✅ Min/Max labels visible with collision logic.
--   ⚠️ **User Feedback:** "Still lots of issues."
+-   ✅ Steps now clearly visible on top of sleep segments.
+-   ✅ Fullscreen navigation works perfectly (persistent & side-by-side arrows).
+-   ✅ Min/Max labels visible and legible.
+-   ✅ Tooltips behave intuitively on touch.
 
 **Next Steps (Session 47):**
 1.  **Deep Dive Debugging:** Investigate remaining user-reported issues (specifics TBD).
