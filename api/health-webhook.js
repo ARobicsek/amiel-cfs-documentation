@@ -254,7 +254,7 @@ export default async function handler(req, res) {
 
                 for (let i = 1; i < sleepSessions.length; i++) {
                     const s = sleepSessions[i];
-                    if (s.sleepStart && s.sleepStart.getTime() <= clusterEnd) {
+                    if (s.sleepStart && s.sleepStart.getTime() < clusterEnd) {
                         currentCluster.push(s);
                         if (s.sleepEnd) clusterEnd = Math.max(clusterEnd, s.sleepEnd.getTime());
                     } else {
@@ -271,45 +271,65 @@ export default async function handler(req, res) {
                     if (cluster.length === 1) {
                         best = cluster[0];
                     } else {
-                        // Sort by span (longest first)
-                        const sorted = [...cluster].sort((a, b) => {
-                            const spanA = (a.sleepEnd ? a.sleepEnd.getTime() : 0) - (a.sleepStart ? a.sleepStart.getTime() : 0);
-                            const spanB = (b.sleepEnd ? b.sleepEnd.getTime() : 0) - (b.sleepStart ? b.sleepStart.getTime() : 0);
-                            return spanB - spanA;
-                        });
+                        // Check if sessions are truly nested or sequential
+                        const byStart = [...cluster].sort((a, b) =>
+                            (a.sleepStart ? a.sleepStart.getTime() : 0) - (b.sleepStart ? b.sleepStart.getTime() : 0));
+                        const isNested = byStart.length >= 2 && byStart[0].sleepEnd &&
+                            byStart[byStart.length - 1].sleepEnd &&
+                            byStart[0].sleepEnd.getTime() >= byStart[byStart.length - 1].sleepEnd.getTime();
 
-                        // Walk from innermost outward, expanding while gaps look like sleep
-                        best = sorted[sorted.length - 1];
-                        for (let i = sorted.length - 2; i >= 0; i--) {
-                            const outer = sorted[i];
-                            const inner = sorted[i + 1];
-                            if (!outer.sleepStart || !inner.sleepStart) continue;
-                            if (outer.sleepStart.getTime() >= inner.sleepStart.getTime()) continue;
+                        if (!isNested) {
+                            // Sequential — pick session with most totalMins
+                            best = cluster[0];
+                            for (let i = 1; i < cluster.length; i++) {
+                                if (cluster[i].totalMins > best.totalMins) best = cluster[i];
+                            }
+                        } else {
+                            // Nested: sort by span (longest first)
+                            const sorted = [...cluster].sort((a, b) => {
+                                const spanA = (a.sleepEnd ? a.sleepEnd.getTime() : 0) - (a.sleepStart ? a.sleepStart.getTime() : 0);
+                                const spanB = (b.sleepEnd ? b.sleepEnd.getTime() : 0) - (b.sleepStart ? b.sleepStart.getTime() : 0);
+                                return spanB - spanA;
+                            });
 
-                            // Compute awake score for the exclusive gap
-                            const gapStart = outer.sleepStart.getTime();
-                            const gapEnd = inner.sleepStart.getTime();
-                            const gapSpanMin = (gapEnd - gapStart) / 60000;
-                            const gapHR = tsHrReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
-                            const gapSteps = tsStepReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
+                            // Walk from innermost outward, expanding while gaps look like sleep
+                            best = sorted[sorted.length - 1];
+                            for (let i = sorted.length - 2; i >= 0; i--) {
+                                const outer = sorted[i];
+                                const inner = sorted[i + 1];
+                                if (!outer.sleepStart || !inner.sleepStart) continue;
+                                if (outer.sleepStart.getTime() >= inner.sleepStart.getTime()) continue;
 
-                            const gapTotalSteps = gapSteps.reduce((sum, s) => sum + s.qty, 0);
-                            const gapSigSteps = gapSteps.filter(s => s.qty > 2);
-                            const gapAvgHR = gapHR.length > 0 ? gapHR.reduce((s, r) => s + r.bpm, 0) / gapHR.length : null;
-                            const gapMaxHR = gapHR.length > 0 ? Math.max(...gapHR.map(r => r.bpm)) : null;
-                            const stepsPerHour = gapSpanMin > 0 ? (gapTotalSteps / gapSpanMin) * 60 : 0;
-                            const sigStepsPerHour = gapSpanMin > 0 ? (gapSigSteps.length / gapSpanMin) * 60 : 0;
+                                // Compute awake score for the exclusive gap
+                                const gapStart = outer.sleepStart.getTime();
+                                const gapEnd = inner.sleepStart.getTime();
+                                const gapSpanMin = (gapEnd - gapStart) / 60000;
+                                const gapSpanHours = gapSpanMin / 60;
 
-                            const awakeScore =
-                                (gapAvgHR && gapAvgHR > 70 ? 2 : 0) +
-                                (gapMaxHR && gapMaxHR > 85 ? 1 : 0) +
-                                (sigStepsPerHour > 1 ? 2 : 0) +
-                                (stepsPerHour > 20 ? 2 : 0);
+                                const gapHR = tsHrReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
 
-                            if (awakeScore < 3) {
-                                best = outer; // Gap looks like sleep → expand
-                            } else {
-                                break; // Gap shows awake → stop
+                                // Sparse HR data (>30min gap, <2 readings/hr) = inconclusive, don't expand
+                                if (gapSpanMin > 30 && gapHR.length < gapSpanHours * 2) break;
+
+                                const gapSteps = tsStepReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
+                                const gapTotalSteps = gapSteps.reduce((sum, s) => sum + s.qty, 0);
+                                const gapSigSteps = gapSteps.filter(s => s.qty > 2);
+                                const gapAvgHR = gapHR.length > 0 ? gapHR.reduce((s, r) => s + r.bpm, 0) / gapHR.length : null;
+                                const gapMaxHR = gapHR.length > 0 ? Math.max(...gapHR.map(r => r.bpm)) : null;
+                                const stepsPerHour = gapSpanMin > 0 ? (gapTotalSteps / gapSpanMin) * 60 : 0;
+                                const sigStepsPerHour = gapSpanMin > 0 ? (gapSigSteps.length / gapSpanMin) * 60 : 0;
+
+                                const awakeScore =
+                                    (gapAvgHR && gapAvgHR > 70 ? 2 : 0) +
+                                    (gapMaxHR && gapMaxHR > 85 ? 1 : 0) +
+                                    (sigStepsPerHour > 1 ? 2 : 0) +
+                                    (stepsPerHour > 20 ? 2 : 0);
+
+                                if (awakeScore < 3) {
+                                    best = outer; // Gap looks like sleep → expand
+                                } else {
+                                    break; // Gap shows awake → stop
+                                }
                             }
                         }
                     }

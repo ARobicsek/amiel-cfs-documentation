@@ -23,7 +23,7 @@ ChartJS.register(LinearScale, PointElement, Tooltip, TimeScale, Title);
  *   activityMinutes: Array(1440) of 'ASLEEP' | 'WALKING' | 'BLANK'
  *   isDark: boolean
  */
-export default function CombinedChart({ hrPoints = [], activityMinutes = [], walkingMinutes = [], sleepSessions = [], isDark, isFullscreen }) {
+export default function CombinedChart({ hrPoints = [], activityMinutes = [], walkingMinutes = [], stepCounts = [], sleepSessions = [], isDark, isFullscreen }) {
     const chartRef = useRef(null);
     const [tooltipState, setTooltipState] = useState({ visible: false, x: 0, y: 0, text: '' });
 
@@ -31,6 +31,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
     const activityMinutesRef = useRef(activityMinutes);
     const walkingMinutesRef = useRef(walkingMinutes);
     const sleepSessionsRef = useRef(sleepSessions);
+    const stepCountsRef = useRef(stepCounts);
     const isDarkRef = useRef(isDark);
     const isFullscreenRef = useRef(isFullscreen);
     const hrPointsRef = useRef(hrPoints);
@@ -40,6 +41,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
         activityMinutesRef.current = activityMinutes;
         walkingMinutesRef.current = walkingMinutes;
         sleepSessionsRef.current = sleepSessions;
+        stepCountsRef.current = stepCounts;
         isDarkRef.current = isDark;
         isFullscreenRef.current = isFullscreen;
         hrPointsRef.current = hrPoints;
@@ -191,17 +193,15 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
         // Reads from Refs to avoid closure staleness
         const actMin = activityMinutesRef.current;
         const sessions = sleepSessionsRef.current;
+        const steps = stepCountsRef.current;
+        const walkMin = walkingMinutesRef.current;
 
-        // 1. Check for HR points using Chart.js API
+        // Priority: HR (built-in tooltip) > Steps > Sleep
+
+        // 1. Check for HR points using Chart.js API — built-in tooltip handles these
         const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
 
         if (points.length > 0) {
-            setTooltipState({ visible: false, x: 0, y: 0, text: '' });
-            return;
-        }
-
-        // 2. Check for Sleep Segment
-        if (!actMin || actMin.length === 0) {
             setTooltipState({ visible: false, x: 0, y: 0, text: '' });
             return;
         }
@@ -217,45 +217,56 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
 
         const minute = Math.floor(scales.x.getValueForPixel(mouseX));
 
-        // Find sleep block (merged contiguous ASLEEP region)
-        const activeSession = sessions.find(s => minute >= s.startMin && minute < s.endMin && s.isAsleep);
-
-        if (activeSession) {
-            // Use full session metadata if available (true start/end and
-            // duration including awake time), otherwise fall back to the
-            // clipped block times shown on screen.
-            let durationMinutes, startTime, endTime;
-            if (activeSession.fullStart && activeSession.fullEnd && activeSession.fullDurationMin) {
-                durationMinutes = activeSession.fullDurationMin;
-                const fs = activeSession.fullStart;
-                const fe = activeSession.fullEnd;
-                const fmtT = (d) => {
-                    let h = d.getHours();
-                    const m = d.getMinutes();
-                    const period = h >= 12 ? 'PM' : 'AM';
-                    h = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                    return `${h}:${String(m).padStart(2, '0')} ${period}`;
-                };
-                startTime = fmtT(fs);
-                endTime = fmtT(fe);
-            } else {
-                durationMinutes = activeSession.endMin - activeSession.startMin;
-                startTime = formatTime(activeSession.startMin);
-                endTime = formatTime(activeSession.endMin);
-            }
-            const hours = Math.floor(durationMinutes / 60);
-            const mins = durationMinutes % 60;
-            const durationText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-
+        // 2. Check for steps at this minute
+        if (walkMin && walkMin[minute] && steps && steps[minute] > 0) {
             setTooltipState({
                 visible: true,
                 x: event.native.offsetX,
                 y: event.native.offsetY - 40,
-                text: `Sleep: ${durationText} (${startTime} - ${endTime})`
+                text: `${formatTime(minute)}: ${steps[minute]} steps`
             });
-        } else {
-            setTooltipState({ visible: false, x: 0, y: 0, text: '' });
+            return;
         }
+
+        // 3. Check for Sleep Segment
+        if (actMin && actMin.length > 0) {
+            const activeSession = sessions.find(s => minute >= s.startMin && minute < s.endMin && s.isAsleep);
+
+            if (activeSession) {
+                let durationMinutes, startTime, endTime;
+                if (activeSession.fullStart && activeSession.fullEnd && activeSession.fullDurationMin) {
+                    durationMinutes = activeSession.fullDurationMin;
+                    const fs = activeSession.fullStart;
+                    const fe = activeSession.fullEnd;
+                    const fmtT = (d) => {
+                        let h = d.getHours();
+                        const m = d.getMinutes();
+                        const period = h >= 12 ? 'PM' : 'AM';
+                        h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                        return `${h}:${String(m).padStart(2, '0')} ${period}`;
+                    };
+                    startTime = fmtT(fs);
+                    endTime = fmtT(fe);
+                } else {
+                    durationMinutes = activeSession.endMin - activeSession.startMin;
+                    startTime = formatTime(activeSession.startMin);
+                    endTime = formatTime(activeSession.endMin);
+                }
+                const hours = Math.floor(durationMinutes / 60);
+                const mins = durationMinutes % 60;
+                const durationText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+                setTooltipState({
+                    visible: true,
+                    x: event.native.offsetX,
+                    y: event.native.offsetY - 40,
+                    text: `Sleep: ${durationText} (${startTime} - ${endTime})`
+                });
+                return;
+            }
+        }
+
+        setTooltipState({ visible: false, x: 0, y: 0, text: '' });
     }, []); // Empty deps = stable callback!
 
     const handleChartLeave = useCallback(() => {

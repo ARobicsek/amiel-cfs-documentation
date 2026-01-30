@@ -156,7 +156,7 @@ function clusterSessions(sessions) {
   let clusterEnd = sorted[0].sleepEnd.getTime();
 
   for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i].sleepStart.getTime() <= clusterEnd) {
+    if (sorted[i].sleepStart.getTime() < clusterEnd) {
       current.push(sorted[i]);
       clusterEnd = Math.max(clusterEnd, sorted[i].sleepEnd.getTime());
     } else {
@@ -194,8 +194,12 @@ for (const cluster of clusters) {
   const parent = sorted[0];
   const innermost = sorted[sorted.length - 1];
 
+  // Check if truly nested (earliest start contains latest end)
+  const byStart = [...cluster].sort((a, b) => a.sleepStart - b.sleepStart);
+  const isNested = byStart[0].sleepEnd.getTime() >= byStart[byStart.length - 1].sleepEnd.getTime();
+
   console.log(`\n${'='.repeat(80)}`);
-  console.log(`CLUSTER (${parent.date}): ${cluster.length} overlapping sessions`);
+  console.log(`CLUSTER (${parent.date}): ${cluster.length} ${isNested ? 'nested' : 'sequential'} sessions`);
   console.log(`${'='.repeat(80)}`);
 
   for (let i = 0; i < sorted.length; i++) {
@@ -210,6 +214,19 @@ for (const cluster of clusters) {
     console.log(`    Awake score: ${analysis.awakeScore}/7`);
   }
 
+  if (!isNested) {
+    // Sequential sessions — pick longest by totalSleepMin
+    let bestSession = cluster[0];
+    for (let i = 1; i < cluster.length; i++) {
+      if (cluster[i].totalSleepMin > bestSession.totalSleepMin) bestSession = cluster[i];
+    }
+    console.log(`\n  VERDICT (sequential — pick longest by totalSleep):`);
+    console.log(`    → Best session: ${fmtDT(bestSession.sleepStart)} → ${fmtDT(bestSession.sleepEnd)}`);
+    console.log(`    → Recommended sleep total: ${Math.round(bestSession.totalSleepMin + bestSession.awakeMin)}min`);
+    console.log(`    → Apple totalSleep: ${Math.round(bestSession.totalSleepMin)}min, awake: ${Math.round(bestSession.awakeMin)}min`);
+    continue;
+  }
+
   // Analyze each layer's EXCLUSIVE region (from layer start to next-inner layer start).
   // Walk from INNERMOST outward, expanding as long as each gap looks like sleep.
   // Stop expanding when a gap shows awake activity.
@@ -221,15 +238,24 @@ for (const cluster of clusters) {
     const inner = sorted[i + 1];
     if (outer.sleepStart.getTime() >= inner.sleepStart.getTime()) continue;
 
-    const exclAnalysis = analyzeTimeRange(outer.sleepStart.getTime(), inner.sleepStart.getTime());
     const exclSpan = Math.round((inner.sleepStart - outer.sleepStart) / 60000);
     const outerLabel = i === 0 ? 'PARENT' : `MIDDLE #${i}`;
     const innerLabel = i + 1 === sorted.length - 1 ? 'INNERMOST' : `MIDDLE #${i + 1}`;
+
+    const exclAnalysis = analyzeTimeRange(outer.sleepStart.getTime(), inner.sleepStart.getTime());
+    const exclSpanHours = exclSpan / 60;
 
     console.log(`\n  [${outerLabel} → ${innerLabel} exclusive gap]`);
     console.log(`    ${fmtDT(outer.sleepStart)} → ${fmtDT(inner.sleepStart)} (${exclSpan}min)`);
     console.log(`    HR: avg=${exclAnalysis.avgHR}, max=${exclAnalysis.maxHR}, readings=${exclAnalysis.hrCount}`);
     console.log(`    Steps: total=${exclAnalysis.totalSteps} (${exclAnalysis.stepsPerHour}/hr), sigSteps=${exclAnalysis.significantSteps} (${exclAnalysis.sigStepsPerHour}/hr)`);
+
+    // Sparse HR data = inconclusive (likely cross-midnight gap with missing data)
+    if (exclSpan > 30 && exclAnalysis.hrCount < exclSpanHours * 2) {
+      console.log(`    Awake score: N/A — sparse HR data (${exclAnalysis.hrCount} readings for ${exclSpan}min gap), stop expanding`);
+      break;
+    }
+
     console.log(`    Awake score: ${exclAnalysis.awakeScore}/7 ${exclAnalysis.awakeScore >= 3 ? '⚠ AWAKE' : '✓ SLEEP'}`);
 
     if (exclAnalysis.awakeScore < 3) {
@@ -241,7 +267,7 @@ for (const cluster of clusters) {
     }
   }
 
-  console.log(`\n  VERDICT:`);
+  console.log(`\n  VERDICT (nested — HR/step validation):`);
   console.log(`    → Best session: ${fmtDT(bestSession.sleepStart)} → ${fmtDT(bestSession.sleepEnd)}`);
   console.log(`    → Recommended sleep total: ${Math.round(bestSession.totalSleepMin + bestSession.awakeMin)}min`);
   console.log(`    → Apple totalSleep: ${Math.round(bestSession.totalSleepMin)}min, awake: ${Math.round(bestSession.awakeMin)}min`);

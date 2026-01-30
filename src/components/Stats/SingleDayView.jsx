@@ -123,6 +123,7 @@ export default function SingleDayView({ isDark }) {
                   hrPoints={data.hrPoints}
                   activityMinutes={data.activityMinutes}
                   walkingMinutes={data.walkingMinutes}
+                  stepCounts={data.stepCounts}
                   sleepSessions={data.sleepSessions}
                   isDark={isDark}
                   isFullscreen={isFullscreen}

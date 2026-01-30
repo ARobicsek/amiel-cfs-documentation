@@ -150,25 +150,43 @@ async function handleSingleDay(req, res, date) {
 
     const matchingRows = [];
     const spilloverRows = [];
+    // Collect all next-day sleep_analysis rows with parsed time ranges for sibling detection
+    const nextDaySleepRows = [];
 
     for (const row of allRows) {
       const dateStr = row[1];
       if (rowMatchesDate(dateStr, targetMonth, targetDay, targetYear)) {
         matchingRows.push(row);
       } else if (row[3] === 'sleep_analysis' && rowMatchesDate(dateStr, nextMonth, nextDay, nextYear)) {
-        // Check if this next-day sleep session starts on the target date
+        // Parse time range for this next-day sleep session
         try {
           const rawJson = row[8] ? JSON.parse(row[8]) : {};
-          if (rawJson.sleepStart) {
+          if (rawJson.sleepStart && rawJson.sleepEnd) {
+            const startMs = new Date(rawJson.sleepStart).getTime();
+            const endMs = new Date(rawJson.sleepEnd).getTime();
             const startDate = new Date(rawJson.sleepStart);
-            if (startDate.getFullYear() === targetYear &&
+            const isSpillover = startDate.getFullYear() === targetYear &&
                 (startDate.getMonth() + 1) === targetMonth &&
-                startDate.getDate() === targetDay) {
-              spilloverRows.push(row);
-            }
+                startDate.getDate() === targetDay;
+            nextDaySleepRows.push({ row, startMs, endMs, isSpillover });
           }
         } catch { /* skip unparseable rows */ }
       }
+    }
+
+    // Find spillover sessions and their cluster siblings (overlapping sessions from date+1).
+    // Without siblings, the parent session can't be validated against its children.
+    const spilloverSessions = nextDaySleepRows.filter(s => s.isSpillover);
+    for (const s of spilloverSessions) {
+      spilloverRows.push(s.row);
+    }
+    // Include cluster siblings: other date+1 sleep sessions whose time range overlaps a spillover session
+    for (const candidate of nextDaySleepRows) {
+      if (candidate.isSpillover) continue; // already included
+      const overlaps = spilloverSessions.some(sp =>
+        candidate.startMs < sp.endMs && candidate.endMs > sp.startMs
+      );
+      if (overlaps) spilloverRows.push(candidate.row);
     }
 
     const mapRow = (row, spillover = false) => ({

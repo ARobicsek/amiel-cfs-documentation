@@ -155,7 +155,7 @@ function clusterSleepSessions(sessions) {
 
   for (let i = 1; i < sorted.length; i++) {
     const s = sorted[i];
-    if (s.sleepStart.getTime() <= clusterEnd) {
+    if (s.sleepStart.getTime() < clusterEnd) {
       // Overlaps with current cluster
       current.push(s);
       clusterEnd = Math.max(clusterEnd, s.sleepEnd.getTime());
@@ -188,6 +188,12 @@ function computeAwakeScore(startMs, endMs, tsHrReadings, tsStepReadings) {
   const hrs = tsHrReadings.filter(r => r.ts >= startMs && r.ts < endMs);
   const steps = tsStepReadings.filter(r => r.ts >= startMs && r.ts < endMs);
   const spanMin = (endMs - startMs) / 60000;
+  const spanHours = spanMin / 60;
+
+  // If the gap is > 30 min but has very sparse HR data (< 2 readings/hour),
+  // we can't reliably determine sleep/awake — likely a cross-midnight gap where
+  // HR data from the other day is missing. Default to "inconclusive" = don't expand.
+  if (spanMin > 30 && hrs.length < spanHours * 2) return 3;
 
   const totalSteps = steps.reduce((sum, s) => sum + s.qty, 0);
   const significantSteps = steps.filter(s => s.qty > 2);
@@ -215,18 +221,36 @@ function computeAwakeScore(startMs, endMs, tsHrReadings, tsStepReadings) {
 function findBestSessionInCluster(cluster, tsHrReadings, tsStepReadings) {
   if (cluster.length === 1) return cluster[0];
 
-  // Sort by span length (longest first = parent)
-  const sorted = [...cluster].sort((a, b) => {
+  // Check if sessions are truly nested (one contains another) or sequential.
+  // Nested: parent.start <= child.start && parent.end >= child.end
+  // Sequential: sessions touch or partially overlap but neither fully contains the other.
+  const sorted = [...cluster].sort((a, b) => a.sleepStart.getTime() - b.sleepStart.getTime());
+  const isNested = sorted.length >= 2 &&
+    sorted[0].sleepEnd.getTime() >= sorted[sorted.length - 1].sleepEnd.getTime();
+
+  if (!isNested) {
+    // Sequential or partially overlapping — return the longest session by totalSleepMin
+    let best = cluster[0];
+    for (let i = 1; i < cluster.length; i++) {
+      if (cluster[i].totalSleepMin > best.totalSleepMin) {
+        best = cluster[i];
+      }
+    }
+    return best;
+  }
+
+  // Nested sessions: sort by span length (longest first = parent)
+  const bySpan = [...cluster].sort((a, b) => {
     const spanA = a.sleepEnd.getTime() - a.sleepStart.getTime();
     const spanB = b.sleepEnd.getTime() - b.sleepStart.getTime();
     return spanB - spanA;
   });
 
   // Start with innermost, expand outward while gaps look like sleep
-  let best = sorted[sorted.length - 1];
-  for (let i = sorted.length - 2; i >= 0; i--) {
-    const outer = sorted[i];
-    const inner = sorted[i + 1];
+  let best = bySpan[bySpan.length - 1];
+  for (let i = bySpan.length - 2; i >= 0; i--) {
+    const outer = bySpan[i];
+    const inner = bySpan[i + 1];
     if (outer.sleepStart.getTime() >= inner.sleepStart.getTime()) continue;
 
     const score = computeAwakeScore(
@@ -260,6 +284,7 @@ export function processSingleDayData(rows, dateStr) {
   // 1. Initialize 1440-element arrays
   const activityMinutes = new Array(1440).fill('BLANK'); // SLEEP layer
   const walkingMinutes = new Array(1440).fill(false);    // STEPS layer
+  const stepCounts = new Array(1440).fill(0);            // Steps per minute
 
   // 1b. Early pass: collect timestamped HR and step readings for sleep validation.
   // These are used by the awake-score algorithm to determine whether a sleep
@@ -386,6 +411,9 @@ export function processSingleDayData(rows, dateStr) {
 
       if (min === null) return;
 
+      // Accumulate step count for this minute
+      stepCounts[min] += qty;
+
       // Layer 2: Suppress steps < 2 per minute (sensor noise)
       if (qty < 2) return;
 
@@ -463,6 +491,7 @@ export function processSingleDayData(rows, dateStr) {
     hrPoints,
     activityMinutes, // Contains only SLEEP and BLANK
     walkingMinutes,  // Contains booleans for steps layer
+    stepCounts,      // Steps per minute (0-1439)
     sleepSessions: mergedSleepBlocks,
     summary: {
       totalSleepMin,

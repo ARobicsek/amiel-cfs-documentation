@@ -37,7 +37,7 @@ Track completed features and current status here. Update after completing each f
 | 16 | Stats Tab - Single Day View | DONE | HR scatter + activity bar (sleep/walking/blank), 24h timeline, date navigation, summary stats |
 | 17 | Stats Tab - Multi Day View | DONE | 6 charts: HR box plots, sleep stacked bars, steps/HRV/feet on ground/brain time line charts. Date range nav + 7D/30D/3M/6M presets. Fullscreen per chart. |
 | 18 | Streak animations | TODO | ON HOLD - Motivation feature |
-| 19 | Sleep session validation (HR/step-based) | IN PROGRESS | Replaced NSD with HR/step awake-score validation for picking best session from nested Apple Watch clusters. Server-side (webhook) + client-side (statsDataService). Two known issues remain: spillover cache bug, missed afternoon sleep. |
+| 19 | Sleep session validation (HR/step-based) | DONE | HR/step awake-score validation for picking best session from nested Apple Watch clusters. Handles nested, sequential, and cross-midnight sessions. Sparse-data guard prevents false parent expansion. Step count tooltip added. |
 
 ### Phase 4: ECG Integration (COMPLETE - Fully Automatic)
 
@@ -69,6 +69,34 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-01-30 - Sleep Validation Bug Fixes + Step Tooltip (Session 50)
+
+**Session Summary:**
+Fixed three critical sleep display bugs from Session 49 and added step count tooltips to the combined chart.
+
+**Accomplishments:**
+
+1. **Sequential session handling** — Fixed `clusterSleepSessions` to use strict overlap (`<` instead of `<=`). Back-to-back sessions that touch at a boundary (e.g., 4:48–5:56 PM and 5:56–10:12 PM) are now separate clusters. Added nested-vs-sequential detection in `findBestSessionInCluster`: sequential sessions pick the one with highest `totalSleepMin` instead of the inner-to-outer gap walk.
+
+2. **Sparse-data guard for cross-midnight sessions** — Added HR data coverage check to `computeAwakeScore`. If a gap is >30 min but has <2 HR readings per hour, it returns "inconclusive" (score 3), preventing false parent expansion. This correctly rejects the 6:03 PM–1:13 AM overnight parent (only 12 HR readings over 7.2h gap, all clustered in last hour) while correctly accepting the 6:49 AM–4:26 PM daytime sleep (116 HR readings over 8h gap).
+
+3. **API cluster siblings for spillover** — Modified `handleSingleDay` in `get-hourly-data.js` to include cluster siblings (overlapping sleep_analysis sessions from date+1) alongside spillover sessions. Previously, viewing Jan 28 only got the overnight parent without its children, making validation impossible.
+
+4. **Step count tooltip** — Added `stepCounts` array (per-minute step counts) to `processSingleDayData`. CombinedChart now shows step count on hover over green walking bars. Tooltip priority: HR (built-in) > steps > sleep.
+
+**Files Modified:**
+- `src/utils/statsDataService.js` — Strict overlap clustering, nested/sequential detection, sparse-data guard, stepCounts array
+- `api/get-hourly-data.js` — Cluster sibling inclusion for spillover sessions
+- `api/health-webhook.js` — Same clustering + sparse-data fixes (server-side)
+- `scripts/validate_sleep_sessions.js` — Same clustering + sparse-data fixes (offline tool)
+- `src/components/Stats/charts/CombinedChart.jsx` — Step count tooltip, HR>steps>sleep priority
+- `src/components/Stats/SingleDayView.jsx` — Pass stepCounts prop to CombinedChart
+
+**Status at End of Session:**
+- Sleep validation working correctly across nested, sequential, and cross-midnight sessions
+- Tested on Jan 28 (daytime sleep + overnight spillover) and Jan 29 (overnight + afternoon)
+- Step count tooltip functional on green walking bars
 
 ### 2026-01-30 - Sleep Session Validation via HR/Step Data (Session 49)
 
