@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo, useState, useLayoutEffect } from 'react';
 import { Scatter } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -27,7 +27,21 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
     const chartRef = useRef(null);
     const [tooltipState, setTooltipState] = useState({ visible: false, x: 0, y: 0, text: '' });
 
-    // Memoize data to prevent re-renders
+    // Data Refs - Keep these up to date so plugins/callbacks can read fresh data without triggering re-creation
+    const activityMinutesRef = useRef(activityMinutes);
+    const walkingMinutesRef = useRef(walkingMinutes);
+    const sleepSessionsRef = useRef(sleepSessions);
+    const isDarkRef = useRef(isDark); // We need this in the plugin too
+
+    // Update refs on every render (sync with DOM paint)
+    useLayoutEffect(() => {
+        activityMinutesRef.current = activityMinutes;
+        walkingMinutesRef.current = walkingMinutes;
+        sleepSessionsRef.current = sleepSessions;
+        isDarkRef.current = isDark;
+    }); // No dep array intended: run on every commit
+
+    // Memoize chart data
     const data = useMemo(() => ({
         datasets: [
             {
@@ -37,29 +51,34 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 pointRadius: 2.5,
                 pointHoverRadius: 6,
                 pointHoverBackgroundColor: '#FF6B6B',
-                // Add a hit radius to make it easier to touch
-                pointHitRadius: 15,
+                pointHitRadius: 20, // Increased for easier touch
             },
         ],
     }), [hrPoints, isDark]);
 
-    // Activity Background Plugin
+    // Stable Activity Plugin - Reads from Refs
     const activityPlugin = useMemo(() => ({
         id: 'activityBackground',
         beforeDraw: (chart) => {
+            const actMin = activityMinutesRef.current;
+            const walkMin = walkingMinutesRef.current;
+            const dark = isDarkRef.current;
+
+            if (!actMin || actMin.length === 0) return;
+
             const { ctx, chartArea, scales } = chart;
             const { top, height } = chartArea;
             const xScale = scales.x;
 
             ctx.save();
 
-            // 1. Draw Sleep (Blue) from activityMinutes
-            const sleepColor = isDark ? 'rgba(107, 141, 181, 0.3)' : 'rgba(147, 181, 213, 0.3)';
+            // 1. Draw Sleep (Blue)
+            const sleepColor = dark ? 'rgba(107, 141, 181, 0.3)' : 'rgba(147, 181, 213, 0.3)';
 
-            if (activityMinutes && activityMinutes.length > 0) {
+            if (actMin && actMin.length > 0) {
                 ctx.fillStyle = sleepColor;
                 let startM = 0;
-                let isAsleep = activityMinutes[0] === 'ASLEEP';
+                let isAsleep = actMin[0] === 'ASLEEP';
 
                 const drawSleepSegment = (start, end) => {
                     const x1 = xScale.getPixelForValue(start);
@@ -68,7 +87,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 };
 
                 for (let m = 1; m < 1440; m++) {
-                    const currentAsleep = activityMinutes[m] === 'ASLEEP';
+                    const currentAsleep = actMin[m] === 'ASLEEP';
                     if (currentAsleep !== isAsleep) {
                         if (isAsleep) drawSleepSegment(startM, m - 1);
                         isAsleep = currentAsleep;
@@ -78,13 +97,13 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 if (isAsleep) drawSleepSegment(startM, 1439);
             }
 
-            // 2. Draw Walking (Green) from walkingMinutes - ON TOP
-            const walkColor = isDark ? 'rgba(123, 198, 126, 0.6)' : 'rgba(106, 191, 110, 0.6)';
+            // 2. Draw Walking (Green) - ON TOP
+            const walkColor = dark ? 'rgba(123, 198, 126, 0.6)' : 'rgba(106, 191, 110, 0.6)';
 
-            if (walkingMinutes && walkingMinutes.length > 0) {
+            if (walkMin && walkMin.length > 0) {
                 ctx.fillStyle = walkColor;
                 let startW = 0;
-                let isWalking = walkingMinutes[0];
+                let isWalking = walkMin[0];
 
                 const drawWalkSegment = (start, end) => {
                     const x1 = xScale.getPixelForValue(start);
@@ -93,7 +112,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 };
 
                 for (let m = 1; m < 1440; m++) {
-                    const currentWalk = walkingMinutes[m];
+                    const currentWalk = walkMin[m];
                     if (currentWalk !== isWalking) {
                         if (isWalking) drawWalkSegment(startW, m - 1);
                         isWalking = currentWalk;
@@ -105,19 +124,22 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
 
             ctx.restore();
         }
-    }), [activityMinutes, walkingMinutes, isDark]);
+    }), []); // Empty deps = stable instance forever! Refs handle updates.
 
-    // Min/Max Label Plugin (Only in Fullscreen)
+    // Min/Max Label Plugin 
     const minMaxPlugin = useMemo(() => ({
         id: 'minMaxLabels',
         afterDatasetsDraw: (chart) => {
+            // Needed fresh data for points directly? 
+            // hrPoints IS passed in dependencies for this plugin because it's safer to recreate 
+            // (it changes less often than hover states) and we need the calculated min/max.
+            // But we can stick to using the props in closure here since we re-create this plugin when hrPoints changes.
             if (!isFullscreen || hrPoints.length === 0) return;
 
             const { ctx, scales } = chart;
             const xScale = scales.x;
             const yScale = scales.y;
 
-            // Find Min and Max points
             let minPoint = hrPoints[0];
             let maxPoint = hrPoints[0];
 
@@ -127,7 +149,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
             });
 
             ctx.save();
-            ctx.font = 'bold 14px sans-serif'; // Increased font size
+            ctx.font = 'bold 14px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'bottom';
 
@@ -135,47 +157,43 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 const x = xScale.getPixelForValue(point.minuteOfDay);
                 const y = yScale.getPixelForValue(point.bpm);
 
-                // Colors
                 ctx.fillStyle = isDark ? '#ffffff' : '#000000';
                 ctx.strokeStyle = isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)';
                 ctx.lineWidth = 4;
 
                 const text = `${label}: ${point.bpm}`;
                 const textHeight = 14;
-                let yOffset = isMax ? -12 : 25; // Max above, Min below
+                let yOffset = isMax ? -12 : 25;
 
-                // Collision detection
-                if (isMax && (y + yOffset - textHeight) < scales.y.top) {
-                    yOffset = 25; // Flip to below if blocked above
-                }
-                if (!isMax && (y + yOffset) > scales.y.bottom) {
-                    yOffset = -12; // Flip to above if blocked below
-                }
+                if (isMax && (y + yOffset - textHeight) < scales.y.top) yOffset = 25;
+                if (!isMax && (y + yOffset) > scales.y.bottom) yOffset = -12;
 
                 ctx.strokeText(text, x, y + yOffset);
                 ctx.fillText(text, x, y + yOffset);
             };
 
-            // Draw labels
             drawLabel(maxPoint, 'Max', true);
             drawLabel(minPoint, 'Min', false);
-
             ctx.restore();
         }
-    }), [hrPoints, isFullscreen, isDark]);
+    }), [hrPoints, isFullscreen, isDark]); // This one CAN be reactive, it's cheap and only changes on day switch
 
-    const handleChartHover = (event, chartElement, chart) => {
-        // 1. Check for HR points (Chart.js interaction)
+    // Stable Hover Handler
+    const handleChartHover = useCallback((event, chartElement, chart) => {
+        // Reads from Refs to avoid closure staleness
+        const actMin = activityMinutesRef.current;
+        const sessions = sleepSessionsRef.current;
+
+        // 1. Check for HR points using Chart.js API
         const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, false);
 
         if (points.length > 0) {
-            // Hovering over an HR point - let Chart.js tooltip show (hide custom tooltip)
             setTooltipState({ visible: false, x: 0, y: 0, text: '' });
             return;
         }
 
         // 2. Check for Sleep Segment
-        if (!activityMinutes || activityMinutes.length === 0) {
+        if (!actMin || actMin.length === 0) {
             setTooltipState({ visible: false, x: 0, y: 0, text: '' });
             return;
         }
@@ -184,7 +202,6 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
         const mouseX = event.x;
         const mouseY = event.y;
 
-        // Check bounds
         if (mouseX < scales.x.left || mouseX > scales.x.right || mouseY < scales.y.top || mouseY > scales.y.bottom) {
             setTooltipState({ visible: false, x: 0, y: 0, text: '' });
             return;
@@ -192,20 +209,16 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
 
         const minute = Math.floor(scales.x.getValueForPixel(mouseX));
 
-        // Find which sleep session this minute belongs to (if any)
-        // activityMinutes tells us if it is ASLEEP, but sleepSessions gives us the full clean block
-        const activeSession = sleepSessions.find(s => minute >= s.startMin && minute <= s.endMin && s.isAsleep);
+        // Find sleep session
+        const activeSession = sessions.find(s => minute >= s.startMin && minute <= s.endMin && s.isAsleep);
 
         if (activeSession) {
             const start = activeSession.startMin;
             const end = activeSession.endMin;
-
-            const durationMinutes = end - start; // duration
+            const durationMinutes = end - start;
             const hours = Math.floor(durationMinutes / 60);
             const mins = durationMinutes % 60;
             const durationText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-
-            // Format time range
             const startTime = formatTime(start);
             const endTime = formatTime(end);
 
@@ -218,43 +231,31 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
         } else {
             setTooltipState({ visible: false, x: 0, y: 0, text: '' });
         }
-    };
+    }, []); // Empty deps = stable callback!
 
-    const handleChartLeave = () => {
+    const handleChartLeave = useCallback(() => {
         setTooltipState({ visible: false, x: 0, y: 0, text: '' });
-    };
+    }, []);
 
-    const hasData = hrPoints.length > 0 || !activityMinutes.every(m => m === 'BLANK');
+    const hasData = hrPoints.length > 0 || !(activityMinutes && activityMinutes.every(m => m === 'BLANK'));
 
-    const options = {
+    // Stable Options
+    const options = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
-        layout: {
-            padding: {
-                top: 20,
-                bottom: 15,
-                left: 10,
-                right: 10
-            }
-        },
+        animation: false, // OFF: Instant updates for HR points
+        layout: { padding: { top: 20, bottom: 15, left: 10, right: 10 } },
         onHover: handleChartHover,
-        interaction: {
-            mode: 'nearest',
-            intersect: true,
-            axis: 'xy' // Allow finding closest point in 2D
-        },
+        interaction: { mode: 'nearest', intersect: true, axis: 'xy' },
         scales: {
             x: {
-                type: 'linear',
-                min: 0,
-                max: 1440,
+                type: 'linear', min: 0, max: 1440,
                 ticks: {
                     stepSize: isFullscreen ? 120 : 240,
                     callback: (value) => {
                         const h = Math.floor(value / 60);
                         if (!isFullscreen && h % 4 !== 0) return '';
                         if (isFullscreen && h % 2 !== 0) return '';
-
                         const period = h >= 12 ? 'PM' : 'AM';
                         const h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
                         return `${h12}${period}`;
@@ -262,39 +263,21 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                     color: isDark ? '#94a3b8' : '#64748b',
                     maxTicksLimit: isFullscreen ? 14 : 7,
                 },
-                grid: {
-                    color: isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(0, 0, 0, 0.06)',
-                },
+                grid: { color: isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(0, 0, 0, 0.06)' },
                 title: { display: false },
             },
             y: {
-                beginAtZero: false,
-                suggestedMin: 50,
-                suggestedMax: 120,
-                ticks: {
-                    color: isDark ? '#94a3b8' : '#64748b',
-                    callback: (value) => `${value}`,
-                },
-                grid: {
-                    color: isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(0, 0, 0, 0.06)',
-                },
-                title: {
-                    display: true,
-                    text: 'BPM',
-                    color: isDark ? '#94a3b8' : '#64748b',
-                    font: { size: 11 },
-                },
+                beginAtZero: false, suggestedMin: 50, suggestedMax: 120,
+                ticks: { color: isDark ? '#94a3b8' : '#64748b' },
+                grid: { color: isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(0, 0, 0, 0.06)' },
+                title: { display: true, text: 'BPM', color: isDark ? '#94a3b8' : '#64748b', font: { size: 11 } },
             },
         },
         plugins: {
             tooltip: {
-                // We want Chart.js tooltip for HR points
                 enabled: true,
                 callbacks: {
-                    title: (items) => {
-                        if (items.length === 0) return '';
-                        return formatTime(items[0].raw.x);
-                    },
+                    title: (items) => items.length ? formatTime(items[0].raw.x) : '',
                     label: (item) => `${item.raw.y} BPM`,
                 },
                 backgroundColor: isDark ? '#1e293b' : '#ffffff',
@@ -305,7 +288,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
             },
             legend: { display: false },
         },
-    };
+    }), [isDark, isFullscreen, handleChartHover]); // Recreate only on theme/layout change
 
     if (!hasData) {
         return <div className="stats-no-data">No data for this day</div>;
