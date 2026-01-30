@@ -207,17 +207,25 @@ Refined the Stats Single Day view based on user feedback. Implemented "Steps on 
 -   `src/components/Stats/SingleDayView.jsx` - State preservation.
 -   `package.json` - Added `dev:api` script.
 
+**Files Deleted (Cleanup):**
+-   `src/components/Stats/charts/ActivityBar.jsx` (Replaced by CombinedChart)
+-   `src/components/Stats/charts/HRScatterChart.jsx` (Replaced by CombinedChart)
+
 **Status at End of Session:**
 -   ✅ Sleep data visible and correct.
 -   ✅ Steps now clearly visible on top of sleep segments.
 -   ✅ Fullscreen navigation works perfectly (persistent & side-by-side arrows).
 -   ✅ Min/Max labels visible and legible.
 -   ✅ Tooltips behave intuitively on touch.
+-   ✅ **Performance**: Fixed stale data on day switch and removed animation lag.
+-   ✅ **Stability**: Fixed production crash (missing import).
 
 **Next Steps (Session 47):**
-1.  **Deep Dive Debugging:** Investigate remaining user-reported issues (specifics TBD).
-2.  **Mobile Testing:** Detailed verification of touch interactions and layout on mobile devices.
-3.  **Refinement:** Continue polishing chart interactions and performance.
+1.  **Monitor**: Watch for any further reports of data staleness or lag.
+2.  **Mobile Polish**: Verify touch targets and layout on various screen sizes.
+3.  **Refinement**: Consider adding a "loading" skeleton if API latency is noticeable.
+
+
 
 ### 2026-01-28 - Health Data Sorting & Sleep Verification (Session 43)
 
