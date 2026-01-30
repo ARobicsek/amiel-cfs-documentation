@@ -227,6 +227,9 @@ export default async function handler(req, res) {
       rowNumber = parseInt(updatedRange.match(/\d+/)[0]);
     }
 
+    // Sort Sheet1 by date descending (most recent first)
+    await sortSheetByDateDesc(sheets, spreadsheetId, 'Sheet1', 22);
+
     return res.status(200).json({
       success: true,
       row: rowNumber
@@ -235,5 +238,40 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Failed to save entry:', error);
     return res.status(500).json({ error: 'Failed to save entry' });
+  }
+}
+
+/**
+ * Sort a sheet by column A (date/timestamp) in descending order (most recent first).
+ */
+async function sortSheetByDateDesc(sheets, spreadsheetId, sheetName, endColumnIndex = 22) {
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: 'sheets(properties(sheetId,title))'
+    });
+    const sheetsList = spreadsheet.data.sheets || [];
+    const targetSheet = sheetsList.find(s => s.properties.title === sheetName);
+
+    if (targetSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [{
+            sortRange: {
+              range: {
+                sheetId: targetSheet.properties.sheetId,
+                startRowIndex: 1,
+                startColumnIndex: 0,
+                endColumnIndex
+              },
+              sortSpecs: [{ dimensionIndex: 0, sortOrder: 'DESCENDING' }]
+            }
+          }]
+        }
+      });
+    }
+  } catch (error) {
+    console.error(`Error sorting ${sheetName} sheet:`, error);
   }
 }

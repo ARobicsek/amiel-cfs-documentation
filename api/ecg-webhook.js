@@ -419,6 +419,10 @@ export default async function handler(req, res) {
 
     console.log(`ECG processing complete: ${savedCount} saved, ${skippedCount} skipped (duplicates)`);
 
+    // Sort ECG sheets by date descending (most recent first)
+    await sortSheetByDateDesc(sheets, sheetId, 'ECG_Readings', 15);
+    await sortSheetByDateDesc(sheets, sheetId, 'ECG_Waveforms', 6);
+
     return res.status(200).json({
       success: true,
       message: `Processed ${ecgRecords.length} ECG(s): ${savedCount} saved, ${skippedCount} skipped`,
@@ -741,5 +745,40 @@ function findRPeaks(voltages, samplingRate) {
 
   console.log(`Peak detection found ${peaks.length} R peaks`);
   return peaks;
+}
+
+/**
+ * Sort a sheet by column A (date/timestamp) in descending order (most recent first).
+ */
+async function sortSheetByDateDesc(sheets, spreadsheetId, sheetName, endColumnIndex = 15) {
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: 'sheets(properties(sheetId,title))'
+    });
+    const sheetsList = spreadsheet.data.sheets || [];
+    const targetSheet = sheetsList.find(s => s.properties.title === sheetName);
+
+    if (targetSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [{
+            sortRange: {
+              range: {
+                sheetId: targetSheet.properties.sheetId,
+                startRowIndex: 1,
+                startColumnIndex: 0,
+                endColumnIndex
+              },
+              sortSpecs: [{ dimensionIndex: 0, sortOrder: 'DESCENDING' }]
+            }
+          }]
+        }
+      });
+    }
+  } catch (error) {
+    console.error(`Error sorting ${sheetName} sheet:`, error);
+  }
 }
 

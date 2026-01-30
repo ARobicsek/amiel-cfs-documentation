@@ -146,13 +146,15 @@ export default function FullscreenChart({ title, children, onPrev, onNext, canNe
         <>
           <button
             className="fs-nav-btn fs-nav-prev"
-            onClick={(e) => { e.stopPropagation(); onPrev && onPrev(); }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPrev && onPrev(); }}
+            onTouchStart={(e) => e.stopPropagation()}
           >
             &#9664;
           </button>
           <button
             className="fs-nav-btn fs-nav-next"
-            onClick={(e) => { e.stopPropagation(); onNext && onNext(); }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNext && onNext(); }}
+            onTouchStart={(e) => e.stopPropagation()}
             disabled={!canNext}
             style={{ opacity: !canNext ? 0.3 : 1 }}
           >

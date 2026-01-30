@@ -430,11 +430,9 @@ export default async function handler(req, res) {
             });
         }
 
-        // 7. SORT HOURLY SHEET ONLY
-        // Health_Daily is NOT sorted here to prevent race conditions from concurrent
-        // webhook requests reordering rows mid-flight. Daily data uses append for new
-        // rows and update-in-place for existing rows, so row order is not critical.
-        await sortHourlySheet(sheets, SHEET_ID);
+        // 7. SORT SHEETS by date descending (most recent first)
+        await sortSheetByDateDesc(sheets, SHEET_ID, 'Health_Hourly', 9);
+        await sortSheetByDateDesc(sheets, SHEET_ID, 'Health_Daily', 15);
 
         return res.status(200).json({
             success: true,
@@ -577,26 +575,33 @@ function cleanDeviceName(deviceStr) {
     return cleaned;
 }
 
-async function sortHourlySheet(sheets, spreadsheetId) {
+/**
+ * Sort a sheet by column A (date/timestamp) in descending order (most recent first).
+ * @param {object} sheets - Google Sheets API instance
+ * @param {string} spreadsheetId - Spreadsheet ID
+ * @param {string} sheetName - Name of the sheet to sort
+ * @param {number} endColumnIndex - Number of columns in the sheet
+ */
+async function sortSheetByDateDesc(sheets, spreadsheetId, sheetName, endColumnIndex = 15) {
     try {
         const spreadsheet = await sheets.spreadsheets.get({
             spreadsheetId,
             fields: 'sheets(properties(sheetId,title))'
         });
         const sheetsList = spreadsheet.data.sheets || [];
-        const hourlySheet = sheetsList.find(s => s.properties.title === 'Health_Hourly');
+        const targetSheet = sheetsList.find(s => s.properties.title === sheetName);
 
-        if (hourlySheet) {
+        if (targetSheet) {
             await sheets.spreadsheets.batchUpdate({
                 spreadsheetId,
                 requestBody: {
                     requests: [{
                         sortRange: {
                             range: {
-                                sheetId: hourlySheet.properties.sheetId,
+                                sheetId: targetSheet.properties.sheetId,
                                 startRowIndex: 1,
                                 startColumnIndex: 0,
-                                endColumnIndex: 9
+                                endColumnIndex
                             },
                             sortSpecs: [{ dimensionIndex: 0, sortOrder: 'DESCENDING' }]
                         }
@@ -605,6 +610,6 @@ async function sortHourlySheet(sheets, spreadsheetId) {
             });
         }
     } catch (error) {
-        console.error('Error sorting hourly sheet:', error);
+        console.error(`Error sorting ${sheetName} sheet:`, error);
     }
 }
