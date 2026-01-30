@@ -311,3 +311,78 @@
     right: calc(25% - 4px);
   }
 }
+
+/* ============================================
+   Multi-Day View Styles
+   ============================================ */
+
+.multi-day-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Quick Range Preset Buttons */
+.multi-day-presets {
+  display: flex;
+  gap: 0.375rem;
+  justify-content: center;
+}
+
+.preset-btn {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.preset-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+
+/* Metric Toggles */
+.multi-day-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 0.5rem;
+}
+
+.metric-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.metric-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Chart Stack */
+.multi-day-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}

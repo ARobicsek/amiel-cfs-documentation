@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from 'react';
 import SingleDayView from './SingleDayView';
+import MultiDayView from './MultiDayView';
 import './StatsTab.css';
 
 // Dark mode detection using useSyncExternalStore (avoids setState-in-effect lint error)
@@ -47,9 +48,7 @@ export default function StatsTab() {
         <SingleDayView isDark={isDark} />
       )}
       {activeView === 'multi' && (
-        <div className="stats-coming-soon">
-          Multi Day view coming soon
-        </div>
+        <MultiDayView isDark={isDark} />
       )}
     </div>
   );
