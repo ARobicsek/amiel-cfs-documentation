@@ -69,6 +69,29 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-29 - Single Day Polish & Multi-Day Planning (Session 47)
+
+**Session Summary:**
+Fixed three remaining Single Day view issues: sleep tooltip accuracy, min/max HR labels in fullscreen, and replaced the large "Close" button with a compact X. Single Day view is now complete.
+
+**Accomplishments:**
+
+1. **Sleep Tooltip Fix** — Tooltips now show the full contiguous blue region duration, not individual sub-segments from the differencing algorithm. Added a merge step in `statsDataService.js` that scans the `activityMinutes` array to consolidate adjacent ASLEEP minutes into single blocks.
+
+2. **Min/Max HR Labels Fix** — Labels were not appearing in fullscreen because the Chart.js plugin used closure variables that became stale. Converted to ref-based approach (matching the pattern used by `activityPlugin`) and added a `useEffect` to force chart redraw when `isFullscreen` changes.
+
+3. **Fullscreen UI Overhaul** — Replaced the large bottom "Close" button (iOS PWA fallback) with a small circular X at top-right. Positioned nav arrows at ~25% from edges so they don't overlap the title or the X. Removed black stroke outline from min/max labels.
+
+**Files Modified:**
+- `src/utils/statsDataService.js` — Merged sleep block computation
+- `src/components/Stats/charts/CombinedChart.jsx` — Ref-based min/max plugin, removed stroke, fixed tooltip
+- `src/components/Stats/FullscreenChart.jsx` — X close button, removed bottom Close
+- `src/components/Stats/StatsTab.css` — New `.fs-close-btn`, repositioned nav arrows
+
+**Status at End of Session:**
+- Single Day view is complete and polished
+- Ready to begin Multi-Day view (Phase C/D from `stats_feature_plan.md`)
+
 ### 2026-01-29 - Stats Single Day View Implementation (Session 45)
 
 **Session Summary:**
@@ -220,10 +243,10 @@ Refined the Stats Single Day view based on user feedback. Implemented "Steps on 
 -   ✅ **Performance**: Fixed stale data on day switch and removed animation lag.
 -   ✅ **Stability**: Fixed production crash (missing import).
 
-**Next Steps (Session 47):**
-1.  **Monitor**: Watch for any further reports of data staleness or lag.
-2.  **Mobile Polish**: Verify touch targets and layout on various screen sizes.
-3.  **Refinement**: Consider adding a "loading" skeleton if API latency is noticeable.
+**Next Steps (Session 48):**
+1.  **Multi-Day API**: Create `api/get-health-stats.js` — server-side aggregation endpoint (Phase C from `stats_feature_plan.md`)
+2.  **Multi-Day Charts**: Build `MetricLineChart.jsx`, `HRBoxPlotChart.jsx`, `SleepStackedBar.jsx`, `MultiDayView.jsx` (Phase D)
+3.  **Date Range Controls**: Quick range selectors (7D/30D/3M/6M) + date range navigation
 
 
 
