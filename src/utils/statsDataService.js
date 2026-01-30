@@ -170,128 +170,79 @@ function clusterSleepSessions(sessions) {
   return clusters;
 }
 
+// ============================================================
+// Sleep Validation: HR/Step-based awake detection
+// ============================================================
+
 /**
- * Apply Nested Session Differencing to a cluster of overlapping sessions.
+ * Compute an "awake score" for a time range using HR and step data.
+ * Scores 0-7: 0 = likely asleep, ≥3 = likely awake.
+ * Thresholds are normalized by duration to handle long sleep periods.
  *
- * Returns an array of segments: { startMin, endMin, density, isAsleep }
- * where startMin/endMin are minute-of-day values (0-1439).
- *
- * For a given target date (YYYY-MM-DD), we only return segments that fall on that date.
+ * @param {number} startMs - Start of range (epoch ms)
+ * @param {number} endMs - End of range (epoch ms)
+ * @param {Array} tsHrReadings - [{ ts (Date), bpm }] sorted by ts
+ * @param {Array} tsStepReadings - [{ ts (Date), qty }] sorted by ts
  */
-function differenceCluster(cluster, targetDateStr) {
-  // Parse target date boundaries (midnight to midnight)
-  const targetDate = new Date(targetDateStr + 'T00:00:00');
-  const targetStart = targetDate.getTime();
-  const targetEnd = targetStart + 24 * 60 * 60 * 1000;
+function computeAwakeScore(startMs, endMs, tsHrReadings, tsStepReadings) {
+  const hrs = tsHrReadings.filter(r => r.ts >= startMs && r.ts < endMs);
+  const steps = tsStepReadings.filter(r => r.ts >= startMs && r.ts < endMs);
+  const spanMin = (endMs - startMs) / 60000;
 
-  const DENSITY_THRESHOLD = 0.5;
+  const totalSteps = steps.reduce((sum, s) => sum + s.qty, 0);
+  const significantSteps = steps.filter(s => s.qty > 2);
+  const avgHR = hrs.length > 0 ? hrs.reduce((s, r) => s + r.bpm, 0) / hrs.length : null;
+  const maxHR = hrs.length > 0 ? Math.max(...hrs.map(r => r.bpm)) : null;
 
-  if (cluster.length === 1) {
-    // Single session - mark entire session as ASLEEP
-    const s = cluster[0];
-    const segStart = Math.max(s.sleepStart.getTime(), targetStart);
-    const segEnd = Math.min(s.sleepEnd.getTime(), targetEnd);
-    if (segEnd <= segStart) return [];
+  const stepsPerHour = spanMin > 0 ? (totalSteps / spanMin) * 60 : 0;
+  const sigStepsPerHour = spanMin > 0 ? (significantSteps.length / spanMin) * 60 : 0;
 
-    const startMinOfDay = Math.floor((segStart - targetStart) / 60000);
-    const endMinOfDay = Math.floor((segEnd - targetStart) / 60000);
+  return (avgHR && avgHR > 70 ? 2 : 0) +
+    (maxHR && maxHR > 85 ? 1 : 0) +
+    (sigStepsPerHour > 1 ? 2 : 0) +
+    (stepsPerHour > 20 ? 2 : 0);
+}
 
-    return [{
-      startMin: Math.max(0, startMinOfDay),
-      endMin: Math.min(1440, endMinOfDay),
-      density: 1.0,
-      isAsleep: true,
-    }];
-  }
+/**
+ * For a cluster of overlapping sleep sessions, find the "best" session
+ * by walking from innermost outward and stopping when a gap shows awake activity.
+ *
+ * @param {Array} cluster - Array of parsed sleep sessions (with sleepStart, sleepEnd, etc.)
+ * @param {Array} tsHrReadings - [{ ts (Date), bpm }]
+ * @param {Array} tsStepReadings - [{ ts (Date), qty }]
+ * @returns {Object} The best session from the cluster
+ */
+function findBestSessionInCluster(cluster, tsHrReadings, tsStepReadings) {
+  if (cluster.length === 1) return cluster[0];
 
-  // Multiple overlapping sessions - apply differencing
   // Sort by span length (longest first = parent)
   const sorted = [...cluster].sort((a, b) => {
     const spanA = a.sleepEnd.getTime() - a.sleepStart.getTime();
     const spanB = b.sleepEnd.getTime() - b.sleepStart.getTime();
-    return spanB - spanA; // Longest first
+    return spanB - spanA;
   });
 
-  const segments = [];
+  // Start with innermost, expand outward while gaps look like sleep
+  let best = sorted[sorted.length - 1];
+  for (let i = sorted.length - 2; i >= 0; i--) {
+    const outer = sorted[i];
+    const inner = sorted[i + 1];
+    if (outer.sleepStart.getTime() >= inner.sleepStart.getTime()) continue;
 
-  // Process from innermost (shortest) to outermost
-  // Build up "accounted sleep" as we go outward
-  let accountedSleepMin = 0;
-  let innermostStart = sorted[sorted.length - 1].sleepStart.getTime();
+    const score = computeAwakeScore(
+      outer.sleepStart.getTime(),
+      inner.sleepStart.getTime(),
+      tsHrReadings,
+      tsStepReadings
+    );
 
-  for (let i = sorted.length - 1; i >= 0; i--) {
-    const session = sorted[i];
-    const sessionStart = session.sleepStart.getTime();
-    const sessionEnd = session.sleepEnd.getTime();
-
-    if (i === sorted.length - 1) {
-      // Innermost session: density = totalSleep / span
-      const spanMin = (sessionEnd - sessionStart) / 60000;
-      const density = spanMin > 0 ? session.totalSleepMin / spanMin : 0;
-
-      const segStart = Math.max(sessionStart, targetStart);
-      const segEnd = Math.min(sessionEnd, targetEnd);
-      if (segEnd > segStart) {
-        segments.push({
-          startMin: Math.max(0, Math.floor((segStart - targetStart) / 60000)),
-          endMin: Math.min(1440, Math.floor((segEnd - targetStart) / 60000)),
-          density,
-          isAsleep: density >= DENSITY_THRESHOLD,
-        });
-      }
-
-      accountedSleepMin = session.totalSleepMin;
-      innermostStart = sessionStart;
+    if (score < 3) {
+      best = outer; // Gap looks like sleep → expand outward
     } else {
-      // Outer layer: exclusive region is from this session's start to the inner's start
-      const exclusiveSleep = session.totalSleepMin - accountedSleepMin;
-      const exclusiveStart = sessionStart;
-      const exclusiveEnd = innermostStart; // Up to where inner session begins
-      const exclusiveSpanMin = (exclusiveEnd - exclusiveStart) / 60000;
-
-      if (exclusiveSpanMin > 0 && exclusiveSleep >= 0) {
-        const density = exclusiveSleep / exclusiveSpanMin;
-
-        const segStart = Math.max(exclusiveStart, targetStart);
-        const segEnd = Math.min(exclusiveEnd, targetEnd);
-        if (segEnd > segStart) {
-          segments.push({
-            startMin: Math.max(0, Math.floor((segStart - targetStart) / 60000)),
-            endMin: Math.min(1440, Math.floor((segEnd - targetStart) / 60000)),
-            density,
-            isAsleep: density >= DENSITY_THRESHOLD,
-          });
-        }
-      }
-
-      // Also handle the tail (after innermost session ends to this session's end)
-      // if this session extends beyond the innermost
-      if (sessionEnd > sorted[sorted.length - 1].sleepEnd.getTime()) {
-        const tailStart = sorted[sorted.length - 1].sleepEnd.getTime();
-        const tailEnd = sessionEnd;
-        const tailSpanMin = (tailEnd - tailStart) / 60000;
-        // Remaining sleep attributed to tail
-        const tailSleep = Math.max(0, exclusiveSleep - (exclusiveSpanMin > 0 ? exclusiveSleep * (exclusiveSpanMin / (exclusiveSpanMin + tailSpanMin)) : 0));
-        const tailDensity = tailSpanMin > 0 ? tailSleep / tailSpanMin : 0;
-
-        const segStart = Math.max(tailStart, targetStart);
-        const segEnd = Math.min(tailEnd, targetEnd);
-        if (segEnd > segStart) {
-          segments.push({
-            startMin: Math.max(0, Math.floor((segStart - targetStart) / 60000)),
-            endMin: Math.min(1440, Math.floor((segEnd - targetStart) / 60000)),
-            density: tailDensity,
-            isAsleep: tailDensity >= DENSITY_THRESHOLD,
-          });
-        }
-      }
-
-      accountedSleepMin = session.totalSleepMin;
-      innermostStart = sessionStart;
+      break; // Gap shows awake → stop expanding
     }
   }
-
-  return segments;
+  return best;
 }
 
 // ============================================================
@@ -310,38 +261,78 @@ export function processSingleDayData(rows, dateStr) {
   const activityMinutes = new Array(1440).fill('BLANK'); // SLEEP layer
   const walkingMinutes = new Array(1440).fill(false);    // STEPS layer
 
-  // 2. Parse sleep_analysis rows (only the parent rows, not explosion rows)
+  // 1b. Early pass: collect timestamped HR and step readings for sleep validation.
+  // These are used by the awake-score algorithm to determine whether a sleep
+  // session's exclusive region shows actual sleep or awake activity.
+  const tsHrReadings = [];
+  const tsStepReadings = [];
+  rows.forEach(row => {
+    if (row.metric === 'heart_rate') {
+      const parsed = parseHRRawData(row.rawData);
+      const bpm = parsed?.avg ?? row.value;
+      if (bpm === null || bpm === undefined) return;
+      const ts = parsed?.dateStr ? parseTimestamp(parsed.dateStr) : null;
+      if (ts) tsHrReadings.push({ ts: ts.getTime(), bpm });
+    } else if (row.metric === 'step_count') {
+      const parsed = parseStepRawData(row.rawData);
+      if (!parsed) return;
+      const ts = parsed.dateStr ? parseTimestamp(parsed.dateStr) : null;
+      const qty = parsed.qty ?? row.value ?? 0;
+      if (ts) tsStepReadings.push({ ts: ts.getTime(), qty });
+    }
+  });
+
+  // 2. Parse sleep_analysis rows and track which sessions end on the target date.
+  // Spillover rows (from date+1 that start on this date) are included for the
+  // visual but do NOT count toward this day's sleep total.
+  const targetDate = new Date(dateStr + 'T00:00:00');
+  const targetDayNum = targetDate.getDate();
+  const targetMonthNum = targetDate.getMonth();
+  const targetYearNum = targetDate.getFullYear();
+
   const sleepSessions = [];
   rows.forEach(row => {
     if (row.metric === 'sleep_analysis') {
       const parsed = parseSleepRawData(row.rawData);
       if (parsed) {
+        // A session "ends on this date" if sleepEnd is on the target calendar day
+        const endsOnTarget = parsed.sleepEnd.getFullYear() === targetYearNum &&
+          parsed.sleepEnd.getMonth() === targetMonthNum &&
+          parsed.sleepEnd.getDate() === targetDayNum;
+        parsed.endsOnTarget = endsOnTarget;
+        parsed.isSpillover = !!row.spillover;
+        // Full session duration including awake time
+        parsed.fullDurationMin = parsed.totalSleepMin + parsed.awake;
         sleepSessions.push(parsed);
       }
     }
   });
 
-  // 3. Cluster overlapping sessions and apply Nested Session Differencing
+  // 3. Cluster overlapping sessions and validate each cluster using HR/step data.
+  // Instead of NSD (which processes all sessions including invalidated parents),
+  // we use only the validated best session per cluster for visual marking.
   const clusters = clusterSleepSessions(sleepSessions);
-  const allSegments = [];
+  const validatedClusters = clusters.map(cluster =>
+    findBestSessionInCluster(cluster, tsHrReadings, tsStepReadings)
+  );
 
-  clusters.forEach(cluster => {
-    const segments = differenceCluster(cluster, dateStr);
-    allSegments.push(...segments);
-  });
+  // 4. Mark ASLEEP minutes using only validated best sessions, clipped to this day.
+  const dayStartMs = targetDate.getTime();
+  const dayEndMs = dayStartMs + 1440 * 60000;
 
-  // 4. Mark ASLEEP minutes in the base activity layer
-  allSegments.forEach(seg => {
-    if (seg.isAsleep) {
-      for (let m = seg.startMin; m < seg.endMin && m < 1440; m++) {
-        if (m >= 0) activityMinutes[m] = 'ASLEEP';
-      }
+  for (const best of validatedClusters) {
+    const sStart = Math.max(best.sleepStart.getTime(), dayStartMs);
+    const sEnd = Math.min(best.sleepEnd.getTime(), dayEndMs);
+    if (sStart >= sEnd) continue;
+
+    const startMin = Math.floor((sStart - dayStartMs) / 60000);
+    const endMin = Math.ceil((sEnd - dayStartMs) / 60000);
+    for (let m = startMin; m < endMin && m < 1440; m++) {
+      if (m >= 0) activityMinutes[m] = 'ASLEEP';
     }
-  });
+  }
 
   // 4b. Merge contiguous ASLEEP regions into consolidated sleep blocks for tooltips.
-  // The user sees one blue box for each contiguous sleep region, so the tooltip
-  // should show the full duration of that region, not individual sub-segments.
   const mergedSleepBlocks = [];
   let blockStart = -1;
   for (let m = 0; m < 1440; m++) {
@@ -356,6 +347,30 @@ export function processSingleDayData(rows, dateStr) {
   }
   if (blockStart !== -1) {
     mergedSleepBlocks.push({ startMin: blockStart, endMin: 1440, isAsleep: true });
+  }
+
+  // Annotate each merged block with the validated best session's metadata.
+  for (const block of mergedSleepBlocks) {
+    const blockStartMs = dayStartMs + block.startMin * 60000;
+    const blockEndMs = dayStartMs + block.endMin * 60000;
+    let bestSession = null;
+    let bestSpan = -1;
+    for (const s of validatedClusters) {
+      const sStart = s.sleepStart.getTime();
+      const sEnd = s.sleepEnd.getTime();
+      if (sStart < blockEndMs && sEnd > blockStartMs) {
+        const span = sEnd - sStart;
+        if (span > bestSpan) {
+          bestSpan = span;
+          bestSession = s;
+        }
+      }
+    }
+    if (bestSession) {
+      block.fullStart = bestSession.sleepStart;
+      block.fullEnd = bestSession.sleepEnd;
+      block.fullDurationMin = Math.round(bestSession.fullDurationMin);
+    }
   }
 
   // 5. Parse step_count rows and apply two-layer filter
@@ -412,7 +427,17 @@ export function processSingleDayData(rows, dateStr) {
     .sort((a, b) => a.minuteOfDay - b.minuteOfDay);
 
   // 7. Compute summary stats
-  const totalSleepMin = activityMinutes.filter(m => m === 'ASLEEP').length;
+  // Sleep total: sum (totalSleep + awake) from the validated best session per
+  // cluster, but only for clusters whose best session ends on this date.
+  let totalSleepMin = 0;
+  for (const best of validatedClusters) {
+    const endsOnTarget = best.sleepEnd.getFullYear() === targetYearNum &&
+      best.sleepEnd.getMonth() === targetMonthNum &&
+      best.sleepEnd.getDate() === targetDayNum;
+    if (endsOnTarget) {
+      totalSleepMin += Math.round(best.fullDurationMin);
+    }
+  }
   // Count walking minutes from the separate array
   const totalWalkingMin = walkingMinutes.filter(isWalking => isWalking).length;
 

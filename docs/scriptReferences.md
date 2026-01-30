@@ -32,7 +32,7 @@ Frontend helper modules.
 | `auth.js` | `getSecretToken`, `isAuthenticated`, `clearAuth`, `getAuthenticatedUrl` | Manages secret URL token authentication (store/retrieve from localStorage). | [auth.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/auth.js) |
 | `offlineStorage.js` | `saveOfflineEntry`, `getPendingEntries`, `syncPendingEntries`, `setupOfflineSync` | IndexedDB utilities for offline-first entry storage and sync. | [offlineStorage.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/offlineStorage.js) |
 | `pushNotification.js` | `isPushSupported`, `subscribeToPush`, `unsubscribeFromPush`, `isSubscribed` | Push notification subscription and management. | [pushNotification.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/pushNotification.js) |
-| `statsDataService.js` | `processSingleDayData`, `formatMinutes`, `formatTime` | Stats data processing: Nested Session Differencing for sleep, step suppression, HR point extraction. | [statsDataService.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/statsDataService.js) |
+| `statsDataService.js` | `processSingleDayData`, `formatMinutes`, `formatTime` | Stats data processing: HR/step-based sleep session validation (awake-score algorithm), step suppression, HR point extraction. | [statsDataService.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/statsDataService.js) |
 
 ---
 
@@ -81,4 +81,5 @@ Frontend helper modules.
 | `update_icons.js` | Utility script to copy F15_icon.png to all PWA icon locations. | [update_icons.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/update_icons.js) |
 | `fix-sync-issues-v2.js` | One-off script to cleanup duplicates and fix sleep timestamps (Jan 2026). | [fix-sync-issues-v2.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/scripts/fix-sync-issues-v2.js) |
 | `manual_sleep_calc.js` | Analysis tool to manually parse, deduplicate, and sum raw sleep data from text files. | [manual_sleep_calc.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/scripts/manual_sleep_calc.js) |
+| `validate_sleep_sessions.js` | Offline analysis tool: reads `new_hourly.txt`, clusters overlapping sleep sessions, validates each against HR/step data using awake-score algorithm. | [validate_sleep_sessions.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/scripts/validate_sleep_sessions.js) |
 | `../tests/verify_date_parsing.js` | Unit test to verify custom date parsing logic for cross-browser compatibility. | [verify_date_parsing.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/tests/verify_date_parsing.js) |

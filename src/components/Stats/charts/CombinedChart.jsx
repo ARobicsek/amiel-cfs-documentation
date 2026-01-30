@@ -221,14 +221,31 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
         const activeSession = sessions.find(s => minute >= s.startMin && minute < s.endMin && s.isAsleep);
 
         if (activeSession) {
-            const start = activeSession.startMin;
-            const end = activeSession.endMin;
-            const durationMinutes = end - start;
+            // Use full session metadata if available (true start/end and
+            // duration including awake time), otherwise fall back to the
+            // clipped block times shown on screen.
+            let durationMinutes, startTime, endTime;
+            if (activeSession.fullStart && activeSession.fullEnd && activeSession.fullDurationMin) {
+                durationMinutes = activeSession.fullDurationMin;
+                const fs = activeSession.fullStart;
+                const fe = activeSession.fullEnd;
+                const fmtT = (d) => {
+                    let h = d.getHours();
+                    const m = d.getMinutes();
+                    const period = h >= 12 ? 'PM' : 'AM';
+                    h = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                    return `${h}:${String(m).padStart(2, '0')} ${period}`;
+                };
+                startTime = fmtT(fs);
+                endTime = fmtT(fe);
+            } else {
+                durationMinutes = activeSession.endMin - activeSession.startMin;
+                startTime = formatTime(activeSession.startMin);
+                endTime = formatTime(activeSession.endMin);
+            }
             const hours = Math.floor(durationMinutes / 60);
             const mins = durationMinutes % 60;
             const durationText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-            const startTime = formatTime(start);
-            const endTime = formatTime(end);
 
             setTooltipState({
                 visible: true,

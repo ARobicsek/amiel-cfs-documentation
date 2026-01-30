@@ -37,6 +37,7 @@ Track completed features and current status here. Update after completing each f
 | 16 | Stats Tab - Single Day View | DONE | HR scatter + activity bar (sleep/walking/blank), 24h timeline, date navigation, summary stats |
 | 17 | Stats Tab - Multi Day View | DONE | 6 charts: HR box plots, sleep stacked bars, steps/HRV/feet on ground/brain time line charts. Date range nav + 7D/30D/3M/6M presets. Fullscreen per chart. |
 | 18 | Streak animations | TODO | ON HOLD - Motivation feature |
+| 19 | Sleep session validation (HR/step-based) | IN PROGRESS | Replaced NSD with HR/step awake-score validation for picking best session from nested Apple Watch clusters. Server-side (webhook) + client-side (statsDataService). Two known issues remain: spillover cache bug, missed afternoon sleep. |
 
 ### Phase 4: ECG Integration (COMPLETE - Fully Automatic)
 
@@ -68,6 +69,43 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-01-30 - Sleep Session Validation via HR/Step Data (Session 49)
+
+**Session Summary:**
+Investigated and partially fixed sleep time discrepancies between single-day and multi-day views. Discovered that Apple Watch records nested parent/child sleep sessions, and the parent is not always accurate. Built an HR/step-based validation algorithm that walks from innermost session outward, checking each exclusive gap for awake evidence (elevated HR, step activity). Replaced the NSD (Nested Session Differencing) visual algorithm with validated-session-only marking.
+
+**Accomplishments:**
+
+1. **Sleep validation algorithm** — Created `computeAwakeScore()` and `findBestSessionInCluster()` in `statsDataService.js`. Uses time-normalized thresholds: avgHR > 70 (+2), maxHR > 85 (+1), sigStepsPerHour > 1 (+2), stepsPerHour > 20 (+2). Score ≥ 3 = awake.
+
+2. **Validation script** — Created `scripts/validate_sleep_sessions.js` for offline analysis of sleep session clusters against HR/step data from `new_hourly.txt`. Confirmed correct results across 4 test clusters.
+
+3. **API spillover sessions** — Modified `api/get-hourly-data.js` single-day mode to also return sleep_analysis rows from date+1 that start on the target date, tagged with `spillover: true`.
+
+4. **health-webhook.js** — Changed `totalMins` to include awake time (`(pTotal + pAwake) * 60`). Replaced naive overlap-merge with cluster→validate→best-session approach using the same awake-score algorithm.
+
+5. **CombinedChart.jsx** — Tooltip now uses `fullStart`, `fullEnd`, `fullDurationMin` from validated session metadata instead of computing from clipped block times.
+
+6. **Replaced NSD with validated marking** — Instead of running NSD on all sessions (which painted blue for invalidated parent regions), now only marks ASLEEP minutes from validated best sessions clipped to midnight-to-midnight. Removed the entire `differenceCluster()` function.
+
+**Known Issues (for next session):**
+- **Spillover visual still showing on Jan 29 evening**: The parent session from a Jan 29 evening cluster appears to still be rendered. Likely a data/caching issue — need to investigate whether the API is returning stale data or if there's a second cluster being processed.
+- **Missed afternoon sleep on Jan 29**: A session from ~4:48 PM–10:12 PM is not showing as sleep. The validation algorithm may be incorrectly classifying this cluster's gap as "awake" or the session may not be reaching the client at all. Needs investigation.
+
+**Files Created:**
+- `scripts/validate_sleep_sessions.js`
+
+**Files Modified:**
+- `api/get-hourly-data.js` — Spillover sleep session detection
+- `api/health-webhook.js` — Awake included in sleep total, cluster validation
+- `src/utils/statsDataService.js` — Awake-score validation, removed NSD, validated-only visual marking
+- `src/components/Stats/charts/CombinedChart.jsx` — Tooltip uses validated session metadata
+
+**Status at End of Session:**
+- Sleep validation algorithm works correctly in offline testing
+- Two visual bugs remain: stale spillover rendering, missed afternoon sleep
+- Need to debug with live API data and potentially adjust validation thresholds or spillover logic
 
 ### 2026-01-29 - Multi-Day Stats View (Session 48)
 

@@ -159,6 +159,9 @@ export default async function handler(req, res) {
             let hrvSum = 0;
             let hrvCount = 0;
             const sleepSessions = []; // Collect sleep_analysis entries for overlap detection
+            // Timestamped HR/step readings for sleep validation
+            const tsHrReadings = [];
+            const tsStepReadings = [];
 
             for (const row of daysRows) {
                 const metric = row[3];
@@ -167,6 +170,13 @@ export default async function handler(req, res) {
 
                 if (metric === 'step_count' && !isNaN(val)) {
                     totalSteps += val;
+                    // Collect timestamped step for sleep validation
+                    if (rawJson.date) {
+                        const ts = new Date(rawJson.date);
+                        if (!isNaN(ts.getTime())) {
+                            tsStepReadings.push({ ts: ts.getTime(), qty: rawJson.qty ?? val });
+                        }
+                    }
                 } else if (metric === 'heart_rate' && !isNaN(val)) {
                     hrSum += val;
                     hrCount++;
@@ -174,6 +184,13 @@ export default async function handler(req, res) {
                     const rowMax = row[6] !== '' ? Number(row[6]) : val;
                     if (hrMin === null || rowMin < hrMin) hrMin = rowMin;
                     if (hrMax === null || rowMax > hrMax) hrMax = rowMax;
+                    // Collect timestamped HR for sleep validation
+                    if (rawJson.date) {
+                        const ts = new Date(rawJson.date);
+                        if (!isNaN(ts.getTime())) {
+                            tsHrReadings.push({ ts: ts.getTime(), bpm: rawJson.Avg ?? rawJson.avg ?? val });
+                        }
+                    }
                 } else if (metric === 'resting_heart_rate' && !isNaN(val)) {
                     restingHrValues.push(val);
                 } else if (metric === 'heart_rate_variability' && !isNaN(val)) {
@@ -191,10 +208,12 @@ export default async function handler(req, res) {
                     const pAwake = rawJson.awake || 0;
                     const pAsleep = rawJson.asleep || 0;
 
+                    // Include awake time in sleep total — awake periods within
+                    // a sleep session count as part of that session's duration.
                     let totalMins = 0;
-                    if (pTotal > 0) totalMins = pTotal * 60;
-                    else if (pAsleep > 0) totalMins = pAsleep * 60;
-                    else totalMins = (pDeep + pRem + pCore) * 60;
+                    if (pTotal > 0) totalMins = (pTotal + pAwake) * 60;
+                    else if (pAsleep > 0) totalMins = (pAsleep + pAwake) * 60;
+                    else totalMins = (pDeep + pRem + pCore + pAwake) * 60;
 
                     sleepSessions.push({
                         sleepStart: rawJson.sleepStart ? new Date(rawJson.sleepStart) : null,
@@ -211,13 +230,11 @@ export default async function handler(req, res) {
                 // JSON above. This prevents double-counting with overlapping sessions.
             }
 
-            // --- MERGE OVERLAPPING SLEEP SESSIONS ---
-            // Apple Watch records separate sleep_analysis entries per session.
-            // CFS patients often sleep multiple times per day (naps).
-            // Some sessions overlap (a sub-session within a longer sleep period).
-            // Non-overlapping sessions (nap + night) are summed.
-            // Overlapping sessions (sub-period inside a larger one) are merged
-            // by keeping the longer session's data.
+            // --- VALIDATE & MERGE OVERLAPPING SLEEP SESSIONS ---
+            // Apple Watch records nested sleep_analysis entries per session.
+            // For overlapping sessions, use HR/step data to determine which
+            // session best represents actual sleep (innermost-outward walk).
+            // Non-overlapping sessions (separate naps) are summed.
             let sleepMinutes = 0;
             let deepMinutes = 0;
             let remMinutes = 0;
@@ -230,31 +247,77 @@ export default async function handler(req, res) {
                     return a.sleepStart - b.sleepStart;
                 });
 
-                const merged = [{ ...sleepSessions[0] }];
-                for (let i = 1; i < sleepSessions.length; i++) {
-                    const current = sleepSessions[i];
-                    const last = merged[merged.length - 1];
+                // Cluster overlapping sessions
+                const clusters = [];
+                let currentCluster = [sleepSessions[0]];
+                let clusterEnd = sleepSessions[0].sleepEnd ? sleepSessions[0].sleepEnd.getTime() : 0;
 
-                    if (last.sleepEnd && current.sleepStart && current.sleepStart < last.sleepEnd) {
-                        // Overlapping — keep the session with more total sleep
-                        if (current.totalMins > last.totalMins) {
-                            merged[merged.length - 1] = { ...current };
-                        }
-                        // Extend end time if the current session ends later
-                        if (current.sleepEnd && current.sleepEnd > merged[merged.length - 1].sleepEnd) {
-                            merged[merged.length - 1].sleepEnd = current.sleepEnd;
-                        }
+                for (let i = 1; i < sleepSessions.length; i++) {
+                    const s = sleepSessions[i];
+                    if (s.sleepStart && s.sleepStart.getTime() <= clusterEnd) {
+                        currentCluster.push(s);
+                        if (s.sleepEnd) clusterEnd = Math.max(clusterEnd, s.sleepEnd.getTime());
                     } else {
-                        // Non-overlapping (separate nap or sleep period)
-                        merged.push({ ...current });
+                        clusters.push(currentCluster);
+                        currentCluster = [s];
+                        clusterEnd = s.sleepEnd ? s.sleepEnd.getTime() : 0;
                     }
                 }
+                clusters.push(currentCluster);
 
-                for (const s of merged) {
-                    sleepMinutes += s.totalMins;
-                    deepMinutes += s.deepMins;
-                    remMinutes += s.remMins;
-                    awakeMinutes += s.awakeMins;
+                // For each cluster, find the best session using HR/step validation
+                for (const cluster of clusters) {
+                    let best;
+                    if (cluster.length === 1) {
+                        best = cluster[0];
+                    } else {
+                        // Sort by span (longest first)
+                        const sorted = [...cluster].sort((a, b) => {
+                            const spanA = (a.sleepEnd ? a.sleepEnd.getTime() : 0) - (a.sleepStart ? a.sleepStart.getTime() : 0);
+                            const spanB = (b.sleepEnd ? b.sleepEnd.getTime() : 0) - (b.sleepStart ? b.sleepStart.getTime() : 0);
+                            return spanB - spanA;
+                        });
+
+                        // Walk from innermost outward, expanding while gaps look like sleep
+                        best = sorted[sorted.length - 1];
+                        for (let i = sorted.length - 2; i >= 0; i--) {
+                            const outer = sorted[i];
+                            const inner = sorted[i + 1];
+                            if (!outer.sleepStart || !inner.sleepStart) continue;
+                            if (outer.sleepStart.getTime() >= inner.sleepStart.getTime()) continue;
+
+                            // Compute awake score for the exclusive gap
+                            const gapStart = outer.sleepStart.getTime();
+                            const gapEnd = inner.sleepStart.getTime();
+                            const gapSpanMin = (gapEnd - gapStart) / 60000;
+                            const gapHR = tsHrReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
+                            const gapSteps = tsStepReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
+
+                            const gapTotalSteps = gapSteps.reduce((sum, s) => sum + s.qty, 0);
+                            const gapSigSteps = gapSteps.filter(s => s.qty > 2);
+                            const gapAvgHR = gapHR.length > 0 ? gapHR.reduce((s, r) => s + r.bpm, 0) / gapHR.length : null;
+                            const gapMaxHR = gapHR.length > 0 ? Math.max(...gapHR.map(r => r.bpm)) : null;
+                            const stepsPerHour = gapSpanMin > 0 ? (gapTotalSteps / gapSpanMin) * 60 : 0;
+                            const sigStepsPerHour = gapSpanMin > 0 ? (gapSigSteps.length / gapSpanMin) * 60 : 0;
+
+                            const awakeScore =
+                                (gapAvgHR && gapAvgHR > 70 ? 2 : 0) +
+                                (gapMaxHR && gapMaxHR > 85 ? 1 : 0) +
+                                (sigStepsPerHour > 1 ? 2 : 0) +
+                                (stepsPerHour > 20 ? 2 : 0);
+
+                            if (awakeScore < 3) {
+                                best = outer; // Gap looks like sleep → expand
+                            } else {
+                                break; // Gap shows awake → stop
+                            }
+                        }
+                    }
+
+                    sleepMinutes += best.totalMins;
+                    deepMinutes += best.deepMins;
+                    remMinutes += best.remMins;
+                    awakeMinutes += best.awakeMins;
                 }
             }
 

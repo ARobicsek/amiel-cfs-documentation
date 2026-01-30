@@ -125,24 +125,53 @@ async function handleSingleDay(req, res, date) {
     const targetDay = parseInt(day, 10);
     const targetYear = parseInt(year, 10);
 
-    const matchingRows = allRows.filter(row => {
-      const dateStr = row[1];
+    // Compute next-day date for spillover sleep detection
+    const nextDate = new Date(targetYear, targetMonth - 1, targetDay + 1);
+    const nextMonth = nextDate.getMonth() + 1;
+    const nextDay = nextDate.getDate();
+    const nextYear = nextDate.getFullYear();
+
+    function rowMatchesDate(dateStr, m, d, y) {
       if (!dateStr) return false;
       if (dateStr.includes('/')) {
         const parts = dateStr.split('/');
         if (parts.length === 3) {
-          return parseInt(parts[0], 10) === targetMonth &&
-                 parseInt(parts[1], 10) === targetDay &&
-                 parseInt(parts[2], 10) === targetYear;
+          return parseInt(parts[0], 10) === m &&
+                 parseInt(parts[1], 10) === d &&
+                 parseInt(parts[2], 10) === y;
         }
       }
       if (dateStr.includes('-')) {
-        return dateStr.startsWith(date);
+        const iso = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        return dateStr.startsWith(iso);
       }
       return false;
-    });
+    }
 
-    const rows = matchingRows.map(row => ({
+    const matchingRows = [];
+    const spilloverRows = [];
+
+    for (const row of allRows) {
+      const dateStr = row[1];
+      if (rowMatchesDate(dateStr, targetMonth, targetDay, targetYear)) {
+        matchingRows.push(row);
+      } else if (row[3] === 'sleep_analysis' && rowMatchesDate(dateStr, nextMonth, nextDay, nextYear)) {
+        // Check if this next-day sleep session starts on the target date
+        try {
+          const rawJson = row[8] ? JSON.parse(row[8]) : {};
+          if (rawJson.sleepStart) {
+            const startDate = new Date(rawJson.sleepStart);
+            if (startDate.getFullYear() === targetYear &&
+                (startDate.getMonth() + 1) === targetMonth &&
+                startDate.getDate() === targetDay) {
+              spilloverRows.push(row);
+            }
+          }
+        } catch { /* skip unparseable rows */ }
+      }
+    }
+
+    const mapRow = (row, spillover = false) => ({
       timestamp: row[0] || '',
       date: row[1] || '',
       hour: row[2] ? parseInt(row[2], 10) : null,
@@ -152,7 +181,13 @@ async function handleSingleDay(req, res, date) {
       max: row[6] ? parseFloat(row[6]) : null,
       source: row[7] || '',
       rawData: row[8] || '',
-    }));
+      ...(spillover ? { spillover: true } : {}),
+    });
+
+    const rows = [
+      ...matchingRows.map(row => mapRow(row)),
+      ...spilloverRows.map(row => mapRow(row, true)),
+    ];
 
     return res.status(200).json({ date, rows, count: rows.length });
   } catch (error) {
