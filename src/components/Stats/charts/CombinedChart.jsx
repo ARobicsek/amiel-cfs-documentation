@@ -223,7 +223,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 visible: true,
                 x: event.native.offsetX,
                 y: event.native.offsetY - 40,
-                text: `${formatTime(minute)}: ${steps[minute]} steps`
+                text: `${formatTime(minute)}: ${Math.round(steps[minute])} steps`
             });
             return;
         }

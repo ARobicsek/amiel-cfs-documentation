@@ -17,6 +17,7 @@
  */
 
 import { google } from 'googleapis';
+import { computeValidatedSleepByDate } from '../lib/sleepValidation.js';
 
 // Normalize date string to YYYY-MM-DD format for comparison
 function normalizeDate(dateStr) {
@@ -109,8 +110,8 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
 
-    // Fetch daily entries, ECG readings, and Health Data in parallel
-    const [entriesResponse, ecgResponse, healthResponse] = await Promise.all([
+    // Fetch daily entries, ECG readings, Health Data, and Hourly data in parallel
+    const [entriesResponse, ecgResponse, healthResponse, hourlyResponse] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId,
         range: 'Sheet1!A:V', // Extended to include all meds (K-V)
@@ -122,7 +123,11 @@ export default async function handler(req, res) {
       sheets.spreadsheets.values.get({
         spreadsheetId,
         range: 'Health_Daily!A:O', // Date, Steps, AvgHR, RestHR, MinHR, MaxHR, HRV, SleepDur, Eff, Deep, REM, LastUpd, HRCount, HRVCount, Awake
-      }).catch(() => ({ data: { values: [] } })) // Handle if Health sheet doesn't exist
+      }).catch(() => ({ data: { values: [] } })), // Handle if Health sheet doesn't exist
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'Health_Hourly!A2:I', // For validated sleep computation
+      }).catch(() => ({ data: { values: [] } }))
     ]);
 
     // Process daily entries - index by normalized date
@@ -220,6 +225,27 @@ export default async function handler(req, res) {
           hrvCount: row[13] ? parseInt(row[13]) : null,
           awakeMinutes: row[14] ? parseFloat(row[14]) : null,
         };
+      }
+    }
+
+    // Compute validated sleep from hourly data (same algorithm as single-day view)
+    const hourlyRows = hourlyResponse.data.values || [];
+    const validatedSleep = computeValidatedSleepByDate(
+      hourlyRows,
+      () => true, // Include all dates; we filter by limit later
+      (dateStr) => normalizeDate(dateStr)
+    );
+
+    // Override Health_Daily sleep values with validated ones
+    for (const [isoDate, vSleep] of Object.entries(validatedSleep)) {
+      if (vSleep.totalMin > 0) {
+        if (!healthByDate[isoDate]) {
+          healthByDate[isoDate] = {};
+        }
+        healthByDate[isoDate].sleepMinutes = vSleep.totalMin;
+        healthByDate[isoDate].deepSleep = vSleep.deepMin;
+        healthByDate[isoDate].remSleep = vSleep.remMin;
+        healthByDate[isoDate].awakeMinutes = vSleep.awakeMin;
       }
     }
 

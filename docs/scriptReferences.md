@@ -71,6 +71,14 @@ Frontend helper modules.
 
 ---
 
+## Shared Libraries (`lib/`)
+
+| File | Exports | Description | Link |
+|------|---------|-------------|------|
+| `sleepValidation.js` | `clusterSleepSessions`, `findBestSessionInCluster`, `parseSleepSession`, `computeValidatedSleepByDate` | Shared sleep validation algorithm used by API endpoints (get-hourly-data, get-entries). Mirrors client-side algorithm in statsDataService.js. | [sleepValidation.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/lib/sleepValidation.js) |
+
+---
+
 ## Build/Config (root)
 
 | File | Description | Link |

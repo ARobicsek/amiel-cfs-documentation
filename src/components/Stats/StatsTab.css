@@ -312,6 +312,24 @@
   }
 }
 
+/* Force landscape layout when fullscreen + portrait orientation.
+   Rotates the fixed container 90deg so the chart always appears
+   in landscape, even when the phone is held vertically.
+   Touch/click events are remapped through the CSS transform by the browser. */
+@media (orientation: portrait) {
+  .fullscreen-chart-container.is-fullscreen {
+    transform: rotate(90deg);
+    transform-origin: top left;
+    width: 100vh;
+    height: 100vw;
+    top: 0;
+    left: 100%;
+    right: auto;
+    bottom: auto;
+    overflow: hidden;
+  }
+}
+
 /* ============================================
    Multi-Day View Styles
    ============================================ */

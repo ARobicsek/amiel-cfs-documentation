@@ -230,7 +230,7 @@ function EntryCard({ entry, previousEntry }) {
               <div className="health-item">
                 <span className="health-icon">😴</span>
                 <div className="health-details">
-                  <span className="health-value">{(entry.health.sleepMinutes / 60).toFixed(1)} <small>hrs</small></span>
+                  <span className="health-value">{formatSleepMinutes(entry.health.sleepMinutes)}</span>
                   <span className="health-sub">Sleep</span>
                 </div>
               </div>
@@ -245,6 +245,18 @@ function EntryCard({ entry, previousEntry }) {
       )}
     </div>
   );
+}
+
+/**
+ * Format sleep duration in minutes to "Xh Ym" display string.
+ */
+function formatSleepMinutes(minutes) {
+  if (!minutes || minutes <= 0) return '--';
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
 }
 
 /**

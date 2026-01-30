@@ -18,6 +18,7 @@
  */
 
 import { google } from 'googleapis';
+import { computeValidatedSleepByDate } from '../lib/sleepValidation.js';
 
 // ── Shared helpers ──
 
@@ -272,6 +273,16 @@ async function handleMultiDay(req, res, startDate, endDate) {
       hrByDate[isoDate].push(bpm);
     }
 
+    // --- 1b. Validated Sleep from Health_Hourly ---
+    // Compute sleep from raw hourly data using the same validated algorithm
+    // as the single-day view, instead of relying on pre-computed Health_Daily values.
+    const rangeParseDateFn = (dateStr) => {
+      const p = parseDateStr(dateStr);
+      return p ? toISODate(p) : null;
+    };
+    const rangeFilterFn = (dateStr) => isInRange(dateStr, startDate, endDate);
+    const validatedSleep = computeValidatedSleepByDate(hourlyRows, rangeFilterFn, rangeParseDateFn);
+
     // --- 2. Sleep/Steps/HRV from Health_Daily ---
     const dailyRows = dailyResponse.data.values || [];
     const dailyByDate = {};
@@ -325,6 +336,7 @@ async function handleMultiDay(req, res, startDate, endDate) {
       ...Object.keys(hrByDate),
       ...Object.keys(dailyByDate),
       ...Object.keys(manualByDate),
+      ...Object.keys(validatedSleep),
     ]);
 
     const days = [];
@@ -332,24 +344,38 @@ async function handleMultiDay(req, res, startDate, endDate) {
       const hr = hrByDate[date] ? computeBoxPlot(hrByDate[date]) : null;
       const daily = dailyByDate[date] || {};
       const manual = manualByDate[date] || {};
+      const vSleep = validatedSleep[date];
 
-      let coreSleep = null;
-      if (daily.sleepDuration != null && daily.deepSleep != null && daily.remSleep != null) {
-        const awake = daily.awakeMinutes || 0;
-        coreSleep = Math.max(0, daily.sleepDuration - daily.deepSleep - daily.remSleep - awake);
+      // Use validated sleep from hourly data (accurate), falling back to Health_Daily
+      let sleep = null;
+      if (vSleep && vSleep.totalMin > 0) {
+        sleep = {
+          total: vSleep.totalMin,
+          deep: vSleep.deepMin || null,
+          rem: vSleep.remMin || null,
+          core: vSleep.coreMin || null,
+          awake: vSleep.awakeMin || null,
+        };
+      } else if (daily.sleepDuration != null) {
+        let coreSleep = null;
+        if (daily.deepSleep != null && daily.remSleep != null) {
+          const awake = daily.awakeMinutes || 0;
+          coreSleep = Math.max(0, daily.sleepDuration - daily.deepSleep - daily.remSleep - awake);
+        }
+        sleep = {
+          total: Math.round(daily.sleepDuration),
+          deep: daily.deepSleep != null ? Math.round(daily.deepSleep) : null,
+          rem: daily.remSleep != null ? Math.round(daily.remSleep) : null,
+          core: coreSleep != null ? Math.round(coreSleep) : null,
+          awake: daily.awakeMinutes != null ? Math.round(daily.awakeMinutes) : null,
+        };
       }
 
       days.push({
         date,
         hr,
         steps: daily.steps != null ? Math.round(daily.steps) : null,
-        sleep: daily.sleepDuration != null ? {
-          total: Math.round(daily.sleepDuration),
-          deep: daily.deepSleep != null ? Math.round(daily.deepSleep) : null,
-          rem: daily.remSleep != null ? Math.round(daily.remSleep) : null,
-          core: coreSleep != null ? Math.round(coreSleep) : null,
-          awake: daily.awakeMinutes != null ? Math.round(daily.awakeMinutes) : null,
-        } : null,
+        sleep,
         hrv: daily.avgHRV != null ? { avg: daily.avgHRV, count: daily.hrvCount } : null,
         feetOnGround: manual.feetOnGround,
         brainTime: manual.brainTime,
