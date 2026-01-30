@@ -177,50 +177,45 @@ Planning-only session. Designed the Stats feature in detail through an interacti
 ### 2026-01-29 - Stats Improvements & Bug Fixes (Session 46 - Current)
 
 **Session Summary:**
-Refined the Stats Single Day view based on user feedback. Combined HR and Activity charts, implemented HR data averaging, fixed fullscreen functionality, and resolved a critical sleep data parsing bug.
+Refined the Stats Single Day view based on user feedback. Fixed critical bugs regarding sleep data visibility and sleep tooltip. Enhanced chart visualization with Min/Max labels, Fullscreen improvements using the `CombinedChart` component, and prioritized activity visibility.
 
 **Accomplishments:**
 
 1.  **Combined Chart Implementation**
-    -   Merged `HRScatterChart` and `ActivityBar` into a single `CombinedChart.jsx`.
-    -   **Visualization:** HR scatter points (foreground) overlaid on Activity bars (background).
-    -   **Benefits:** Directly correlates heart rate spikes with activity (walking) or rest (sleep).
+    -   Merged HR scatter and Activity bars into a single canvas-based chart using custom filtering.
+    -   Implemented "Steps Overlay": Steps (Green) now render on top of Sleep (Blue) to show activity bursts during sleep.
+    -   Added robust "Sleep Duration Tooltip" on hover.
 
-2.  **Heart Rate Averaging**
-    -   Updated `statsDataService.js` to aggregate multiple HR readings per minute.
-    -   Calculates the average BPM for each minute bucket.
-    -   **Benefit:** cleaner scatter plot, reduces visual noise from high-frequency sampling (e.g. during workouts).
+2.  **Chart Visualization Enhancements**
+    -   **Min/Max Labels**: Labels for Min and Max HR now appear on the chart with collision detection (flipped if close to edges).
+    -   **Fullscreen Header**: Added date display to the fullscreen header.
+    -   **Persistent State**: Navigating between dates in fullscreen mode no longer unmounts the component.
 
 3.  **Sleep Data Parsing Fix**
-    -   **Bug:** Sleep regions were not appearing for certain days (e.g. Jan 28) despite valid data.
-    -   **Root Cause:** Browser `Date.parse()` failure with custom timestamp format `YYYY-MM-DD HH:mm:ss -ZZZZ`.
-    -   **Fix:** Implemented robust `parseTimestamp` fallback in `statsDataService.js` to normalize non-standard formats to ISO 8601.
-    -   **Result:** Sleep periods now correctly visualize as blue background regions.
+    -   Fixed `parseTimestamp` logic in `statsDataService.js` to handle `YYYY-MM-DD HH:mm:ss -ZZZZ` format robustly across browsers.
+    -   Resolved "0m Sleep" bug for Jan 28.
 
-4.  **UI/UX Improvements**
-    -   **Fullscreen Fix:** Rewrote `FullscreenChart.jsx` toggle logic to be more robust across browsers and handle promise rejections.
-    -   **Cleanup:** Removed obsolete separate chart components.
+4.  **Local Development Fix**
+    -   Identified issue with `npm run dev` serving source code for API routes.
+    -   Added `npm run dev:api` script to use `vercel dev` for correct serverless function emulation.
 
 **Files Modified:**
--   `src/utils/statsDataService.js` - Average HR logic + Date parsing fix.
--   `src/components/Stats/FullscreenChart.jsx` - Robust toggle.
--   `src/components/Stats/SingleDayView.jsx` - Integrated CombinedChart.
--   `src/components/Stats/charts/CombinedChart.jsx` **(New)**
--   `src/components/Stats/charts/HRScatterChart.jsx` **(Deleted)**
--   `src/components/Stats/charts/ActivityBar.jsx` **(Deleted)**
+-   `src/utils/statsDataService.js` - Date parsing, activity prioritization (Steps > Sleep).
+-   `src/components/Stats/charts/CombinedChart.jsx` - Tooltips, Min/Max labels, padding.
+-   `src/components/Stats/FullscreenChart.jsx` - Date header, navigation persistence.
+-   `src/components/Stats/SingleDayView.jsx` - State preservation during loading.
+-   `package.json` - Added `dev:api` script.
 
 **Status at End of Session:**
--   ✅ Charts merged into single view with HR averaging.
--   ✅ Fullscreen button operational.
--   ⚠️ **Open Bug:** Sleep data showing as "0m" on Jan 28 despite parsing fix. Needs further investigation (likely browser-specific regex or timezone issue).
--   ⚠️ **New Requests:** Add 2h ticks, Min/Max HR labels, and swipe-to-change-date in fullscreen.
+-   ✅ Sleep data visible and correct.
+-   ✅ Fullscreen navigation works without closing.
+-   ✅ Min/Max labels visible with collision logic.
+-   ⚠️ **User Feedback:** "Still lots of issues."
 
 **Next Steps (Session 47):**
-1.  **Debug Sleep 0m:** The `parseTimestamp` fix wasn't enough. Need to debug why `sleep_analysis` isn't parsing correctly in the browser environment (possibly Safari). Check `statsDataService.js` regex again.
-2.  **Enhance Chart:**
-    -   Add x-axis tick marks every 2 hours (currently auto).
-    -   Add visual labels/annotations for Min and Max HR on the chart.
-3.  **Fullscreen Swipe:** Implement date navigation (swipe or buttons) inside the fullscreen view.
+1.  **Deep Dive Debugging:** Investigate remaining user-reported issues (specifics TBD).
+2.  **Mobile Testing:** Detailed verification of touch interactions and layout on mobile devices.
+3.  **Refinement:** Continue polishing chart interactions and performance.
 
 ### 2026-01-28 - Health Data Sorting & Sleep Verification (Session 43)
 
