@@ -315,6 +315,7 @@ export default function MultiDayView({ isDark }) {
                   isFullscreen={isFullscreen}
                   formatValue={(v) => v.toFixed(2)}
                   tooltipExtra={(day) => day.ecg?.avgHr ? `ECG HR: ${Math.round(day.ecg.avgHr)} BPM` : null}
+                  pointsOnly={true}
                 />
               )}
             </FullscreenChart>

@@ -145,6 +145,10 @@ export default function HRBoxPlotChart({ days = [], isDark, isFullscreen }) {
     maintainAspectRatio: false,
     animation: false,
     layout: { padding: { top: 10, bottom: 5, left: 5, right: 5 } },
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
     scales: {
       x: {
         stacked: true,

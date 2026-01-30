@@ -26,6 +26,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
  *   isFullscreen: boolean
  *   formatValue: function(value) => string - optional formatter for tooltip
  *   tooltipExtra: function(day) => string|null - optional extra line for tooltip
+ *   pointsOnly: boolean - if true, show only points (no connecting line or fill)
  */
 export default function MetricLineChart({
   days = [],
@@ -38,6 +39,7 @@ export default function MetricLineChart({
   isFullscreen,
   formatValue,
   tooltipExtra,
+  pointsOnly = false,
 }) {
   const { labels, values } = useMemo(() => {
     const labels = [];
@@ -64,19 +66,20 @@ export default function MetricLineChart({
     datasets: [{
       label,
       data: values,
-      borderColor: color,
-      backgroundColor: color + '33', // 20% opacity fill
+      borderColor: pointsOnly ? 'transparent' : color,
+      backgroundColor: pointsOnly ? 'transparent' : (color + '33'), // 20% opacity fill
       pointBackgroundColor: color,
       pointBorderColor: color,
-      pointRadius: values.length > 60 ? 1 : (values.length > 30 ? 2 : 3),
-      pointHoverRadius: 6,
+      pointRadius: pointsOnly ? 5 : (values.length > 60 ? 1 : (values.length > 30 ? 2 : 3)),
+      pointHoverRadius: 8,
       pointHitRadius: 15,
-      borderWidth: 2,
+      borderWidth: pointsOnly ? 0 : 2,
       tension: 0.3,
-      fill: true,
+      fill: !pointsOnly,
       spanGaps: false, // Gaps for missing days
+      showLine: !pointsOnly,
     }],
-  }), [labels, values, label, color]);
+  }), [labels, values, label, color, pointsOnly]);
 
   const options = useMemo(() => ({
     responsive: true,
