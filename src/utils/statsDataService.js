@@ -9,27 +9,38 @@
 /**
  * Parse a date string like "2026-01-28 06:49:53 -0500" into a Date object.
  */
+/**
+ * Parse a date string like "2026-01-28 06:49:53 -0500" into a Date object.
+ * Robust implementation to handle custom format across all browsers (especially Safari).
+ */
 function parseTimestamp(str) {
   if (!str) return null;
-  let d = new Date(str);
+
+  // 1. Try manual regex parsing for the known Health Auto Export format: "YYYY-MM-DD HH:mm:ss -ZZZZ"
+  // Example: "2026-01-28 18:03:53 -0500"
+  const regex = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\s+([+-])(\d{2})(\d{2})$/;
+  const match = str.match(regex);
+
+  if (match) {
+    // Construct ISO 8601 string: "YYYY-MM-DDTHH:mm:ss+/-HH:mm"
+    // This is universally supported by new Date() in modern browsers.
+    const isoString = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}${match[7]}${match[8]}:${match[9]}`;
+    const d = new Date(isoString);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // 2. Fallback to standard Date parsing (e.g. for "1/29/2026, 4:59:12 AM" or ISO strings)
+  const d = new Date(str);
   if (!isNaN(d.getTime())) return d;
 
-  // Fallback: manually handle "2026-01-28 06:49:53 -0500" format
-  // Replace space between date and time with T, and ensure timezone colon
+  // 3. Last resort fallback: try replacing space with T if it looks like partial ISO
   try {
     let iso = str.trim();
-    // 1. Replace first space with T if YYYY-MM-DD HH...
     if (/^\d{4}-\d{2}-\d{2}\s\d{2}:/.test(iso)) {
       iso = iso.replace(' ', 'T');
     }
-    // 2. Fix timezone "-0500" -> "-05:00" if no colon exists
-    // Look for +/- followed by 4 digits at end
-    const tzMatch = iso.match(/([+-])(\d{2})(\d{2})$/);
-    if (tzMatch) {
-      iso = iso.slice(0, tzMatch.index) + `${tzMatch[1]}${tzMatch[2]}:${tzMatch[3]}`;
-    }
-    d = new Date(iso);
-    return isNaN(d.getTime()) ? null : d;
+    const d2 = new Date(iso);
+    return isNaN(d2.getTime()) ? null : d2;
   } catch {
     return null;
   }
@@ -355,8 +366,9 @@ export function processSingleDayData(rows, dateStr) {
 
       if (min === null) return;
 
-      // Layer 1: Suppress steps during sleep session windows
-      if (sleepWindowMinutes.has(min)) return;
+      // Layer 1: REMOVED Suppress steps during sleep session windows
+      // We want to see steps even if they overlap with sleep logic
+      // if (sleepWindowMinutes.has(min)) return;
 
       // Layer 2: Suppress steps < 2 per minute (sensor noise)
       if (qty < 2) return;

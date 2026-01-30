@@ -87,60 +87,79 @@ export default function SingleDayView({ isDark }) {
       </div>
 
       {/* Content */}
-      {loading && (
-        <div className="stats-loading">Loading data...</div>
-      )}
-
-      {error && (
-        <div className="stats-error">Error: {error}</div>
-      )}
-
-      {!loading && !error && data?.empty && (
-        <div className="stats-no-data">No data for this day</div>
-      )}
-
-      {!loading && !error && data && !data.empty && (
-        <>
-          {/* Combined Chart (Heart Rate + Activity) */}
-          <FullscreenChart title="Heart Rate & Activity">
-            <CombinedChart
-              hrPoints={data.hrPoints}
-              activityMinutes={data.activityMinutes}
-              isDark={isDark}
-            />
-          </FullscreenChart>
-
-          {/* Summary Stats */}
-          <div className="stats-summary">
-            <div className="stats-summary-item">
-              <span className="stats-summary-label">Sleep</span>
-              <span className="stats-summary-value">{formatMinutes(data.summary.totalSleepMin)}</span>
-            </div>
-            <div className="stats-summary-item">
-              <span className="stats-summary-label">Steps</span>
-              <span className="stats-summary-value">
-                {data.summary.totalSteps != null ? data.summary.totalSteps.toLocaleString() : '--'}
-              </span>
-            </div>
-            <div className="stats-summary-item">
-              <span className="stats-summary-label">Avg HR</span>
-              <span className="stats-summary-value">
-                {data.summary.avgHR != null ? `${data.summary.avgHR} bpm` : '--'}
-              </span>
-            </div>
-            <div className="stats-summary-item">
-              <span className="stats-summary-label">HRV</span>
-              <span className="stats-summary-value">
-                {data.summary.avgHRV != null ? `${data.summary.avgHRV} ms` : '--'}
-              </span>
-            </div>
-            <div className="stats-summary-item stats-summary-detail">
-              <span className="stats-summary-label">HR Readings</span>
-              <span className="stats-summary-value">{data.summary.hrCount}</span>
-            </div>
+      <div className="stats-content-wrapper" style={{ position: 'relative', minHeight: '200px' }}>
+        {loading && (
+          <div className="stats-loading-overlay" style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            background: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10
+          }}>
+            Loading data...
           </div>
-        </>
-      )}
+        )}
+
+        {error && (
+          <div className="stats-error">Error: {error}</div>
+        )}
+
+        {!error && (!data || data.empty) && !loading && (
+          <div className="stats-no-data">No data for this day</div>
+        )}
+
+        {/* Always render chart if we have data (even if stale/loading) to preserve Fullscreen state */}
+        {data && !data.empty && (
+          <>
+            {/* Combined Chart (Heart Rate + Activity) */}
+            <FullscreenChart
+              title="Heart Rate & Activity"
+              date={displayDate}
+              onPrev={() => navigateDay(-1)}
+              onNext={() => navigateDay(1)}
+              canNext={!isToday}
+            >
+              {({ isFullscreen }) => (
+                <CombinedChart
+                  hrPoints={data.hrPoints}
+                  activityMinutes={data.activityMinutes}
+                  isDark={isDark}
+                  isFullscreen={isFullscreen}
+                />
+              )}
+            </FullscreenChart>
+
+            {/* Summary Stats */}
+            <div className="stats-summary">
+              <div className="stats-summary-item">
+                <span className="stats-summary-label">Sleep</span>
+                <span className="stats-summary-value">{formatMinutes(data.summary.totalSleepMin)}</span>
+              </div>
+              <div className="stats-summary-item">
+                <span className="stats-summary-label">Steps</span>
+                <span className="stats-summary-value">
+                  {data.summary.totalSteps != null ? data.summary.totalSteps.toLocaleString() : '--'}
+                </span>
+              </div>
+              <div className="stats-summary-item">
+                <span className="stats-summary-label">Avg HR</span>
+                <span className="stats-summary-value">
+                  {data.summary.avgHR != null ? `${data.summary.avgHR} bpm` : '--'}
+                </span>
+              </div>
+              <div className="stats-summary-item">
+                <span className="stats-summary-label">HRV</span>
+                <span className="stats-summary-value">
+                  {data.summary.avgHRV != null ? `${data.summary.avgHRV} ms` : '--'}
+                </span>
+              </div>
+              <div className="stats-summary-item stats-summary-detail">
+                <span className="stats-summary-label">HR Readings</span>
+                <span className="stats-summary-value">{data.summary.hrCount}</span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

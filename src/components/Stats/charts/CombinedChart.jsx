@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useState } from 'react';
 import { Scatter } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -23,8 +23,9 @@ ChartJS.register(LinearScale, PointElement, Tooltip, TimeScale, Title);
  *   activityMinutes: Array(1440) of 'ASLEEP' | 'WALKING' | 'BLANK'
  *   isDark: boolean
  */
-export default function CombinedChart({ hrPoints = [], activityMinutes = [], isDark }) {
+export default function CombinedChart({ hrPoints = [], activityMinutes = [], isDark, isFullscreen }) {
     const chartRef = useRef(null);
+    const [tooltipState, setTooltipState] = useState({ visible: false, x: 0, y: 0, text: '' });
 
     // Memoize data to prevent re-renders
     const data = useMemo(() => ({
@@ -89,12 +90,146 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
         }
     }), [activityMinutes, isDark]);
 
+    // Min/Max Label Plugin (Only in Fullscreen)
+    const minMaxPlugin = useMemo(() => ({
+        id: 'minMaxLabels',
+        afterDatasetsDraw: (chart) => {
+            if (!isFullscreen || hrPoints.length === 0) return;
+
+            const { ctx, scales } = chart;
+            const xScale = scales.x;
+            const yScale = scales.y;
+
+            // Find Min and Max points
+            let minPoint = hrPoints[0];
+            let maxPoint = hrPoints[0];
+
+            hrPoints.forEach(p => {
+                if (p.bpm < minPoint.bpm) minPoint = p;
+                if (p.bpm > maxPoint.bpm) maxPoint = p;
+            });
+
+            ctx.save();
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+
+            const drawLabel = (point, label, isMax) => {
+                const x = xScale.getPixelForValue(point.minuteOfDay);
+                const y = yScale.getPixelForValue(point.bpm);
+
+                // Colors
+                ctx.fillStyle = isDark ? '#ffffff' : '#000000';
+                ctx.strokeStyle = isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)';
+                ctx.lineWidth = 3;
+
+                const text = `${label}: ${point.bpm}`;
+                const textHeight = 12;
+                let yOffset = isMax ? -10 : 20; // Max above, Min below
+
+                // Collision detection
+                if (isMax && (y + yOffset - textHeight) < scales.y.top) {
+                    yOffset = 15;
+                }
+                if (!isMax && (y + yOffset) > scales.y.bottom) {
+                    yOffset = -10;
+                }
+
+                ctx.strokeText(text, x, y + yOffset);
+                ctx.fillText(text, x, y + yOffset);
+            };
+
+            // Draw labels
+            drawLabel(maxPoint, 'Max', true);
+            drawLabel(minPoint, 'Min', false);
+
+            ctx.restore();
+        }
+    }), [hrPoints, isFullscreen, isDark]);
+
+    const handleChartHover = (event, chartElement, chart) => {
+        if (!activityMinutes || activityMinutes.length === 0) {
+            setTooltipState({ visible: false, x: 0, y: 0, text: '' });
+            return;
+        }
+
+        const { canvas, scales } = chart;
+        const rect = canvas.getBoundingClientRect();
+
+        // Use relative coordinates from the chart event
+        const mouseX = event.x;
+        const mouseY = event.y;
+
+        // Check bounds
+        if (mouseX < scales.x.left || mouseX > scales.x.right || mouseY < scales.y.top || mouseY > scales.y.bottom) {
+            setTooltipState({ visible: false, x: 0, y: 0, text: '' });
+            return;
+        }
+
+        const minute = Math.floor(scales.x.getValueForPixel(mouseX));
+
+        // Ensure minute is within bounds
+        if (minute < 0 || minute >= 1440) {
+            setTooltipState({ visible: false, x: 0, y: 0, text: '' });
+            return;
+        }
+
+        const state = activityMinutes[minute];
+
+        if (state === 'ASLEEP') {
+            // Found sleep! Calculate duration of this block
+            let start = minute;
+            while (start > 0 && activityMinutes[start - 1] === 'ASLEEP') {
+                start--;
+            }
+
+            let end = minute;
+            while (end < 1439 && activityMinutes[end + 1] === 'ASLEEP') {
+                end++;
+            }
+
+            const durationMinutes = end - start + 1;
+            const hours = Math.floor(durationMinutes / 60);
+            const mins = durationMinutes % 60;
+            const durationText = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+            // Format time range
+            const startTime = formatTime(start);
+            const endTime = formatTime(end);
+
+            setTooltipState({
+                visible: true,
+                x: event.native.offsetX, // Use native offset for DOM positioning
+                y: event.native.offsetY - 40, // Shift up
+                text: `Sleep: ${durationText} (${startTime} - ${endTime})`
+            });
+        } else {
+            setTooltipState({ visible: false, x: 0, y: 0, text: '' });
+        }
+    };
+
+    const handleChartLeave = () => {
+        setTooltipState({ visible: false, x: 0, y: 0, text: '' });
+    };
+
+    const hasData = hrPoints.length > 0 || !activityMinutes.every(m => m === 'BLANK');
+
     const options = {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+            padding: {
+                top: 20,
+                bottom: 15,
+                left: 10,
+                right: 10
+            }
+        },
+        onHover: handleChartHover,
         interaction: {
             mode: 'nearest',
             intersect: true,
+            axis: 'x'
         },
         scales: {
             x: {
@@ -102,18 +237,27 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
                 min: 0,
                 max: 1440,
                 ticks: {
+                    stepSize: isFullscreen ? 120 : 240, // 2h in FS, 4h otherwise
                     callback: (value) => {
                         const h = Math.floor(value / 60);
-                        if (h === 0) return '12AM';
-                        if (h === 4) return '4AM';
-                        if (h === 8) return '8AM';
-                        if (h === 12) return '12PM';
-                        if (h === 16) return '4PM';
-                        if (h === 20) return '8PM';
-                        return '';
+                        // Every 4 hours normally (0, 4, 8, 12, 16, 20)
+                        // Every 2 hours in fullscreen
+                        if (h % 2 !== 0 && !isFullscreen) return ''; // Skip odd hours if not FS
+                        if (h % 2 !== 0 && isFullscreen) {
+                            // Odd hours logic handled by stepSize + callback
+                        }
+
+                        const period = h >= 12 ? 'PM' : 'AM';
+                        const h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+
+                        // We only want to label multiples of 2 if isFullscreen, else multiples of 4
+                        if (!isFullscreen && h % 4 !== 0) return '';
+                        if (isFullscreen && h % 2 !== 0) return '';
+
+                        return `${h12}${period}`;
                     },
                     color: isDark ? '#94a3b8' : '#64748b',
-                    maxTicksLimit: 7,
+                    maxTicksLimit: isFullscreen ? 14 : 7,
                 },
                 grid: {
                     color: isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(0, 0, 0, 0.06)',
@@ -121,8 +265,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
                 title: { display: false },
             },
             y: {
-                beginAtZero: false, // Let HR float
-                // Suggest a reasonable range if data is sparse, but allow auto scaling
+                beginAtZero: false,
                 suggestedMin: 50,
                 suggestedMax: 120,
                 ticks: {
@@ -141,7 +284,7 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
             },
         },
         plugins: {
-            tooltip: {
+            tooltip: { // Standard Chart.js tooltip
                 callbacks: {
                     title: (items) => {
                         if (items.length === 0) return '';
@@ -159,18 +302,45 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], isD
         },
     };
 
-    if (hrPoints.length === 0 && activityMinutes.every(m => m === 'BLANK')) {
+    if (!hasData) {
         return <div className="stats-no-data">No data for this day</div>;
     }
 
     return (
-        <div className="stats-chart-container" style={{ height: '350px' }}>
+        <div
+            className="stats-chart-container"
+            style={{ height: '350px', position: 'relative' }}
+            onMouseLeave={handleChartLeave}
+        >
             <Scatter
                 ref={chartRef}
                 data={data}
                 options={options}
-                plugins={[activityPlugin]}
+                plugins={[activityPlugin, minMaxPlugin]}
             />
+            {tooltipState.visible && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        left: tooltipState.x,
+                        top: tooltipState.y,
+                        transform: 'translate(-50%, -100%)',
+                        backgroundColor: isDark ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                        color: isDark ? '#f8fafc' : '#0f172a',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                        pointerEvents: 'none',
+                        zIndex: 10,
+                        whiteSpace: 'nowrap'
+                    }}
+                >
+                    {tooltipState.text}
+                </div>
+            )}
         </div>
     );
 }
