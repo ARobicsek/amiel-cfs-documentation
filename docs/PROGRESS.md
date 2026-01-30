@@ -35,7 +35,7 @@ Track completed features and current status here. Update after completing each f
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | 16 | Stats Tab - Single Day View | DONE | HR scatter + activity bar (sleep/walking/blank), 24h timeline, date navigation, summary stats |
-| 17 | Stats Tab - Multi Day View | PLANNED | Trends dashboard: HR box plots, sleep stacked bars, steps/HRV/feet/brain line charts |
+| 17 | Stats Tab - Multi Day View | DONE | 6 charts: HR box plots, sleep stacked bars, steps/HRV/feet on ground/brain time line charts. Date range nav + 7D/30D/3M/6M presets. Fullscreen per chart. |
 | 18 | Streak animations | TODO | ON HOLD - Motivation feature |
 
 ### Phase 4: ECG Integration (COMPLETE - Fully Automatic)
@@ -68,6 +68,41 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-01-29 - Multi-Day Stats View (Session 48)
+
+**Session Summary:**
+Built the complete Multi-Day Stats view (Phases C + D from `stats_feature_plan.md`). Created server-side aggregation endpoint, 3 chart components, and the MultiDayView container with date range navigation and metric toggles.
+
+**Accomplishments:**
+
+1. **API Endpoint** — Added multi-day mode to `api/get-hourly-data.js` (merged to stay within Vercel's 12-function Hobby limit). Fetches Health_Hourly (HR box plot 5-number summary), Health_Daily (sleep/steps/HRV), and Sheet1 (Feet on Ground, Brain Time) in parallel, merges by date.
+
+2. **HRBoxPlotChart.jsx** — Custom box plot implementation using Chart.js floating bars + canvas whisker plugin. No external boxplot dependency needed (the old `chartjs-chart-box-and-violin-plot` was incompatible with Chart.js v4). Shows min/Q1/median/Q3/max per day.
+
+3. **SleepStackedBar.jsx** — Stacked bar chart showing Deep (blue), REM (purple), Core (grey-blue), and Awake (amber) sleep stages in hours per day. Legend at bottom.
+
+4. **MetricLineChart.jsx** — Reusable line chart used for 4 metrics: Steps (green), HRV (cyan), Feet on Ground (amber), Brain Time (purple). Supports `valueKey` or `valueExtractor` for flexible data access. Gaps for missing days (no interpolation).
+
+5. **MultiDayView.jsx** — Container with date range navigation (prev/next arrows), quick selectors (7D/30D/3M/6M pills), metric visibility toggles (checkboxes), and 6 stacked charts each wrapped in FullscreenChart.
+
+6. **Vercel Function Limit Fix** — Consolidated `get-health-stats.js` into `get-hourly-data.js` as a second mode routed by query params (`?date=` vs `?startDate=&endDate=`).
+
+**Files Created:**
+- `src/components/Stats/MultiDayView.jsx`
+- `src/components/Stats/charts/HRBoxPlotChart.jsx`
+- `src/components/Stats/charts/SleepStackedBar.jsx`
+- `src/components/Stats/charts/MetricLineChart.jsx`
+
+**Files Modified:**
+- `api/get-hourly-data.js` — Added multi-day stats mode
+- `src/utils/api.js` — Added `getHealthStats()` function
+- `src/components/Stats/StatsTab.jsx` — Wired MultiDayView (replaced placeholder)
+- `src/components/Stats/StatsTab.css` — Multi-day presets, toggles, chart stack styles
+
+**Status at End of Session:**
+- Multi-Day view is functionally complete, needs visual testing with real data
+- Next: Polish pass (responsive testing, fullscreen behavior, edge cases, loading states)
 
 ### 2026-01-29 - Single Day Polish & Multi-Day Planning (Session 47)
 

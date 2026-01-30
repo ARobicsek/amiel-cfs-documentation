@@ -14,7 +14,7 @@ Server-side Vercel functions. All require `Authorization: Bearer <SECRET_TOKEN>`
 | `ecg-webhook.js` | Receives ECG data from Health Auto Export (multipart/CSV), parses it, calculates R/S ratio, and stores in Sheets. | [ecg-webhook.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/ecg-webhook.js) |
 | `health-webhook.js` | Receives JSON health data (HR, Steps, Sleep), aggregates daily stats, and stores in Sheets. | [health-webhook.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/health-webhook.js) |
 | `get-entries.js` | Fetches recent daily entries from Google Sheets, merging in ECG data by date. | [get-entries.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/get-entries.js) |
-| `get-hourly-data.js` | Fetches raw Health_Hourly rows for a single date (used by Stats Single Day view). | [get-hourly-data.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/get-hourly-data.js) |
+| `get-hourly-data.js` | Two modes: (1) `?date=` fetches raw Health_Hourly for single day, (2) `?startDate=&endDate=` aggregates HR box plots + sleep/steps/HRV + feet on ground/brain time for multi-day view. | [get-hourly-data.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/get-hourly-data.js) |
 | `notification-settings.js` | GET/POST for user notification preferences (first reminder time, repeat interval). | [notification-settings.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/notification-settings.js) |
 | `send-notification.js` | Sends push notifications with jokes to all subscribed devices. | [send-notification.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/send-notification.js) |
 | `snooze.js` | Records a snooze request, storing snooze-until time in Sheets. | [snooze.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/api/snooze.js) |
@@ -28,7 +28,7 @@ Frontend helper modules.
 
 | File | Exports | Description | Link |
 |------|---------|-------------|------|
-| `api.js` | `submitEntry`, `getEntries`, `subscribeToPush` | Wrapper functions for authenticated API calls. | [api.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/api.js) |
+| `api.js` | `submitEntry`, `getEntries`, `getHealthStats`, `subscribeToPush` | Wrapper functions for authenticated API calls. | [api.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/api.js) |
 | `auth.js` | `getSecretToken`, `isAuthenticated`, `clearAuth`, `getAuthenticatedUrl` | Manages secret URL token authentication (store/retrieve from localStorage). | [auth.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/auth.js) |
 | `offlineStorage.js` | `saveOfflineEntry`, `getPendingEntries`, `syncPendingEntries`, `setupOfflineSync` | IndexedDB utilities for offline-first entry storage and sync. | [offlineStorage.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/offlineStorage.js) |
 | `pushNotification.js` | `isPushSupported`, `subscribeToPush`, `unsubscribeFromPush`, `isSubscribed` | Push notification subscription and management. | [pushNotification.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/pushNotification.js) |
@@ -46,7 +46,11 @@ Frontend helper modules.
 | `Stats/StatsTab.jsx` | Top-level Stats tab with Single/Multi Day toggle and dark mode detection. | [StatsTab.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/StatsTab.jsx) |
 | `Stats/SingleDayView.jsx` | Single Day stats: date navigation, HR scatter chart, activity bar, summary stats. | [SingleDayView.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/SingleDayView.jsx) |
 | `Stats/FullscreenChart.jsx` | Wrapper providing fullscreen capability for charts (Fullscreen API + CSS fallback). | [FullscreenChart.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/FullscreenChart.jsx) |
+| `Stats/MultiDayView.jsx` | Multi-Day stats: date range navigation, 7D/30D/3M/6M presets, metric toggles, 6 stacked charts. | [MultiDayView.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/MultiDayView.jsx) |
 | `Stats/charts/CombinedChart.jsx` | Combined HR scatter + Activity background chart (Chart.js). | [CombinedChart.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/charts/CombinedChart.jsx) |
+| `Stats/charts/HRBoxPlotChart.jsx` | Multi-day HR box plots (custom floating bars + whisker plugin, no external dependency). | [HRBoxPlotChart.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/charts/HRBoxPlotChart.jsx) |
+| `Stats/charts/SleepStackedBar.jsx` | Multi-day sleep stacked bar (deep/REM/core/awake in hours). | [SleepStackedBar.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/charts/SleepStackedBar.jsx) |
+| `Stats/charts/MetricLineChart.jsx` | Reusable line chart for Steps, HRV, Feet on Ground, Brain Time. | [MetricLineChart.jsx](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/components/Stats/charts/MetricLineChart.jsx) |
 
 ---
 
