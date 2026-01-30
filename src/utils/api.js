@@ -67,7 +67,7 @@ export async function getEntries(limit = 7) {
  * Get aggregated health stats for a date range (Multi-Day view)
  */
 export async function getHealthStats(startDate, endDate) {
-  return apiRequest(`/api/get-health-stats?startDate=${startDate}&endDate=${endDate}`);
+  return apiRequest(`/api/get-hourly-data?startDate=${startDate}&endDate=${endDate}`);
 }
 
 /**
