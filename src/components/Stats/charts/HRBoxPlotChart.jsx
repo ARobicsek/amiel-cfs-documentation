@@ -10,6 +10,47 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
+// Custom interaction mode for box plot - triggers tooltip when within whisker bounds
+ChartJS.Interaction.modes.boxplotWhisker = function(chart, e, options, useFinalPosition) {
+  const x = e.x;
+  const y = e.y;
+  const items = [];
+
+  const meta = chart.getDatasetMeta(0); // Use first dataset (lower box)
+  if (!meta || !meta.data) return items;
+
+  const xScale = chart.scales.x;
+  const yScale = chart.scales.y;
+
+  // Get raw HR data from chart options (passed via _hrRawData)
+  const rawData = chart.options._hrRawData || [];
+
+  meta.data.forEach((element, index) => {
+    const hr = rawData[index];
+    if (!hr) return;
+
+    // Get x bounds for this bar
+    const barX = xScale.getPixelForValue(index);
+    const chartWidth = chart.chartArea.width;
+    const numBars = meta.data.length;
+    const barSpacing = chartWidth / numBars;
+    const halfBar = barSpacing * 0.4; // Slightly wider touch area
+
+    // Check if x is within this bar's column
+    if (x >= barX - halfBar && x <= barX + halfBar) {
+      // Check if y is within min-max whisker range
+      const yMin = yScale.getPixelForValue(hr.min);
+      const yMax = yScale.getPixelForValue(hr.max);
+      // Note: pixel y is inverted (smaller y = higher value)
+      if (y >= yMax && y <= yMin) {
+        items.push({ element, datasetIndex: 0, index });
+      }
+    }
+  });
+
+  return items;
+};
+
 /**
  * HR Box Plot Chart for Multi-Day view.
  * Draws box plots using a stacked bar chart + custom plugin for whiskers/median.
@@ -145,6 +186,11 @@ export default function HRBoxPlotChart({ days = [], isDark, isFullscreen }) {
     maintainAspectRatio: false,
     animation: false,
     layout: { padding: { top: 10, bottom: 5, left: 5, right: 5 } },
+    interaction: {
+      mode: 'boxplotWhisker',
+      intersect: false,
+    },
+    _hrRawData: rawData, // Pass raw data for custom interaction mode
     scales: {
       x: {
         stacked: true,

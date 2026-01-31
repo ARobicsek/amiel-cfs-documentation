@@ -131,35 +131,69 @@ export default function FullscreenChart({ title, children, onPrev, onNext, canNe
       )}
 
       {/* Close (X) button at top-right in fullscreen */}
+      {/* Using div for iOS compatibility */}
       {isFullscreen && (
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           className="fs-close-btn"
-          onClick={fsSupported ? toggleFullscreen : exitFallback}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            (fsSupported ? toggleFullscreen : exitFallback)();
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            (fsSupported ? toggleFullscreen : exitFallback)();
+          }}
+          style={{ touchAction: 'manipulation' }}
           title="Exit fullscreen"
         >
           &times;
-        </button>
+        </div>
       )}
 
       {/* Navigation Overlay (only in fullscreen) */}
+      {/* Using div instead of button for iOS compatibility - buttons can exit fullscreen */}
       {isFullscreen && (
         <>
-          <button
+          <div
+            role="button"
+            tabIndex={0}
             className="fs-nav-btn fs-nav-prev"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onPrev && onPrev(); }}
-            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onPrev && onPrev();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onPrev && onPrev();
+            }}
+            style={{ touchAction: 'manipulation' }}
           >
             &#9664;
-          </button>
-          <button
+          </div>
+          <div
+            role="button"
+            tabIndex={0}
             className="fs-nav-btn fs-nav-next"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onNext && onNext(); }}
-            onTouchStart={(e) => e.stopPropagation()}
-            disabled={!canNext}
-            style={{ opacity: !canNext ? 0.3 : 1 }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (canNext && onNext) onNext();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (canNext && onNext) onNext();
+            }}
+            style={{ touchAction: 'manipulation', opacity: !canNext ? 0.3 : 1 }}
           >
             &#9654;
-          </button>
+          </div>
         </>
       )}
 

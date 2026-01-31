@@ -252,6 +252,10 @@
   justify-content: center;
   backdrop-filter: blur(4px);
   transition: background 0.2s;
+  /* iOS touch improvements */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .fs-close-btn:hover {
@@ -276,6 +280,10 @@
   justify-content: center;
   backdrop-filter: blur(4px);
   transition: background 0.2s, transform 0.1s;
+  /* iOS touch improvements */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .fs-nav-btn:hover {
