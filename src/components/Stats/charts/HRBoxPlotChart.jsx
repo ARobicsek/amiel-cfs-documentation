@@ -6,12 +6,13 @@ import {
   LinearScale,
   BarElement,
   Tooltip,
+  Interaction,
 } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 // Custom interaction mode for box plot - triggers tooltip when within whisker bounds
-ChartJS.Interaction.modes.boxplotWhisker = function(chart, e, options, useFinalPosition) {
+Interaction.modes.boxplotWhisker = function(chart, e, _options, _useFinalPosition) {
   const x = e.x;
   const y = e.y;
   const items = [];
