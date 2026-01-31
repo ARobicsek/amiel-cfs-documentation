@@ -70,6 +70,45 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-30 - Multi-Day Enhancements + R/S Ratio Graph + Sheet Sorting (Session 52)
+
+**Session Summary:**
+Extended multi-day stats with R/S ratio visualization, improved fullscreen UX, added automatic sheet sorting, and fixed step tooltip mobile touch issues.
+
+**Accomplishments:**
+
+1. **Step tooltip mobile fix** — Extended touch detection range from +/-1 to +/-2 minutes in CombinedChart to handle touch imprecision on iOS. Steps now correctly prioritize over sleep when overlapping.
+
+2. **Multi-day fullscreen navigation** — Added `onPrev`, `onNext`, `canNext`, and `date` props to all FullscreenChart instances. Date range now displays in fullscreen title. Added preventDefault/stopPropagation to nav buttons.
+
+3. **R/S Ratio graph** — Added new multi-day chart showing ECG R/S ratio from ECG_Readings sheet. Uses `pointsOnly` mode (no connecting lines). Tooltip shows both R/S ratio and ECG HR (averaged if multiple readings per day).
+
+4. **Chart reordering** — Multi-day charts now display in order: Feet on Ground → Steps → Sleep → Heart Rate → HRV → R/S Ratio → Brain Time.
+
+5. **Sleep tooltip percentages** — SleepStackedBar tooltip now shows percentage of total sleep for each segment (e.g., "Deep: 1h 30m (25%)").
+
+6. **MetricLineChart enhancements** — Added `pointsOnly` prop (no line/fill, larger points) and `tooltipExtra` prop for additional tooltip content.
+
+7. **Automatic sheet sorting** — Added `sortSheetByDateDesc()` function to sort all data sheets by most recent first. Applied to Health_Hourly, Health_Daily, ECG_Readings, ECG_Waveforms, and Sheet1 in their respective webhook handlers.
+
+**Known Issues (for next session):**
+- HR box plot tooltip only triggers on median line (should trigger on entire box/whisker area)
+- Fullscreen navigation buttons still exit fullscreen on iOS despite event handling fixes
+
+**Files Modified:**
+- `src/components/Stats/charts/CombinedChart.jsx` — Extended step tooltip range to +/-2 min
+- `src/components/Stats/MultiDayView.jsx` — Chart reordering, fullscreen props, R/S ratio chart, hasEcgData check
+- `src/components/Stats/FullscreenChart.jsx` — Added preventDefault + onTouchStart to nav buttons
+- `src/components/Stats/charts/MetricLineChart.jsx` — Added pointsOnly and tooltipExtra props
+- `src/components/Stats/charts/SleepStackedBar.jsx` — Added percentage to tooltip
+- `src/components/Stats/charts/HRBoxPlotChart.jsx` — Removed interaction mode (reverted to default)
+- `api/get-hourly-data.js` — Added ECG_Readings fetch and ecgByDate aggregation
+- `api/health-webhook.js` — Refactored sortHourlySheet to generic sortSheetByDateDesc, added Health_Daily sorting
+- `api/ecg-webhook.js` — Added sortSheetByDateDesc for ECG_Readings and ECG_Waveforms
+- `api/submit-entry.js` — Added sortSheetByDateDesc for Sheet1
+
+---
+
 ### 2026-01-30 - Fullscreen Chart UI + Sleep Data Accuracy (Session 51)
 
 **Session Summary:**
