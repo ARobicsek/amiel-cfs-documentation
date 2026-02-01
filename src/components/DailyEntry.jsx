@@ -45,21 +45,32 @@ function getRelativeLabel(date) {
   return `${diffDays} days ago`
 }
 
-// Medication Configuration (A-Z sorted)
-const MED_CONFIG = [
-  { key: 'amitriptyline', label: 'Amitriptyline', defaultDose: '', defaultOn: true },
-  { key: 'dayquil', label: 'DayQuil', defaultDose: '', defaultOn: false },
-  { key: 'dextromethorphan', label: 'Dextromethorphan', defaultDose: '', defaultOn: false },
-  { key: 'melatonin', label: 'Melatonin', defaultDose: '', defaultOn: true },
-  { key: 'metoprolol', label: 'Metoprolol', defaultDose: '', defaultOn: true },
-  { key: 'modafinilNew', label: 'Modafinil', defaultDose: '1 pill', defaultOn: true },
-  { key: 'nyquil', label: 'NyQuil', defaultDose: '', defaultOn: false },
-  { key: 'oxaloacetateNew', label: 'Oxaloacetate', defaultDose: '1g', defaultOn: false },
-  { key: 'senna', label: 'Senna', defaultDose: '', defaultOn: true },
-  { key: 'tirzepatide', label: 'Tirzepatide', defaultDose: '', defaultOn: false },
-  { key: 'venlafaxine', label: 'Venlafaxine', defaultDose: '', defaultOn: true },
-  { key: 'vitaminD', label: 'Vitamin D', defaultDose: '', defaultOn: true }
-]
+// Default configuration for original medications (fallback for defaults)
+// New medications added dynamically will default to OFF with no default dose
+const MED_DEFAULTS = {
+  'amitriptyline': { defaultDose: '', defaultOn: true },
+  'dayquil': { defaultDose: '', defaultOn: false },
+  'dextromethorphan': { defaultDose: '', defaultOn: false },
+  'melatonin': { defaultDose: '', defaultOn: true },
+  'metoprolol': { defaultDose: '', defaultOn: true },
+  'modafinilnew': { defaultDose: '1 pill', defaultOn: true },
+  'nyquil': { defaultDose: '', defaultOn: false },
+  'oxaloacetatenew': { defaultDose: '1g', defaultOn: false },
+  'senna': { defaultDose: '', defaultOn: true },
+  'tirzepatide': { defaultDose: '', defaultOn: false },
+  'venlafaxine': { defaultDose: '', defaultOn: true },
+  'vitamind': { defaultDose: '', defaultOn: true }
+}
+
+// Get default values for a medication
+function getMedDefaults(key) {
+  const defaults = MED_DEFAULTS[key]
+  if (defaults) {
+    return defaults
+  }
+  // New medications default to OFF with no dose
+  return { defaultDose: '', defaultOn: false }
+}
 
 function DailyEntry({ onSave }) {
   // Date selector - defaults to yesterday
@@ -73,25 +84,19 @@ function DailyEntry({ onSave }) {
   const [comments, setComments] = useState('')
   const [exercise, setExercise] = useState('')
   const [willDoECG, setWillDoECG] = useState(false)
-  
-  // Medications State
-  const [meds, setMeds] = useState(() => {
-    const initial = {}
-    MED_CONFIG.forEach(med => {
-      initial[med.key] = { 
-        dose: med.defaultDose, 
-        status: med.defaultOn ? 'on' : 'off' 
-      }
-    })
-    return initial
-  })
+
+  // Dynamic medication configuration from API
+  const [medConfig, setMedConfig] = useState([])
+
+  // Medications State - will be populated after medConfig loads
+  const [meds, setMeds] = useState({})
 
   const [saving, setSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [showSyncECG, setShowSyncECG] = useState(false)
   const [error, setError] = useState(null)
 
-  // Fetch history to populate defaults
+  // Fetch history and medication config to populate defaults
   useEffect(() => {
     async function fetchDefaults() {
       try {
@@ -100,27 +105,33 @@ function DailyEntry({ onSave }) {
 
         const entries = result.entries
         const dateForStr = formatDateForApi(dateFor)
-        
+
+        // Get medications from API response (or use empty array if not present)
+        const apiMedications = result.medications || []
+        setMedConfig(apiMedications)
+
         // Check if we have an entry for the selected date
         const currentEntry = entries.find(e => e.date === dateForStr)
 
         // Helper to find last valid dose in history
         const findLastDose = (key, entriesToSearch) => {
           const entry = entriesToSearch.find(e => e[key] && e[key] !== 'Off')
-          return entry ? entry[key] : MED_CONFIG.find(m => m.key === key).defaultDose
+          return entry ? entry[key] : getMedDefaults(key).defaultDose
         }
 
-        const newMeds = { ...meds }
+        const newMeds = {}
 
-        MED_CONFIG.forEach(med => {
+        // Process each medication from the API
+        apiMedications.forEach(med => {
           const key = med.key
-          
+          const defaults = getMedDefaults(key)
+
           if (currentEntry && currentEntry[key]) {
             // We have a saved entry for this date
             if (currentEntry[key] === 'Off') {
               newMeds[key] = {
                 status: 'off',
-                dose: findLastDose(key, entries.filter(e => e.date !== dateForStr)) // Look back for dose
+                dose: findLastDose(key, entries.filter(e => e.date !== dateForStr))
               }
             } else {
               newMeds[key] = {
@@ -130,12 +141,6 @@ function DailyEntry({ onSave }) {
             }
           } else {
             // No entry for this date, look at history
-            // Filter out entries strictly AFTER the dateFor (future entries shouldn't affect history)
-            // But API returns sorted desc. We need entries strictly *before* dateFor.
-            // Since dateForStr is "MM/DD/YYYY", string comparison might be tricky if not YYYY-MM-DD.
-            // But getEntries returns normalizedDate (YYYY-MM-DD) as well!
-            // Wait, getEntries returns 'normalizedDate' field? Yes.
-            
             // Convert dateFor to YYYY-MM-DD
             const d = new Date(dateFor)
             const yyyy = d.getFullYear()
@@ -144,7 +149,7 @@ function DailyEntry({ onSave }) {
             const targetDateISO = `${yyyy}-${mm}-${dd}`
 
             const priorEntries = entries.filter(e => e.normalizedDate < targetDateISO)
-            
+
             // Find most recent prior entry for this med
             const lastEntry = priorEntries.find(e => e[key])
 
@@ -163,8 +168,8 @@ function DailyEntry({ onSave }) {
             } else {
               // No history, use default
               newMeds[key] = {
-                dose: med.defaultDose,
-                status: med.defaultOn ? 'on' : 'off'
+                dose: defaults.defaultDose,
+                status: defaults.defaultOn ? 'on' : 'off'
               }
             }
           }
@@ -180,14 +185,12 @@ function DailyEntry({ onSave }) {
           setExercise(currentEntry.exercise || '')
           setWillDoECG(currentEntry.willDoECG || false)
         } else {
-           // Reset to defaults if no entry
-           // (Optional: Maybe preserve user edits if they just switched dates? 
-           //  For now, resetting ensures data consistency with the view)
-           setHours(6)
-           setBrainTime(1)
-           setComments('')
-           setExercise('')
-           setWillDoECG(false)
+          // Reset to defaults if no entry
+          setHours(6)
+          setBrainTime(1)
+          setComments('')
+          setExercise('')
+          setWillDoECG(false)
         }
 
       } catch (err) {
@@ -428,35 +431,39 @@ function DailyEntry({ onSave }) {
 
           <div className="medications-section">
             <h3 className="section-title">Medications</h3>
-            {MED_CONFIG.map(med => {
-              const state = meds[med.key]
-              const isOn = state.status === 'on'
-              
-              return (
-                <div key={med.key} className={`med-card ${isOn ? 'on' : 'off'}`}>
-                  <div className="med-header">
-                    <span className="med-name">{med.label}</span>
-                    <button 
-                      className={`med-toggle ${isOn ? 'on' : 'off'}`}
-                      onClick={() => handleMedToggle(med.key)}
-                      aria-label={`Toggle ${med.label} ${isOn ? 'off' : 'on'}`}
-                    >
-                      {isOn ? 'ON' : 'OFF'}
-                    </button>
+            {medConfig.length === 0 ? (
+              <p className="loading-text">Loading medications...</p>
+            ) : (
+              medConfig.map(med => {
+                const state = meds[med.key] || { status: 'off', dose: '' }
+                const isOn = state.status === 'on'
+
+                return (
+                  <div key={med.key} className={`med-card ${isOn ? 'on' : 'off'}`}>
+                    <div className="med-header">
+                      <span className="med-name">{med.label}</span>
+                      <button
+                        className={`med-toggle ${isOn ? 'on' : 'off'}`}
+                        onClick={() => handleMedToggle(med.key)}
+                        aria-label={`Toggle ${med.label} ${isOn ? 'off' : 'on'}`}
+                      >
+                        {isOn ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+                    <div className="med-body">
+                      <input
+                        type="text"
+                        className="med-dose-input"
+                        value={state.dose}
+                        onChange={(e) => handleMedChange(med.key, 'dose', e.target.value)}
+                        placeholder="Enter dose..."
+                        disabled={!isOn}
+                      />
+                    </div>
                   </div>
-                  <div className="med-body">
-                    <input
-                      type="text"
-                      className="med-dose-input"
-                      value={state.dose}
-                      onChange={(e) => handleMedChange(med.key, 'dose', e.target.value)}
-                      placeholder="Enter dose..."
-                      disabled={!isOn}
-                    />
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
 
           <div className="field-group">

@@ -8,6 +8,7 @@ import {
   isSubscribed
 } from '../utils/pushNotification.js';
 import { getAuthToken } from '../utils/auth.js';
+import { getEntries, addMedication } from '../utils/api.js';
 import './Settings.css';
 
 export default function Settings() {
@@ -32,14 +33,97 @@ export default function Settings() {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState({ type: '', text: '' });
 
+  // Medication management
+  const [medications, setMedications] = useState([]);
+  const [medsLoading, setMedsLoading] = useState(true);
+  const [newMedName, setNewMedName] = useState('');
+  const [medPreview, setMedPreview] = useState(null);
+  const [medAdding, setMedAdding] = useState(false);
+  const [medMessage, setMedMessage] = useState({ type: '', text: '' });
+
   useEffect(() => {
     checkPushStatus();
     fetchReminderSettings();
+    fetchMedications();
 
     // Load current auth token
     const currentToken = getAuthToken();
     setAuthToken(currentToken || '');
   }, []);
+
+  async function fetchMedications() {
+    try {
+      setMedsLoading(true);
+      const data = await getEntries(1); // Just need medications metadata
+      setMedications(data.medications || []);
+    } catch (err) {
+      console.error('Failed to fetch medications:', err);
+    } finally {
+      setMedsLoading(false);
+    }
+  }
+
+  // Format medication name for preview (capitalize each word)
+  function formatMedName(name) {
+    if (!name) return '';
+    return name
+      .trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  function handleMedPreview() {
+    const formatted = formatMedName(newMedName);
+    if (formatted) {
+      setMedPreview(formatted);
+      setMedMessage({ type: '', text: '' });
+    }
+  }
+
+  function handleMedCancel() {
+    setMedPreview(null);
+    setNewMedName('');
+    setMedMessage({ type: '', text: '' });
+  }
+
+  async function handleMedAdd() {
+    if (!medPreview) return;
+
+    const token = getAuthToken();
+    if (!token) {
+      setMedMessage({
+        type: 'error',
+        text: 'Please enter and save your Authentication Token first.'
+      });
+      return;
+    }
+
+    setMedAdding(true);
+    setMedMessage({ type: '', text: '' });
+
+    try {
+      const result = await addMedication(medPreview);
+      if (result.success) {
+        setMedMessage({
+          type: 'success',
+          text: `Added "${result.medication.label}" successfully!`
+        });
+        setNewMedName('');
+        setMedPreview(null);
+        // Refresh medications list
+        await fetchMedications();
+      }
+    } catch (err) {
+      console.error('Failed to add medication:', err);
+      setMedMessage({
+        type: 'error',
+        text: err.message || 'Failed to add medication'
+      });
+    } finally {
+      setMedAdding(false);
+    }
+  }
 
   function saveAuthToken() {
     const trimmedToken = authToken.trim();
@@ -452,6 +536,96 @@ export default function Settings() {
           >
             {settingsLoading ? 'Saving...' : 'Save Reminder Settings'}
           </button>
+        </div>
+      </div>
+
+      {/* Manage Medications Section */}
+      <div className="settings-section">
+        <h3>Manage Medications</h3>
+        <p className="settings-description">
+          View current medications and add new ones to track.
+        </p>
+
+        {/* Current Medications List */}
+        <div className="medications-list-container">
+          <h4 className="subsection-title">Current Medications</h4>
+          {medsLoading ? (
+            <p className="loading-text">Loading medications...</p>
+          ) : medications.length === 0 ? (
+            <p className="empty-text">No medications configured.</p>
+          ) : (
+            <div className="medications-grid">
+              {medications.map(med => (
+                <span key={med.key} className="medication-chip">
+                  {med.label}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Add New Medication */}
+        <div className="add-medication-form">
+          <h4 className="subsection-title">Add New Medication</h4>
+
+          {!medPreview ? (
+            <>
+              <div className="form-group">
+                <label htmlFor="newMedName">Medication Name</label>
+                <input
+                  type="text"
+                  id="newMedName"
+                  value={newMedName}
+                  onChange={(e) => setNewMedName(e.target.value)}
+                  placeholder="e.g., Vitamin B-12"
+                  className="text-input"
+                  maxLength={50}
+                />
+                <p className="help-text">
+                  Enter the medication name exactly as you want it to appear.
+                </p>
+              </div>
+              <div className="settings-actions">
+                <button
+                  onClick={handleMedPreview}
+                  disabled={!newMedName.trim()}
+                  className="btn-primary"
+                >
+                  Preview
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="medication-preview">
+              <p className="preview-label">Will add medication:</p>
+              <p className="preview-name">{medPreview}</p>
+              <p className="help-text">
+                Please verify the spelling is correct before adding.
+              </p>
+              <div className="settings-actions preview-actions">
+                <button
+                  onClick={handleMedCancel}
+                  disabled={medAdding}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleMedAdd}
+                  disabled={medAdding}
+                  className="btn-primary"
+                >
+                  {medAdding ? 'Adding...' : 'Add Medication'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {medMessage.text && (
+            <div className={`settings-message ${medMessage.type}`}>
+              {medMessage.text}
+            </div>
+          )}
         </div>
       </div>
 

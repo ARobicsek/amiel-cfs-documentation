@@ -11,6 +11,7 @@ import './EntryHistory.css';
  */
 export default function EntryHistory() {
   const [entries, setEntries] = useState([]);
+  const [medications, setMedications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -21,6 +22,7 @@ export default function EntryHistory() {
         setError(null);
         const data = await getEntries(10);
         setEntries(data.entries || []);
+        setMedications(data.medications || []);
       } catch (err) {
         console.error('Failed to fetch entries:', err);
         setError(err.message || 'Failed to load entries');
@@ -68,6 +70,7 @@ export default function EntryHistory() {
             key={entry.normalizedDate || index}
             entry={entry}
             previousEntry={entries[index + 1] || null}
+            medications={medications}
           />
         ))}
       </div>
@@ -78,27 +81,13 @@ export default function EntryHistory() {
 /**
  * Individual entry card component
  */
-function EntryCard({ entry, previousEntry }) {
+function EntryCard({ entry, previousEntry, medications }) {
   const hasAnyData = entry.hasEntryData || entry.hasECGData;
 
   // Collect all medications that were taken (not "Off")
   const medsTaken = [];
-  const medFields = [
-    { key: 'amitriptyline', label: 'Amitriptyline' },
-    { key: 'dayquil', label: 'DayQuil' },
-    { key: 'dextromethorphan', label: 'Dextromethorphan' },
-    { key: 'melatonin', label: 'Melatonin' },
-    { key: 'metoprolol', label: 'Metoprolol' },
-    { key: 'modafinilNew', label: 'Modafinil' },
-    { key: 'nyquil', label: 'NyQuil' },
-    { key: 'oxaloacetateNew', label: 'Oxaloacetate' },
-    { key: 'senna', label: 'Senna' },
-    { key: 'tirzepatide', label: 'Tirzepatide' },
-    { key: 'venlafaxine', label: 'Venlafaxine' },
-    { key: 'vitaminD', label: 'Vitamin D' }
-  ];
 
-  medFields.forEach(med => {
+  medications.forEach(med => {
     const value = entry[med.key];
     if (value && value !== 'Off') {
       // Check if medication changed from previous day

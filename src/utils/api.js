@@ -79,3 +79,16 @@ export async function subscribeToPush(subscription) {
     body: JSON.stringify(subscription),
   });
 }
+
+/**
+ * Add a new medication to Sheet1
+ */
+export async function addMedication(name) {
+  return apiRequest('/api/submit-entry', {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'add-medication',
+      name
+    }),
+  });
+}

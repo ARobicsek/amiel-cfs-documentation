@@ -19,6 +19,18 @@
 import { google } from 'googleapis';
 import { computeValidatedSleepByDate } from '../lib/sleepValidation.js';
 
+// Convert medication label to normalized key
+// "Vitamin D" -> "vitamind", "Vitamin B-12" -> "vitaminb12"
+function labelToKey(label) {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, ''); // Remove non-alphanumeric
+}
+
+// Core fields occupy columns A-J (indices 0-9)
+// Medications start at column K (index 10)
+const MEDICATION_START_INDEX = 10;
+
 // Normalize date string to YYYY-MM-DD format for comparison
 function normalizeDate(dateStr) {
   if (!dateStr) return null;
@@ -111,10 +123,11 @@ export default async function handler(req, res) {
     const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
 
     // Fetch daily entries, ECG readings, Health Data, and Hourly data in parallel
+    // Sheet1 range is open-ended to capture any new medication columns beyond V
     const [entriesResponse, ecgResponse, healthResponse, hourlyResponse] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'Sheet1!A:V', // Extended to include all meds (K-V)
+        range: 'Sheet1!A:ZZ', // Open-ended to capture dynamically added medication columns
       }),
       sheets.spreadsheets.values.get({
         spreadsheetId,
@@ -132,7 +145,21 @@ export default async function handler(req, res) {
 
     // Process daily entries - index by normalized date
     const entriesRows = entriesResponse.data.values || [];
+    const headerRow = entriesRows[0] || [];
     const entriesDataRows = entriesRows.slice(1); // Skip header
+
+    // Discover medication columns from header (columns K onwards, index 10+)
+    const medications = [];
+    for (let i = MEDICATION_START_INDEX; i < headerRow.length; i++) {
+      const label = headerRow[i];
+      if (label && label.trim()) {
+        medications.push({
+          key: labelToKey(label),
+          label: label.trim(),
+          columnIndex: i
+        });
+      }
+    }
 
     const entriesByDate = {};
     const ecgPlanByDate = {}; // Separate map for willDoECG, keyed by ECG Plan Date (column J)
@@ -141,8 +168,8 @@ export default async function handler(req, res) {
       const dateFor = row[1]; // Column B is the date the entry is FOR
       const normalizedDate = normalizeDate(dateFor);
       if (normalizedDate) {
-        // Keep the most recent entry for each date (last one wins)
-        entriesByDate[normalizedDate] = {
+        // Build entry with core fields
+        const entry = {
           timestamp: row[0],
           date: dateFor,
           hours: parseFloat(row[2]) || 0,
@@ -150,21 +177,16 @@ export default async function handler(req, res) {
           oxaloacetate: row[4] ? parseFloat(row[4]) : null,
           exercise: row[5] ? parseInt(row[5]) : null,
           brainTime: row[6] ? parseFloat(row[6]) : null,
-          modafinil: row[7] || null, // Keeping for backward compatibility or if used as fallback
-          // New Meds (Columns K-V)
-          vitaminD: row[10] || null,
-          venlafaxine: row[11] || null,
-          tirzepatide: row[12] || null,
-          oxaloacetateNew: row[13] || null,
-          nyquil: row[14] || null,
-          modafinilNew: row[15] || null,
-          dextromethorphan: row[16] || null,
-          dayquil: row[17] || null,
-          amitriptyline: row[18] || null,
-          senna: row[19] || null,
-          melatonin: row[20] || null,
-          metoprolol: row[21] || null,
+          modafinil: row[7] || null, // Keeping for backward compatibility
         };
+
+        // Dynamically add medication values based on discovered columns
+        for (const med of medications) {
+          entry[med.key] = row[med.columnIndex] || null;
+        }
+
+        // Keep the most recent entry for each date (last one wins)
+        entriesByDate[normalizedDate] = entry;
       }
 
       // Process willDoECG separately - attributed to ECG Plan Date (column J), not dateFor
@@ -265,7 +287,7 @@ export default async function handler(req, res) {
       const health = healthByDate[date] || {};
       const willDoECG = ecgPlanByDate[date] || false;
 
-      combinedEntries.push({
+      const combinedEntry = {
         normalizedDate: date,
         date: entry.date || date, // Use original format if available
         hours: entry.hours ?? null,
@@ -274,19 +296,6 @@ export default async function handler(req, res) {
         exercise: entry.exercise ?? null,
         brainTime: entry.brainTime ?? null,
         modafinil: entry.modafinil || null,
-        // Meds
-        vitaminD: entry.vitaminD || null,
-        venlafaxine: entry.venlafaxine || null,
-        tirzepatide: entry.tirzepatide || null,
-        oxaloacetateNew: entry.oxaloacetateNew || null,
-        nyquil: entry.nyquil || null,
-        modafinilNew: entry.modafinilNew || null,
-        dextromethorphan: entry.dextromethorphan || null,
-        dayquil: entry.dayquil || null,
-        amitriptyline: entry.amitriptyline || null,
-        senna: entry.senna || null,
-        melatonin: entry.melatonin || null,
-        metoprolol: entry.metoprolol || null,
 
         willDoECG: willDoECG,
         // ECG data
@@ -314,16 +323,31 @@ export default async function handler(req, res) {
         hasEntryData: !!entriesByDate[date],
         hasECGData: !!ecgByDate[date],
         hasHealthData: !!healthByDate[date]
-      });
+      };
+
+      // Dynamically add medication values
+      for (const med of medications) {
+        combinedEntry[med.key] = entry[med.key] || null;
+      }
+
+      combinedEntries.push(combinedEntry);
     }
 
     // Sort by date descending (most recent first)
     combinedEntries.sort((a, b) => b.normalizedDate.localeCompare(a.normalizedDate));
 
-    // Return limited entries
+    // Return limited entries and medications metadata
     const entries = combinedEntries.slice(0, limit);
 
-    return res.status(200).json({ entries });
+    // Sort medications alphabetically by label for consistent display
+    const sortedMedications = [...medications].sort((a, b) =>
+      a.label.toLowerCase().localeCompare(b.label.toLowerCase())
+    );
+
+    return res.status(200).json({
+      entries,
+      medications: sortedMedications
+    });
 
   } catch (error) {
     console.error('Failed to fetch entries:', error);
