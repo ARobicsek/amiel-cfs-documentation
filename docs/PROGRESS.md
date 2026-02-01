@@ -70,6 +70,29 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-31 - Bug Fixes: HR Tooltip + iOS Fullscreen Nav (Session 53)
+
+**Session Summary:**
+Fixed two bugs from Session 52: HR box plot tooltip not triggering on whiskers, and iOS fullscreen navigation exiting fullscreen.
+
+**Accomplishments:**
+
+1. **HR box plot tooltip fix** — Added custom Chart.js interaction mode `boxplotWhisker` that triggers tooltip when touching anywhere within the min→max whisker range, not just the median line. Required importing `Interaction` from chart.js and registering the custom mode.
+
+2. **iOS fullscreen nav fix** — Replaced `<button>` elements with `<div role="button">` for nav/close buttons in fullscreen mode. iOS Safari was exiting fullscreen on button clicks despite `preventDefault()`. Added `onTouchEnd` handlers and iOS-specific CSS (`-webkit-tap-highlight-color: transparent`, `-webkit-touch-callout: none`, `user-select: none`).
+
+3. **Multi-day chart unmount fix** — Removed `!loading` condition from chart rendering in MultiDayView. Charts were unmounting during data fetch, causing fullscreen exit. Charts now stay visible while new data loads.
+
+4. **Removed opacity transition** — Removed loading opacity effect that caused a visual flash (briefly showing underlying view superimposed on fullscreen).
+
+**Files Modified:**
+- `src/components/Stats/charts/HRBoxPlotChart.jsx` — Custom `boxplotWhisker` interaction mode, imported `Interaction` from chart.js
+- `src/components/Stats/FullscreenChart.jsx` — Changed buttons to divs, added touch handlers and CSS
+- `src/components/Stats/StatsTab.css` — Added iOS touch CSS properties to nav/close buttons
+- `src/components/Stats/MultiDayView.jsx` — Removed `!loading` condition, removed opacity transition
+
+---
+
 ### 2026-01-30 - Multi-Day Enhancements + R/S Ratio Graph + Sheet Sorting (Session 52)
 
 **Session Summary:**
@@ -90,10 +113,6 @@ Extended multi-day stats with R/S ratio visualization, improved fullscreen UX, a
 6. **MetricLineChart enhancements** — Added `pointsOnly` prop (no line/fill, larger points) and `tooltipExtra` prop for additional tooltip content.
 
 7. **Automatic sheet sorting** — Added `sortSheetByDateDesc()` function to sort all data sheets by most recent first. Applied to Health_Hourly, Health_Daily, ECG_Readings, ECG_Waveforms, and Sheet1 in their respective webhook handlers.
-
-**Known Issues (for next session):**
-- HR box plot tooltip only triggers on median line (should trigger on entire box/whisker area)
-- Fullscreen navigation buttons still exit fullscreen on iOS despite event handling fixes
 
 **Files Modified:**
 - `src/components/Stats/charts/CombinedChart.jsx` — Extended step tooltip range to +/-2 min
