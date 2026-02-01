@@ -40,7 +40,7 @@ async function apiRequest(endpoint, options = {}) {
       statusText: response.statusText,
       error: errorData
     });
-    throw new Error(`${response.status}: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 
   return response.json();
