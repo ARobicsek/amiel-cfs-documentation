@@ -70,6 +70,20 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-01-31 - UX Fix: Cleaner API Error Messages (Session 54)
+
+**Session Summary:**
+Quick fix to clean up the duplicate medication error message UI.
+
+**Accomplishments:**
+
+1. **Removed HTTP status code from error messages** — Changed `apiRequest()` in `src/utils/api.js` to throw errors without the status code prefix. Error messages now show "Medication 'Vitamin D' already exists" instead of "400: Medication 'Vitamin D' already exists".
+
+**Files Modified:**
+- `src/utils/api.js` — Removed `${response.status}:` prefix from error throws (status still logged to console for debugging)
+
+---
+
 ### 2026-01-31 - Bug Fixes: HR Tooltip + iOS Fullscreen Nav (Session 53)
 
 **Session Summary:**
