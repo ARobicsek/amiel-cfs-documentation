@@ -184,7 +184,7 @@ export default function MultiDayView({ isDark }) {
 
       {/* Charts - keep visible while loading to prevent FullscreenChart unmount */}
       {!error && days.length > 0 && (
-        <div className="multi-day-charts" style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+        <div className="multi-day-charts">
           {/* 1. Feet on Ground */}
           {visibleMetrics.feetOnGround && (
             <FullscreenChart
