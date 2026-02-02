@@ -70,6 +70,38 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-02-01 - Granular Sleep Stage Data Capture (Session 55)
+
+**Session Summary:**
+Fixed the health webhook to correctly parse and store granular sleep stage data from Health Auto Export. The app was receiving detailed sleep stages (Core, REM, Deep, Awake) but not recognizing them because the code expected HealthKit constant format (`HKCategoryValueSleepAnalysis...`) instead of the actual simple format (`"Core"`, `"REM"`, `"Deep"`, `"Awake"`, `"Asleep"`).
+
+**Accomplishments:**
+
+1. **Fixed Sleep Stage Value Detection** — Updated `normalizePayload()` in `api/health-webhook.js` to detect simple stage names (`"Asleep"`, `"Core"`, `"REM"`, `"Deep"`, `"Awake"`, `"InBed"`) instead of HealthKit constants. Maps them to internal format: `asleepCore`, `asleepREM`, `asleepDeep`, `awake`, `asleep`, `inBed`.
+
+2. **Granular `sleep_stage` Rows** — Each sleep segment now generates a `sleep_stage` row with:
+   - `value`: Stage name (e.g., "asleepCore")
+   - `startDate` and `endDate`: Precise timestamps
+   - `durationMins`: Duration in minutes
+   - Enables accurate sleep visualization with exact timing
+
+3. **Deployed and Verified** — Committed fix, deployed to Vercel, ran Health Auto Export automation. Confirmed `sleep_stage` rows now appear in `Health_Hourly` with correct stage values and timing data for Jan 24 – Feb 1, 2026.
+
+**Files Modified:**
+- `api/health-webhook.js` — Fixed granular sleep stage detection and value mapping
+
+**Status at End of Session:**
+- ✅ Granular sleep data now correctly captured
+- ✅ `sleep_stage` rows have proper stage values, start/end times, durations
+- ✅ Data available for stats visualization (Jan 24 – Feb 1, 2026)
+
+**Next Steps:**
+1. Compare old sophisticated sleep validation logic vs new granular data per day
+2. Verify daily sleep totals match between approaches
+3. Update Stats visualization to use granular `sleep_stage` data if more accurate
+
+---
+
 ### 2026-01-31 - UX Fix: Cleaner API Error Messages (Session 54)
 
 **Session Summary:**
