@@ -12,10 +12,7 @@
       "Bash(where:*)",
       "Bash(copy:*)",
       "Bash(del:*)",
-      "Bash(npm run dev:*)",
-      "Bash(ls:*)",
-      "Bash(vercel:*)",
-      "Bash(curl:*)"
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

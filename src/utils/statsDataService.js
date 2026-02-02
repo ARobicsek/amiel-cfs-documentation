@@ -102,6 +102,31 @@ function parseSleepRawData(rawDataStr) {
 }
 
 /**
+ * Parse the Raw Data JSON from a sleep_stage row (granular sleep data).
+ * Returns { startDate, endDate, stage, durationMins } or null.
+ */
+function parseSleepStageRawData(rawDataStr) {
+  if (!rawDataStr) return null;
+  try {
+    const data = JSON.parse(rawDataStr);
+    if (!data.startDate || !data.endDate) return null;
+
+    const startDate = parseTimestamp(data.startDate);
+    const endDate = parseTimestamp(data.endDate);
+    if (!startDate || !endDate) return null;
+
+    return {
+      startDate,
+      endDate,
+      stage: data.stage || 'unknown',
+      durationMins: data.durationMins || 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Parse the Raw Data JSON from a heart_rate row.
  * Returns { date (timestamp string), avg, min, max } or null.
  */
@@ -316,6 +341,8 @@ export function processSingleDayData(rows, dateStr) {
   const targetYearNum = targetDate.getFullYear();
 
   const sleepSessions = [];
+  const granularStages = []; // Granular sleep_stage rows (more accurate)
+
   rows.forEach(row => {
     if (row.metric === 'sleep_analysis') {
       const parsed = parseSleepRawData(row.rawData);
@@ -330,30 +357,57 @@ export function processSingleDayData(rows, dateStr) {
         parsed.fullDurationMin = parsed.totalSleepMin + parsed.awake;
         sleepSessions.push(parsed);
       }
+    } else if (row.metric === 'sleep_stage') {
+      // Granular sleep stage data with exact start/end times
+      const parsed = parseSleepStageRawData(row.rawData);
+      if (parsed) {
+        granularStages.push(parsed);
+      }
     }
   });
 
-  // 3. Cluster overlapping sessions and validate each cluster using HR/step data.
-  // Instead of NSD (which processes all sessions including invalidated parents),
-  // we use only the validated best session per cluster for visual marking.
-  const clusters = clusterSleepSessions(sleepSessions);
-  const validatedClusters = clusters.map(cluster =>
-    findBestSessionInCluster(cluster, tsHrReadings, tsStepReadings)
-  );
+  // 3a. Determine if we have granular sleep data
+  const hasGranularData = granularStages.length > 0;
 
-  // 4. Mark ASLEEP minutes using only validated best sessions, clipped to this day.
   const dayStartMs = targetDate.getTime();
   const dayEndMs = dayStartMs + 1440 * 60000;
 
-  for (const best of validatedClusters) {
-    const sStart = Math.max(best.sleepStart.getTime(), dayStartMs);
-    const sEnd = Math.min(best.sleepEnd.getTime(), dayEndMs);
-    if (sStart >= sEnd) continue;
+  if (hasGranularData) {
+    // 3b. GRANULAR PATH: Use exact sleep stage times for overlay
+    // Only mark "asleep" stages (asleepCore, asleepDeep, asleepREM), not "awake" or "inBed"
+    for (const stage of granularStages) {
+      // Skip awake and inBed stages
+      if (stage.stage === 'awake' || stage.stage === 'inBed') continue;
 
-    const startMin = Math.floor((sStart - dayStartMs) / 60000);
-    const endMin = Math.ceil((sEnd - dayStartMs) / 60000);
-    for (let m = startMin; m < endMin && m < 1440; m++) {
-      if (m >= 0) activityMinutes[m] = 'ASLEEP';
+      const sStart = Math.max(stage.startDate.getTime(), dayStartMs);
+      const sEnd = Math.min(stage.endDate.getTime(), dayEndMs);
+      if (sStart >= sEnd) continue;
+
+      const startMin = Math.floor((sStart - dayStartMs) / 60000);
+      const endMin = Math.ceil((sEnd - dayStartMs) / 60000);
+      for (let m = startMin; m < endMin && m < 1440; m++) {
+        if (m >= 0) activityMinutes[m] = 'ASLEEP';
+      }
+    }
+  } else {
+    // 3c. AGGREGATED PATH: Cluster overlapping sessions and validate each cluster
+    // using HR/step data (existing logic for session-level data)
+    const clusters = clusterSleepSessions(sleepSessions);
+    const validatedClusters = clusters.map(cluster =>
+      findBestSessionInCluster(cluster, tsHrReadings, tsStepReadings)
+    );
+
+    // 4. Mark ASLEEP minutes using only validated best sessions, clipped to this day.
+    for (const best of validatedClusters) {
+      const sStart = Math.max(best.sleepStart.getTime(), dayStartMs);
+      const sEnd = Math.min(best.sleepEnd.getTime(), dayEndMs);
+      if (sStart >= sEnd) continue;
+
+      const startMin = Math.floor((sStart - dayStartMs) / 60000);
+      const endMin = Math.ceil((sEnd - dayStartMs) / 60000);
+      for (let m = startMin; m < endMin && m < 1440; m++) {
+        if (m >= 0) activityMinutes[m] = 'ASLEEP';
+      }
     }
   }
 

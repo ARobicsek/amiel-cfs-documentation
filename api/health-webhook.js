@@ -224,6 +224,25 @@ export default async function handler(req, res) {
                         coreMins: pCore * 60,
                         awakeMins: pAwake * 60
                     });
+                } else if (metric === 'sleep_stage') {
+                    // GRANULAR sleep stage data — each row is one sleep segment
+                    // with exact start/end times. These are more accurate than session aggregates.
+                    const stage = rawJson.stage || row[4]; // e.g., "asleepCore", "asleepDeep", "awake", "inBed"
+                    const durationMins = rawJson.durationMins || 0;
+                    const startDate = rawJson.startDate ? new Date(rawJson.startDate) : null;
+                    const endDate = rawJson.endDate ? new Date(rawJson.endDate) : null;
+
+                    // Track granular stages for building sleep windows
+                    sleepSessions.push({
+                        sleepStart: startDate,
+                        sleepEnd: endDate,
+                        totalMins: stage !== 'awake' && stage !== 'inBed' ? durationMins : 0,
+                        deepMins: stage === 'asleepDeep' ? durationMins : 0,
+                        remMins: stage === 'asleepREM' ? durationMins : 0,
+                        coreMins: stage === 'asleepCore' ? durationMins : 0,
+                        awakeMins: stage === 'awake' ? durationMins : 0,
+                        isGranular: true  // Flag to identify granular data
+                    });
                 }
                 // sleep_deep, sleep_rem, sleep_core, sleep_awake rows are intentionally
                 // ignored for daily aggregation — component data comes from sleep_analysis
@@ -241,103 +260,119 @@ export default async function handler(req, res) {
             let awakeMinutes = 0;
 
             if (sleepSessions.length > 0) {
-                sleepSessions.sort((a, b) => {
-                    if (!a.sleepStart) return -1;
-                    if (!b.sleepStart) return 1;
-                    return a.sleepStart - b.sleepStart;
-                });
+                // Check if we have granular sleep_stage data
+                const hasGranular = sleepSessions.some(s => s.isGranular);
 
-                // Cluster overlapping sessions
-                const clusters = [];
-                let currentCluster = [sleepSessions[0]];
-                let clusterEnd = sleepSessions[0].sleepEnd ? sleepSessions[0].sleepEnd.getTime() : 0;
-
-                for (let i = 1; i < sleepSessions.length; i++) {
-                    const s = sleepSessions[i];
-                    if (s.sleepStart && s.sleepStart.getTime() < clusterEnd) {
-                        currentCluster.push(s);
-                        if (s.sleepEnd) clusterEnd = Math.max(clusterEnd, s.sleepEnd.getTime());
-                    } else {
-                        clusters.push(currentCluster);
-                        currentCluster = [s];
-                        clusterEnd = s.sleepEnd ? s.sleepEnd.getTime() : 0;
+                if (hasGranular) {
+                    // GRANULAR PATH: Simply sum all segments by stage type
+                    // Granular data doesn't overlap — each segment is a distinct time period
+                    for (const seg of sleepSessions) {
+                        if (!seg.isGranular) continue; // Skip any session-level data if mixed
+                        sleepMinutes += seg.totalMins || 0;
+                        deepMinutes += seg.deepMins || 0;
+                        remMinutes += seg.remMins || 0;
+                        awakeMinutes += seg.awakeMins || 0;
                     }
-                }
-                clusters.push(currentCluster);
+                } else {
+                    // AGGREGATED PATH: Existing cluster/overlap logic for session-level data
+                    sleepSessions.sort((a, b) => {
+                        if (!a.sleepStart) return -1;
+                        if (!b.sleepStart) return 1;
+                        return a.sleepStart - b.sleepStart;
+                    });
 
-                // For each cluster, find the best session using HR/step validation
-                for (const cluster of clusters) {
-                    let best;
-                    if (cluster.length === 1) {
-                        best = cluster[0];
-                    } else {
-                        // Check if sessions are truly nested or sequential
-                        const byStart = [...cluster].sort((a, b) =>
-                            (a.sleepStart ? a.sleepStart.getTime() : 0) - (b.sleepStart ? b.sleepStart.getTime() : 0));
-                        const isNested = byStart.length >= 2 && byStart[0].sleepEnd &&
-                            byStart[byStart.length - 1].sleepEnd &&
-                            byStart[0].sleepEnd.getTime() >= byStart[byStart.length - 1].sleepEnd.getTime();
+                    // Cluster overlapping sessions
+                    const clusters = [];
+                    let currentCluster = [sleepSessions[0]];
+                    let clusterEnd = sleepSessions[0].sleepEnd ? sleepSessions[0].sleepEnd.getTime() : 0;
 
-                        if (!isNested) {
-                            // Sequential — pick session with most totalMins
-                            best = cluster[0];
-                            for (let i = 1; i < cluster.length; i++) {
-                                if (cluster[i].totalMins > best.totalMins) best = cluster[i];
-                            }
+                    for (let i = 1; i < sleepSessions.length; i++) {
+                        const s = sleepSessions[i];
+                        if (s.sleepStart && s.sleepStart.getTime() < clusterEnd) {
+                            currentCluster.push(s);
+                            if (s.sleepEnd) clusterEnd = Math.max(clusterEnd, s.sleepEnd.getTime());
                         } else {
-                            // Nested: sort by span (longest first)
-                            const sorted = [...cluster].sort((a, b) => {
-                                const spanA = (a.sleepEnd ? a.sleepEnd.getTime() : 0) - (a.sleepStart ? a.sleepStart.getTime() : 0);
-                                const spanB = (b.sleepEnd ? b.sleepEnd.getTime() : 0) - (b.sleepStart ? b.sleepStart.getTime() : 0);
-                                return spanB - spanA;
-                            });
+                            clusters.push(currentCluster);
+                            currentCluster = [s];
+                            clusterEnd = s.sleepEnd ? s.sleepEnd.getTime() : 0;
+                        }
+                    }
+                    clusters.push(currentCluster);
 
-                            // Walk from innermost outward, expanding while gaps look like sleep
-                            best = sorted[sorted.length - 1];
-                            for (let i = sorted.length - 2; i >= 0; i--) {
-                                const outer = sorted[i];
-                                const inner = sorted[i + 1];
-                                if (!outer.sleepStart || !inner.sleepStart) continue;
-                                if (outer.sleepStart.getTime() >= inner.sleepStart.getTime()) continue;
+                    // For each cluster, find the best session using HR/step validation
+                    for (const cluster of clusters) {
+                        let best;
+                        if (cluster.length === 1) {
+                            best = cluster[0];
+                        } else {
+                            // Check if sessions are truly nested or sequential
+                            const byStart = [...cluster].sort((a, b) =>
+                                (a.sleepStart ? a.sleepStart.getTime() : 0) - (b.sleepStart ? b.sleepStart.getTime() : 0));
+                            const isNested = byStart.length >= 2 && byStart[0].sleepEnd &&
+                                byStart[byStart.length - 1].sleepEnd &&
+                                byStart[0].sleepEnd.getTime() >= byStart[byStart.length - 1].sleepEnd.getTime();
 
-                                // Compute awake score for the exclusive gap
-                                const gapStart = outer.sleepStart.getTime();
-                                const gapEnd = inner.sleepStart.getTime();
-                                const gapSpanMin = (gapEnd - gapStart) / 60000;
-                                const gapSpanHours = gapSpanMin / 60;
+                            if (!isNested) {
+                                // Sequential — pick session with most totalMins
+                                best = cluster[0];
+                                for (let i = 1; i < cluster.length; i++) {
+                                    if (cluster[i].totalMins > best.totalMins) best = cluster[i];
+                                }
+                            } else {
+                                // Nested: sort by span (longest first)
+                                const sorted = [...cluster].sort((a, b) => {
+                                    const spanA = (a.sleepEnd ? a.sleepEnd.getTime() : 0) - (a.sleepStart ? a.sleepStart.getTime() : 0);
+                                    const spanB = (b.sleepEnd ? b.sleepEnd.getTime() : 0) - (b.sleepStart ? b.sleepStart.getTime() : 0);
+                                    return spanB - spanA;
+                                });
 
-                                const gapHR = tsHrReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
+                                // Walk from innermost outward, expanding while gaps look like sleep
+                                best = sorted[sorted.length - 1];
+                                for (let i = sorted.length - 2; i >= 0; i--) {
+                                    const outer = sorted[i];
+                                    const inner = sorted[i + 1];
+                                    if (!outer.sleepStart || !inner.sleepStart) continue;
+                                    if (outer.sleepStart.getTime() >= inner.sleepStart.getTime()) continue;
 
-                                // Sparse HR data (>30min gap, <2 readings/hr) = inconclusive, don't expand
-                                if (gapSpanMin > 30 && gapHR.length < gapSpanHours * 2) break;
+                                    // Compute awake score for the exclusive gap
+                                    const gapStart = outer.sleepStart.getTime();
+                                    const gapEnd = inner.sleepStart.getTime();
+                                    const gapSpanMin = (gapEnd - gapStart) / 60000;
+                                    const gapSpanHours = gapSpanMin / 60;
 
-                                const gapSteps = tsStepReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
-                                const gapTotalSteps = gapSteps.reduce((sum, s) => sum + s.qty, 0);
-                                const gapSigSteps = gapSteps.filter(s => s.qty > 2);
-                                const gapAvgHR = gapHR.length > 0 ? gapHR.reduce((s, r) => s + r.bpm, 0) / gapHR.length : null;
-                                const gapMaxHR = gapHR.length > 0 ? Math.max(...gapHR.map(r => r.bpm)) : null;
-                                const stepsPerHour = gapSpanMin > 0 ? (gapTotalSteps / gapSpanMin) * 60 : 0;
-                                const sigStepsPerHour = gapSpanMin > 0 ? (gapSigSteps.length / gapSpanMin) * 60 : 0;
+                                    const gapHR = tsHrReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
 
-                                const awakeScore =
-                                    (gapAvgHR && gapAvgHR > 70 ? 2 : 0) +
-                                    (gapMaxHR && gapMaxHR > 85 ? 1 : 0) +
-                                    (sigStepsPerHour > 1 ? 2 : 0) +
-                                    (stepsPerHour > 20 ? 2 : 0);
+                                    // Sparse HR data (>30min gap, <2 readings/hr) = inconclusive, don't expand
+                                    if (gapSpanMin > 30 && gapHR.length < gapSpanHours * 2) break;
 
-                                if (awakeScore < 3) {
-                                    best = outer; // Gap looks like sleep → expand
-                                } else {
-                                    break; // Gap shows awake → stop
+                                    const gapSteps = tsStepReadings.filter(r => r.ts >= gapStart && r.ts < gapEnd);
+                                    const gapTotalSteps = gapSteps.reduce((sum, s) => sum + s.qty, 0);
+                                    const gapSigSteps = gapSteps.filter(s => s.qty > 2);
+                                    const gapAvgHR = gapHR.length > 0 ? gapHR.reduce((s, r) => s + r.bpm, 0) / gapHR.length : null;
+                                    const gapMaxHR = gapHR.length > 0 ? Math.max(...gapHR.map(r => r.bpm)) : null;
+                                    const stepsPerHour = gapSpanMin > 0 ? (gapTotalSteps / gapSpanMin) * 60 : 0;
+                                    const sigStepsPerHour = gapSpanMin > 0 ? (gapSigSteps.length / gapSpanMin) * 60 : 0;
+
+                                    const awakeScore =
+                                        (gapAvgHR && gapAvgHR > 70 ? 2 : 0) +
+                                        (gapMaxHR && gapMaxHR > 85 ? 1 : 0) +
+                                        (sigStepsPerHour > 1 ? 2 : 0) +
+                                        (stepsPerHour > 20 ? 2 : 0);
+
+                                    if (awakeScore < 3) {
+                                        best = outer; // Gap looks like sleep → expand
+                                    } else {
+                                        break; // Gap shows awake → stop
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    sleepMinutes += best.totalMins;
-                    deepMinutes += best.deepMins;
-                    remMinutes += best.remMins;
-                    awakeMinutes += best.awakeMins;
+                        sleepMinutes += best.totalMins;
+                        deepMinutes += best.deepMins;
+                        remMinutes += best.remMins;
+                        awakeMinutes += best.awakeMins;
+                    }
                 }
             }
 
@@ -478,6 +513,45 @@ function normalizePayload(body) {
 
             // Explode sleep_analysis into sub-metrics for hourly detail
             if (name === 'sleep_analysis') {
+                // Check for GRANULAR sleep stage data (non-aggregated export)
+                // Granular data has value as a string like "HKCategoryValueSleepAnalysisAsleepCore"
+                const valStr = String(point.value || '');
+                const isGranular = valStr.startsWith('HKCategoryValueSleepAnalysis');
+
+                if (isGranular && point.startDate && point.endDate) {
+                    // Parse the stage name from the HealthKit constant
+                    // e.g., "HKCategoryValueSleepAnalysisAsleepCore" -> "asleepCore"
+                    const stagePart = valStr.replace('HKCategoryValueSleepAnalysis', '');
+                    const stage = stagePart.charAt(0).toLowerCase() + stagePart.slice(1);
+
+                    const startDt = new Date(point.startDate);
+                    const endDt = new Date(point.endDate);
+                    const durationMins = (endDt - startDt) / 1000 / 60;
+
+                    const rawSource = point.sourceName || point.source || 'Auto';
+                    const parsedSource = parseSource(rawSource, name);
+
+                    // Store as sleep_stage metric with full timing info
+                    result.push({
+                        name: 'sleep_stage',
+                        value: stage,  // e.g., "asleepCore", "asleepDeep", "awake", "inBed"
+                        min: '',
+                        max: '',
+                        date: point.startDate,  // Use startDate as the primary timestamp
+                        source: parsedSource,
+                        raw: {
+                            stage,
+                            startDate: point.startDate,
+                            endDate: point.endDate,
+                            durationMins: Math.round(durationMins * 100) / 100,
+                            source: parsedSource
+                        }
+                    });
+
+                    continue; // Skip the aggregated logic below
+                }
+
+                // AGGREGATED sleep_analysis (existing logic for session-level data)
                 let calculatedTotal = 0;
                 const pTotal = point.totalSleep || 0;
                 const pAsleep = point.asleep || 0;
