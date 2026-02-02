@@ -1,4 +1,211 @@
 Timestamp	Date	Hour	Metric	Value	Min	Max	Source	Raw Data
+2/2/2026, 10:53:19 AM	2/2/2026	10	heart_rate	74.54296112	74.54296112	74.54296112	Amiel’s Apple Watch	{"Avg":74.54296112060547,"date":"2026-02-02 10:53:19 -0500","source":"Amiel’s Apple Watch","Min":74.54296112060547,"Max":74.54296112060547}
+2/2/2026, 10:53:00 AM	2/2/2026	10	heart_rate_variability	75.10169052			Auto	{"date":"2026-02-02 10:53:00 -0500","qty":75.10169051907619}
+2/2/2026, 10:49:51 AM	2/2/2026	10	heart_rate	72	72	72	Amiel’s Apple Watch	{"Min":72,"date":"2026-02-02 10:49:51 -0500","source":"Amiel’s Apple Watch","Max":72,"Avg":72}
+2/2/2026, 10:46:48 AM	2/2/2026	10	heart_rate	74	74	74	Amiel’s Apple Watch	{"Avg":74,"date":"2026-02-02 10:46:48 -0500","Max":74,"source":"Amiel’s Apple Watch","Min":74}
+2/2/2026, 10:45:18 AM	2/2/2026	10	heart_rate	68	68	68	Amiel’s Apple Watch	{"Avg":68,"source":"Amiel’s Apple Watch","date":"2026-02-02 10:45:18 -0500","Max":68,"Min":68}
+2/2/2026, 10:42:15 AM	2/2/2026	10	heart_rate	63	63	63	Amiel’s Apple Watch	{"date":"2026-02-02 10:42:15 -0500","Avg":63,"Max":63,"Min":63,"source":"Amiel’s Apple Watch"}
+2/2/2026, 10:35:06 AM	2/2/2026	10	heart_rate	79	79	79	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Min":79,"date":"2026-02-02 10:35:06 -0500","Max":79,"Avg":79}
+2/2/2026, 10:29:33 AM	2/2/2026	10	heart_rate	66	66	66	Amiel’s Apple Watch	{"Min":66,"Avg":66,"source":"Amiel’s Apple Watch","date":"2026-02-02 10:29:33 -0500","Max":66}
+2/2/2026, 10:24:17 AM	2/2/2026	10	heart_rate	71	71	71	Amiel’s Apple Watch	{"date":"2026-02-02 10:24:17 -0500","Max":71,"Min":71,"Avg":71,"source":"Amiel’s Apple Watch"}
+2/2/2026, 10:22:42 AM	2/2/2026	10	heart_rate	73	73	73	Amiel’s Apple Watch	{"Max":73,"Min":73,"date":"2026-02-02 10:22:42 -0500","source":"Amiel’s Apple Watch","Avg":73}
+2/2/2026, 10:16:17 AM	2/2/2026	10	heart_rate	72	72	72	Amiel’s Apple Watch	{"Min":72,"Avg":72,"Max":72,"source":"Amiel’s Apple Watch","date":"2026-02-02 10:16:17 -0500"}
+2/2/2026, 10:14:01 AM	2/2/2026	10	heart_rate	72	72	72	Amiel’s Apple Watch	{"Max":72,"Avg":72,"source":"Amiel’s Apple Watch","date":"2026-02-02 10:14:01 -0500","Min":72}
+2/2/2026, 10:08:12 AM	2/2/2026	10	heart_rate	71	71	71	Amiel’s Apple Watch	{"Min":71,"date":"2026-02-02 10:08:12 -0500","source":"Amiel’s Apple Watch","Avg":71,"Max":71}
+2/2/2026, 10:06:45 AM	2/2/2026	10	heart_rate	72	72	72	Amiel’s Apple Watch	{"date":"2026-02-02 10:06:45 -0500","Min":72,"Max":72,"Avg":72,"source":"Amiel’s Apple Watch"}
+2/2/2026, 10:01:50 AM	2/2/2026	10	heart_rate	69	69	69	Amiel’s Apple Watch	{"Avg":69,"source":"Amiel’s Apple Watch","date":"2026-02-02 10:01:50 -0500","Max":69,"Min":69}
+2/2/2026, 9:55:44 AM	2/2/2026	9	heart_rate	73	73	73	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 09:55:44 -0500","Avg":73,"Max":73,"Min":73}
+2/2/2026, 9:49:31 AM	2/2/2026	9	heart_rate	72	72	72	Amiel’s Apple Watch	{"date":"2026-02-02 09:49:31 -0500","Avg":72,"Max":72,"source":"Amiel’s Apple Watch","Min":72}
+2/2/2026, 9:44:17 AM	2/2/2026	9	heart_rate	79	79	79	Amiel’s Apple Watch	{"date":"2026-02-02 09:44:17 -0500","Max":79,"Avg":79,"Min":79,"source":"Amiel’s Apple Watch"}
+2/2/2026, 9:40:42 AM	2/2/2026	9	heart_rate	85	85	85	Amiel’s Apple Watch	{"date":"2026-02-02 09:40:42 -0500","source":"Amiel’s Apple Watch","Max":85,"Min":85,"Avg":85}
+2/2/2026, 9:40:19 AM	2/2/2026	9	heart_rate	79	79	79	Amiel’s Apple Watch	{"Max":79,"Avg":79,"Min":79,"date":"2026-02-02 09:40:19 -0500","source":"Amiel’s Apple Watch"}
+2/2/2026, 9:36:51 AM	2/2/2026	9	heart_rate	74	74	74	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 09:36:51 -0500","Avg":74,"Max":74,"Min":74}
+2/2/2026, 9:28:51 AM	2/2/2026	9	heart_rate	73	73	73	Amiel’s Apple Watch	{"Max":73,"source":"Amiel’s Apple Watch","Avg":73,"date":"2026-02-02 09:28:51 -0500","Min":73}
+2/2/2026, 9:27:15 AM	2/2/2026	9	heart_rate	80	80	80	Amiel’s Apple Watch	{"date":"2026-02-02 09:27:15 -0500","Avg":80,"Max":80,"source":"Amiel’s Apple Watch","Min":80}
+2/2/2026, 9:25:11 AM	2/2/2026	9	step_count	22			Amiel’s Apple Watch	{"date":"2026-02-02 09:25:11 -0500","qty":22,"source":"Amiel’s Apple Watch"}
+2/2/2026, 9:22:27 AM	2/2/2026	9	heart_rate	73	73	73	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 09:22:27 -0500","Max":73,"Min":73,"Avg":73}
+2/2/2026, 9:13:28 AM	2/2/2026	9	heart_rate	73	73	73	Amiel’s Apple Watch	{"date":"2026-02-02 09:13:28 -0500","Avg":73,"source":"Amiel’s Apple Watch","Max":73,"Min":73}
+2/2/2026, 9:12:23 AM	2/2/2026	9	heart_rate	73	73	73	Amiel’s Apple Watch	{"Min":73,"date":"2026-02-02 09:12:23 -0500","Avg":73,"source":"Amiel’s Apple Watch","Max":73}
+2/2/2026, 9:06:41 AM	2/2/2026	9	heart_rate	70	70	70	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 09:06:41 -0500","Max":70,"Min":70,"Avg":70}
+2/2/2026, 9:00:11 AM	2/2/2026	9	step_count	4			Amiel’s Apple Watch	{"qty":4,"source":"Amiel’s Apple Watch","date":"2026-02-02 09:00:11 -0500"}
+2/2/2026, 8:59:41 AM	2/2/2026	8	heart_rate	68	68	68	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 08:59:41 -0500","Max":68,"Min":68,"Avg":68}
+2/2/2026, 8:56:23 AM	2/2/2026	8	heart_rate	83	83	83	Amiel’s Apple Watch	{"Min":83,"date":"2026-02-02 08:56:23 -0500","Max":83,"Avg":83,"source":"Amiel’s Apple Watch"}
+2/2/2026, 8:54:21 AM	2/2/2026	8	heart_rate	77.82621765	77.82621765	77.82621765	Amiel’s Apple Watch	{"Max":77.82621765136719,"source":"Amiel’s Apple Watch","Min":77.82621765136719,"date":"2026-02-02 08:54:21 -0500","Avg":77.82621765136719}
+2/2/2026, 8:54:00 AM	2/2/2026	8	heart_rate_variability	23.73770441			Auto	{"date":"2026-02-02 08:54:00 -0500","qty":23.737704412597637}
+2/2/2026, 8:50:22 AM	2/2/2026	8	heart_rate	85	85	85	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Min":85,"date":"2026-02-02 08:50:22 -0500","Max":85,"Avg":85}
+2/2/2026, 8:45:00 AM	2/2/2026	8	heart_rate	84	84	84	Amiel’s Apple Watch	{"Avg":84,"Max":84,"Min":84,"date":"2026-02-02 08:45:00 -0500","source":"Amiel’s Apple Watch"}
+2/2/2026, 8:39:05 AM	2/2/2026	8	heart_rate	84	84	84	Amiel’s Apple Watch	{"Min":84,"Avg":84,"Max":84,"date":"2026-02-02 08:39:05 -0500","source":"Amiel’s Apple Watch"}
+2/2/2026, 8:36:24 AM	2/2/2026	8	heart_rate	86	86	86	Amiel’s Apple Watch	{"Max":86,"date":"2026-02-02 08:36:24 -0500","Avg":86,"source":"Amiel’s Apple Watch","Min":86}
+2/2/2026, 8:32:58 AM	2/2/2026	8	heart_rate	85	85	85	Amiel’s Apple Watch	{"Avg":85,"date":"2026-02-02 08:32:58 -0500","Max":85,"source":"Amiel’s Apple Watch","Min":85}
+2/2/2026, 8:27:19 AM	2/2/2026	8	heart_rate	91	91	91	Amiel’s Apple Watch	{"date":"2026-02-02 08:27:19 -0500","source":"Amiel’s Apple Watch","Min":91,"Avg":91,"Max":91}
+2/2/2026, 7:55:10 AM	2/2/2026	7	heart_rate	73	73	73	Amiel’s Apple Watch	{"Max":73,"date":"2026-02-02 07:55:10 -0500","Min":73,"Avg":73,"source":"Amiel’s Apple Watch"}
+2/2/2026, 7:49:41 AM	2/2/2026	7	heart_rate	74	74	74	Amiel’s Apple Watch	{"date":"2026-02-02 07:49:41 -0500","source":"Amiel’s Apple Watch","Min":74,"Avg":74,"Max":74}
+2/2/2026, 7:45:49 AM	2/2/2026	7	heart_rate	72	72	72	Amiel’s Apple Watch	{"date":"2026-02-02 07:45:49 -0500","Min":72,"Avg":72,"Max":72,"source":"Amiel’s Apple Watch"}
+2/2/2026, 7:41:59 AM	2/2/2026	7	heart_rate	73	73	73	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Min":73,"Max":73,"date":"2026-02-02 07:41:59 -0500","Avg":73}
+2/2/2026, 7:39:46 AM	2/2/2026	7	heart_rate	73	73	73	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 07:39:46 -0500","Avg":73,"Min":73,"Max":73}
+2/2/2026, 7:34:51 AM	2/2/2026	7	step_count	10			Amiel’s Apple Watch + Amiel’s iphone	{"qty":10,"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 07:34:51 -0500"}
+2/2/2026, 7:33:19 AM	2/2/2026	7	heart_rate	73	73	73	Amiel’s Apple Watch	{"Max":73,"date":"2026-02-02 07:33:19 -0500","Min":73,"source":"Amiel’s Apple Watch","Avg":73}
+2/2/2026, 7:28:40 AM	2/2/2026	7	heart_rate	73	73	73	Amiel’s Apple Watch	{"Max":73,"date":"2026-02-02 07:28:40 -0500","Min":73,"source":"Amiel’s Apple Watch","Avg":73}
+2/2/2026, 7:24:28 AM	2/2/2026	7	heart_rate	73	73	73	Amiel’s Apple Watch	{"Avg":73,"Max":73,"Min":73,"source":"Amiel’s Apple Watch","date":"2026-02-02 07:24:28 -0500"}
+2/2/2026, 7:22:45 AM	2/2/2026	7	heart_rate	73	73	73	Amiel’s Apple Watch	{"Min":73,"source":"Amiel’s Apple Watch","Avg":73,"date":"2026-02-02 07:22:45 -0500","Max":73}
+2/2/2026, 7:16:33 AM	2/2/2026	7	heart_rate	73	73	73	Amiel’s Apple Watch	{"Min":73,"Max":73,"Avg":73,"date":"2026-02-02 07:16:33 -0500","source":"Amiel’s Apple Watch"}
+2/2/2026, 7:08:24 AM	2/2/2026	7	heart_rate	84	84	84	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 07:08:24 -0500","Max":84,"Min":84,"Avg":84}
+2/2/2026, 7:07:22 AM	2/2/2026	7	heart_rate	84	84	84	Amiel’s Apple Watch	{"Min":84,"source":"Amiel’s Apple Watch","Avg":84,"Max":84,"date":"2026-02-02 07:07:22 -0500"}
+2/2/2026, 7:06:18 AM	2/2/2026	7	heart_rate	82	82	82	Amiel’s Apple Watch	{"date":"2026-02-02 07:06:18 -0500","Avg":82,"source":"Amiel’s Apple Watch","Max":82,"Min":82}
+2/2/2026, 6:59:41 AM	2/2/2026	6	heart_rate	83	83	83	Amiel’s Apple Watch	{"date":"2026-02-02 06:59:41 -0500","Max":83,"Avg":83,"source":"Amiel’s Apple Watch","Min":83}
+2/2/2026, 6:57:39 AM	2/2/2026	6	heart_rate	84	84	84	Amiel’s Apple Watch	{"Max":84,"source":"Amiel’s Apple Watch","Min":84,"date":"2026-02-02 06:57:39 -0500","Avg":84}
+2/2/2026, 6:52:44 AM	2/2/2026	6	heart_rate	74.87451172	74.87451172	74.87451172	Amiel’s Apple Watch	{"Avg":74.87451171875,"source":"Amiel’s Apple Watch","Min":74.87451171875,"date":"2026-02-02 06:52:44 -0500","Max":74.87451171875}
+2/2/2026, 6:52:00 AM	2/2/2026	6	heart_rate_variability	59.67423358			Auto	{"qty":59.67423357550808,"date":"2026-02-02 06:52:00 -0500"}
+2/2/2026, 6:48:01 AM	2/2/2026	6	heart_rate	84	84	84	Amiel’s Apple Watch	{"Avg":84,"Max":84,"source":"Amiel’s Apple Watch","Min":84,"date":"2026-02-02 06:48:01 -0500"}
+2/2/2026, 6:46:51 AM	2/2/2026	6	heart_rate	84	84	84	Amiel’s Apple Watch	{"date":"2026-02-02 06:46:51 -0500","Max":84,"Min":84,"source":"Amiel’s Apple Watch","Avg":84}
+2/2/2026, 6:38:34 AM	2/2/2026	6	heart_rate	79	79	79	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 06:38:34 -0500","Avg":79,"Max":79,"Min":79}
+2/2/2026, 6:36:22 AM	2/2/2026	6	heart_rate	84	84	84	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Max":84,"date":"2026-02-02 06:36:22 -0500","Min":84,"Avg":84}
+2/2/2026, 6:32:20 AM	2/2/2026	6	heart_rate	74	74	74	Amiel’s Apple Watch	{"Avg":74,"source":"Amiel’s Apple Watch","Max":74,"date":"2026-02-02 06:32:20 -0500","Min":74}
+2/2/2026, 6:25:03 AM	2/2/2026	6	heart_rate	80	80	80	Amiel’s Apple Watch	{"Avg":80,"date":"2026-02-02 06:25:03 -0500","Max":80,"source":"Amiel’s Apple Watch","Min":80}
+2/2/2026, 6:23:45 AM	2/2/2026	6	heart_rate	80	80	80	Amiel’s Apple Watch	{"date":"2026-02-02 06:23:45 -0500","source":"Amiel’s Apple Watch","Min":80,"Avg":80,"Max":80}
+2/2/2026, 6:22:28 AM	2/2/2026	6	heart_rate	84	84	84	Amiel’s Apple Watch	{"Max":84,"date":"2026-02-02 06:22:28 -0500","Avg":84,"source":"Amiel’s Apple Watch","Min":84}
+2/2/2026, 6:16:51 AM	2/2/2026	6	step_count	16			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","qty":16,"date":"2026-02-02 06:16:51 -0500"}
+2/2/2026, 6:13:10 AM	2/2/2026	6	heart_rate	75	75	75	Amiel’s Apple Watch	{"Min":75,"Avg":75,"Max":75,"date":"2026-02-02 06:13:10 -0500","source":"Amiel’s Apple Watch"}
+2/2/2026, 6:11:19 AM	2/2/2026	6	heart_rate	80	80	80	Amiel’s Apple Watch	{"Avg":80,"Max":80,"Min":80,"source":"Amiel’s Apple Watch","date":"2026-02-02 06:11:19 -0500"}
+2/2/2026, 6:08:00 AM	2/2/2026	6	heart_rate	73	73	73	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Min":73,"date":"2026-02-02 06:08:00 -0500","Max":73,"Avg":73}
+2/2/2026, 5:59:03 AM	2/2/2026	5	heart_rate	79	79	79	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Max":79,"Min":79,"date":"2026-02-02 05:59:03 -0500","Avg":79}
+2/2/2026, 5:54:56 AM	2/2/2026	5	heart_rate	73	73	73	Amiel’s Apple Watch	{"Min":73,"date":"2026-02-02 05:54:56 -0500","Max":73,"Avg":73,"source":"Amiel’s Apple Watch"}
+2/2/2026, 5:53:44 AM	2/2/2026	5	heart_rate	76	76	76	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 05:53:44 -0500","Max":76,"Min":76,"Avg":76}
+2/2/2026, 5:52:08 AM	2/2/2026	5	heart_rate	74	74	74	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 05:52:08 -0500","Max":74,"Min":74,"Avg":74}
+2/2/2026, 5:43:43 AM	2/2/2026	5	heart_rate	73	73	73	Amiel’s Apple Watch	{"Min":73,"date":"2026-02-02 05:43:43 -0500","Avg":73,"source":"Amiel’s Apple Watch","Max":73}
+2/2/2026, 5:41:00 AM	2/2/2026	5	heart_rate	73	73	73	Amiel’s Apple Watch	{"date":"2026-02-02 05:41:00 -0500","Avg":73,"source":"Amiel’s Apple Watch","Max":73,"Min":73}
+2/2/2026, 5:33:14 AM	2/2/2026	5	heart_rate	79	79	79	Amiel’s Apple Watch	{"Max":79,"date":"2026-02-02 05:33:14 -0500","Avg":79,"Min":79,"source":"Amiel’s Apple Watch"}
+2/2/2026, 5:28:31 AM	2/2/2026	5	heart_rate	79	79	79	Amiel’s Apple Watch	{"date":"2026-02-02 05:28:31 -0500","Avg":79,"Max":79,"source":"Amiel’s Apple Watch","Min":79}
+2/2/2026, 5:25:25 AM	2/2/2026	5	heart_rate	73	73	73	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 05:25:25 -0500","Avg":73,"Max":73,"Min":73}
+2/2/2026, 5:18:52 AM	2/2/2026	5	heart_rate	74	74	74	Amiel’s Apple Watch	{"Avg":74,"source":"Amiel’s Apple Watch","date":"2026-02-02 05:18:52 -0500","Max":74,"Min":74}
+2/2/2026, 5:16:05 AM	2/2/2026	5	heart_rate	73	73	73	Amiel’s Apple Watch	{"date":"2026-02-02 05:16:05 -0500","Min":73,"Max":73,"Avg":73,"source":"Amiel’s Apple Watch"}
+2/2/2026, 5:08:31 AM	2/2/2026	5	heart_rate	78	78	78	Amiel’s Apple Watch	{"Min":78,"date":"2026-02-02 05:08:31 -0500","source":"Amiel’s Apple Watch","Avg":78,"Max":78}
+2/2/2026, 5:03:52 AM	2/2/2026	5	heart_rate	76	76	76	Amiel’s Apple Watch	{"Max":76,"Avg":76,"source":"Amiel’s Apple Watch","date":"2026-02-02 05:03:52 -0500","Min":76}
+2/2/2026, 5:03:21 AM	2/2/2026	5	heart_rate	77	77	77	Amiel’s Apple Watch	{"Min":77,"Avg":77,"Max":77,"source":"Amiel’s Apple Watch","date":"2026-02-02 05:03:21 -0500"}
+2/2/2026, 4:59:28 AM	2/2/2026	4	heart_rate	73	73	73	Amiel’s Apple Watch	{"Max":73,"Min":73,"date":"2026-02-02 04:59:28 -0500","source":"Amiel’s Apple Watch","Avg":73}
+2/2/2026, 4:55:28 AM	2/2/2026	4	heart_rate	72	72	72	Amiel’s Apple Watch	{"date":"2026-02-02 04:55:28 -0500","Max":72,"Min":72,"Avg":72,"source":"Amiel’s Apple Watch"}
+2/2/2026, 4:52:47 AM	2/2/2026	4	heart_rate	70.33528137	70.33528137	70.33528137	Amiel’s Apple Watch	{"Min":70.33528137207031,"Avg":70.33528137207031,"source":"Amiel’s Apple Watch","date":"2026-02-02 04:52:47 -0500","Max":70.33528137207031}
+2/2/2026, 4:52:00 AM	2/2/2026	4	heart_rate_variability	59.00959617			Auto	{"qty":59.009596174356375,"date":"2026-02-02 04:52:00 -0500"}
+2/2/2026, 4:48:11 AM	2/2/2026	4	heart_rate	74	74	74	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Min":74,"Max":74,"date":"2026-02-02 04:48:11 -0500","Avg":74}
+2/2/2026, 4:45:26 AM	2/2/2026	4	heart_rate	72	72	72	Amiel’s Apple Watch	{"date":"2026-02-02 04:45:26 -0500","Avg":72,"Max":72,"Min":72,"source":"Amiel’s Apple Watch"}
+2/2/2026, 4:39:21 AM	2/2/2026	4	heart_rate	79	79	79	Amiel’s Apple Watch	{"Avg":79,"source":"Amiel’s Apple Watch","Max":79,"date":"2026-02-02 04:39:21 -0500","Min":79}
+2/2/2026, 4:34:19 AM	2/2/2026	4	heart_rate	83	83	83	Amiel’s Apple Watch	{"Avg":83,"date":"2026-02-02 04:34:19 -0500","Max":83,"source":"Amiel’s Apple Watch","Min":83}
+2/2/2026, 4:33:20 AM	2/2/2026	4	heart_rate	79	79	79	Amiel’s Apple Watch	{"Min":79,"date":"2026-02-02 04:33:20 -0500","source":"Amiel’s Apple Watch","Max":79,"Avg":79}
+2/2/2026, 4:29:46 AM	2/2/2026	4	heart_rate	72	72	72	Amiel’s Apple Watch	{"Avg":72,"date":"2026-02-02 04:29:46 -0500","source":"Amiel’s Apple Watch","Min":72,"Max":72}
+2/2/2026, 4:27:19 AM	2/2/2026	4	heart_rate	80	80	80	Amiel’s Apple Watch	{"Max":80,"Min":80,"Avg":80,"date":"2026-02-02 04:27:19 -0500","source":"Amiel’s Apple Watch"}
+2/2/2026, 4:21:09 AM	2/2/2026	4	heart_rate	79	79	79	Amiel’s Apple Watch	{"Max":79,"Avg":79,"date":"2026-02-02 04:21:09 -0500","source":"Amiel’s Apple Watch","Min":79}
+2/2/2026, 4:15:57 AM	2/2/2026	4	heart_rate	85	85	85	Amiel’s Apple Watch	{"date":"2026-02-02 04:15:57 -0500","Max":85,"Avg":85,"Min":85,"source":"Amiel’s Apple Watch"}
+2/2/2026, 4:11:11 AM	2/2/2026	4	heart_rate	84	84	84	Amiel’s Apple Watch	{"Max":84,"Min":84,"date":"2026-02-02 04:11:11 -0500","Avg":84,"source":"Amiel’s Apple Watch"}
+2/2/2026, 4:05:14 AM	2/2/2026	4	heart_rate	84	84	84	Amiel’s Apple Watch	{"Min":84,"date":"2026-02-02 04:05:14 -0500","Avg":84,"source":"Amiel’s Apple Watch","Max":84}
+2/2/2026, 4:03:20 AM	2/2/2026	4	heart_rate	86	86	86	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Min":86,"date":"2026-02-02 04:03:20 -0500","Max":86,"Avg":86}
+2/2/2026, 4:00:37 AM	2/2/2026	4	heart_rate	84	84	84	Amiel’s Apple Watch	{"date":"2026-02-02 04:00:37 -0500","Max":84,"Min":84,"Avg":84,"source":"Amiel’s Apple Watch"}
+2/2/2026, 3:55:28 AM	2/2/2026	3	heart_rate	84	84	84	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Max":84,"date":"2026-02-02 03:55:28 -0500","Min":84,"Avg":84}
+2/2/2026, 3:49:10 AM	2/2/2026	3	heart_rate	84	84	84	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Avg":84,"Max":84,"date":"2026-02-02 03:49:10 -0500","Min":84}
+2/2/2026, 3:45:23 AM	2/2/2026	3	heart_rate	84	84	84	Amiel’s Apple Watch	{"date":"2026-02-02 03:45:23 -0500","Min":84,"source":"Amiel’s Apple Watch","Avg":84,"Max":84}
+2/2/2026, 3:41:17 AM	2/2/2026	3	heart_rate	84	84	84	Amiel’s Apple Watch	{"date":"2026-02-02 03:41:17 -0500","Min":84,"Avg":84,"source":"Amiel’s Apple Watch","Max":84}
+2/2/2026, 3:36:28 AM	2/2/2026	3	heart_rate	85	85	85	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Avg":85,"date":"2026-02-02 03:36:28 -0500","Min":85,"Max":85}
+2/2/2026, 3:28:09 AM	2/2/2026	3	heart_rate	93	93	93	Amiel’s Apple Watch	{"Min":93,"source":"Amiel’s Apple Watch","Max":93,"date":"2026-02-02 03:28:09 -0500","Avg":93}
+2/2/2026, 3:23:19 AM	2/2/2026	3	heart_rate	93	93	93	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 03:23:19 -0500","Max":93,"Min":93,"Avg":93}
+2/2/2026, 3:20:13 AM	2/2/2026	3	heart_rate	94	94	94	Amiel’s Apple Watch	{"date":"2026-02-02 03:20:13 -0500","source":"Amiel’s Apple Watch","Min":94,"Max":94,"Avg":94}
+2/2/2026, 3:16:29 AM	2/2/2026	3	heart_rate	94	94	94	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Max":94,"date":"2026-02-02 03:16:29 -0500","Min":94,"Avg":94}
+2/2/2026, 3:11:09 AM	2/2/2026	3	heart_rate	85	85	85	Amiel’s Apple Watch	{"date":"2026-02-02 03:11:09 -0500","source":"Amiel’s Apple Watch","Avg":85,"Max":85,"Min":85}
+2/2/2026, 3:09:27 AM	2/2/2026	3	heart_rate	88	88	88	Amiel’s Apple Watch	{"Min":88,"Max":88,"source":"Amiel’s Apple Watch","date":"2026-02-02 03:09:27 -0500","Avg":88}
+2/2/2026, 3:03:10 AM	2/2/2026	3	heart_rate	93	93	93	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-02 03:03:10 -0500","Min":93,"Max":93,"Avg":93}
+2/2/2026, 3:02:07 AM	2/2/2026	3	heart_rate	93	93	93	Amiel’s Apple Watch	{"Max":93,"source":"Amiel’s Apple Watch","date":"2026-02-02 03:02:07 -0500","Min":93,"Avg":93}
+2/2/2026, 3:01:15 AM	2/2/2026	3	heart_rate	93.52932739	93.52932739	93.52932739	Amiel’s Apple Watch	{"Min":93.52932739257812,"source":"Amiel’s Apple Watch","Avg":93.52932739257812,"Max":93.52932739257812,"date":"2026-02-02 03:01:15 -0500"}
+2/2/2026, 3:01:00 AM	2/2/2026	3	heart_rate_variability	17.09756661			Auto	{"date":"2026-02-02 03:01:00 -0500","qty":17.09756660938888}
+2/2/2026, 2:57:14 AM	2/2/2026	2	heart_rate	101	101	101	Amiel’s Apple Watch	{"Avg":101,"source":"Amiel’s Apple Watch","Max":101,"Min":101,"date":"2026-02-02 02:57:14 -0500"}
+2/2/2026, 2:56:51 AM	2/2/2026	2	step_count	4.216856716			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:56:51 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone","qty":4.2168567155332575}
+2/2/2026, 2:55:51 AM	2/2/2026	2	step_count	7.783143284			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:55:51 -0500","qty":7.7831432844667425,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:41:51 AM	2/2/2026	2	step_count	4.73885691			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 02:41:51 -0500","qty":4.738856910325713}
+2/2/2026, 2:40:51 AM	2/2/2026	2	step_count	1.946774364			Amiel’s Apple Watch + Amiel’s iphone	{"qty":1.9467743637350496,"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 02:40:51 -0500"}
+2/2/2026, 2:39:51 AM	2/2/2026	2	step_count	6.286704584			Amiel’s Apple Watch + Amiel’s iphone	{"qty":6.286704583915291,"date":"2026-02-02 02:39:51 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:38:51 AM	2/2/2026	2	step_count	6.286704584			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:38:51 -0500","qty":6.286704583915291,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:37:51 AM	2/2/2026	2	step_count	6.286704584			Amiel’s Apple Watch + Amiel’s iphone	{"qty":6.286704583915291,"date":"2026-02-02 02:37:51 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:36:51 AM	2/2/2026	2	step_count	6.286704584			Amiel’s Apple Watch + Amiel’s iphone	{"qty":6.2867045839152915,"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 02:36:51 -0500"}
+2/2/2026, 2:35:51 AM	2/2/2026	2	step_count	6.286704584			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 02:35:51 -0500","qty":6.2867045839152915}
+2/2/2026, 2:34:51 AM	2/2/2026	2	step_count	6.286704584			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:34:51 -0500","qty":6.2867045839152915,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:34:19 AM	2/2/2026	2	heart_rate	147	147	147	Amiel’s Apple Watch	{"Max":147,"source":"Amiel’s Apple Watch","Avg":147,"date":"2026-02-02 02:34:19 -0500","Min":147}
+2/2/2026, 2:33:51 AM	2/2/2026	2	step_count	6.286704584			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 02:33:51 -0500","qty":6.286704583915292}
+2/2/2026, 2:33:47 AM	2/2/2026	2	heart_rate	152	152	152	Amiel’s Apple Watch	{"Max":152,"source":"Amiel’s Apple Watch","Min":152,"date":"2026-02-02 02:33:47 -0500","Avg":152}
+2/2/2026, 2:32:51 AM	2/2/2026	2	step_count	3.971209695			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 02:32:51 -0500","qty":3.9712096954161558}
+2/2/2026, 2:31:51 AM	2/2/2026	2	step_count	5.471960266			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 02:31:51 -0500","qty":5.471960266237006}
+2/2/2026, 2:30:51 AM	2/2/2026	2	step_count	5.471960266			Amiel’s Apple Watch + Amiel’s iphone	{"qty":5.471960266237008,"date":"2026-02-02 02:30:51 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:29:51 AM	2/2/2026	2	step_count	5.471960266			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:29:51 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone","qty":5.471960266237008}
+2/2/2026, 2:28:51 AM	2/2/2026	2	step_count	5.471960266			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 02:28:51 -0500","qty":5.471960266237008}
+2/2/2026, 2:28:06 AM	2/2/2026	2	heart_rate	59	59	59	Amiel’s Apple Watch	{"Min":59,"source":"Amiel’s Apple Watch","Max":59,"date":"2026-02-02 02:28:06 -0500","Avg":59}
+2/2/2026, 2:27:51 AM	2/2/2026	2	step_count	5.471960266			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:27:51 -0500","qty":5.471960266237009,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:27:00 AM	2/2/2026	2	heart_rate	108	108	108	Amiel’s Apple Watch	{"date":"2026-02-02 02:27:00 -0500","Max":108,"Min":108,"Avg":108,"source":"Amiel’s Apple Watch"}
+2/2/2026, 2:26:51 AM	2/2/2026	2	step_count	5.471960266			Amiel’s Apple Watch + Amiel’s iphone	{"qty":5.471960266237007,"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 02:26:51 -0500"}
+2/2/2026, 2:25:51 AM	2/2/2026	2	step_count	5.471960266			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","qty":5.471960266237008,"date":"2026-02-02 02:25:51 -0500"}
+2/2/2026, 2:24:51 AM	2/2/2026	2	step_count	5.471960266			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:24:51 -0500","qty":5.471960266237007,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:23:51 AM	2/2/2026	2	step_count	5.471960266			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","qty":5.471960266237007,"date":"2026-02-02 02:23:51 -0500"}
+2/2/2026, 2:22:51 AM	2/2/2026	2	step_count	1.827441457			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:22:51 -0500","qty":1.827441457308688,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:12:30 AM	2/2/2026	2	step_count	12.45688107			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:12:30 -0500","qty":12.456881070908711,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 2:11:30 AM	2/2/2026	2	step_count	31.10345055			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","qty":31.103450548500167,"date":"2026-02-02 02:11:30 -0500"}
+2/2/2026, 2:10:30 AM	2/2/2026	2	step_count	24.43966838			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 02:10:30 -0500","qty":24.439668380591122,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 1:55:30 AM	2/2/2026	1	step_count	19			Amiel’s Apple Watch + Amiel’s iphone	{"qty":19,"date":"2026-02-02 01:55:30 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 1:35:30 AM	2/2/2026	1	step_count	10			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 01:35:30 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone","qty":10}
+2/2/2026, 1:32:33 AM	2/2/2026	1	heart_rate	132.9964752	132.9964752	132.9964752	Amiel’s Apple Watch	{"Min":132.99647521972656,"Max":132.99647521972656,"source":"Amiel’s Apple Watch","Avg":132.99647521972656,"date":"2026-02-02 01:32:33 -0500"}
+2/2/2026, 1:32:00 AM	2/2/2026	1	heart_rate_variability	7.062007375			Auto	{"date":"2026-02-02 01:32:00 -0500","qty":7.0620073746362095}
+2/2/2026, 1:30:14 AM	2/2/2026	1	heart_rate	94	94	94	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Min":94,"date":"2026-02-02 01:30:14 -0500","Avg":94,"Max":94}
+2/2/2026, 1:27:02 AM	2/2/2026	1	heart_rate	93	93	93	Amiel’s Apple Watch	{"Min":93,"source":"Amiel’s Apple Watch","date":"2026-02-02 01:27:02 -0500","Avg":93,"Max":93}
+2/2/2026, 1:18:36 AM	2/2/2026	1	heart_rate	90	90	90	Amiel’s Apple Watch	{"date":"2026-02-02 01:18:36 -0500","Avg":90,"source":"Amiel’s Apple Watch","Min":90,"Max":90}
+2/2/2026, 1:15:46 AM	2/2/2026	1	heart_rate	99	99	99	Amiel’s Apple Watch	{"date":"2026-02-02 01:15:46 -0500","source":"Amiel’s Apple Watch","Max":99,"Min":99,"Avg":99}
+2/2/2026, 1:08:51 AM	2/2/2026	1	heart_rate	91	91	91	Amiel’s Apple Watch	{"Min":91,"Max":91,"Avg":91,"source":"Amiel’s Apple Watch","date":"2026-02-02 01:08:51 -0500"}
+2/2/2026, 1:07:27 AM	2/2/2026	1	heart_rate	95	95	95	Amiel’s Apple Watch	{"Max":95,"source":"Amiel’s Apple Watch","Min":95,"Avg":95,"date":"2026-02-02 01:07:27 -0500"}
+2/2/2026, 1:00:18 AM	2/2/2026	1	heart_rate	92	92	92	Amiel’s Apple Watch	{"date":"2026-02-02 01:00:18 -0500","Avg":92,"source":"Amiel’s Apple Watch","Min":92,"Max":92}
+2/2/2026, 12:53:07 AM	2/2/2026	0	heart_rate	92	92	92	Amiel’s Apple Watch	{"Max":92,"source":"Amiel’s Apple Watch","date":"2026-02-02 00:53:07 -0500","Min":92,"Avg":92}
+2/2/2026, 12:51:39 AM	2/2/2026	0	heart_rate	92	92	92	Amiel’s Apple Watch	{"Max":92,"source":"Amiel’s Apple Watch","Avg":92,"Min":92,"date":"2026-02-02 00:51:39 -0500"}
+2/2/2026, 12:50:30 AM	2/2/2026	0	step_count	4			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-02 00:50:30 -0500","qty":4,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/2/2026, 12:45:21 AM	2/2/2026	0	heart_rate	94	94	94	Amiel’s Apple Watch	{"date":"2026-02-02 00:45:21 -0500","Max":94,"source":"Amiel’s Apple Watch","Min":94,"Avg":94}
+2/2/2026, 12:38:16 AM	2/2/2026	0	heart_rate	85	85	85	Amiel’s Apple Watch	{"date":"2026-02-02 00:38:16 -0500","Avg":85,"Max":85,"source":"Amiel’s Apple Watch","Min":85}
+2/2/2026, 12:36:28 AM	2/2/2026	0	heart_rate	90	90	90	Amiel’s Apple Watch	{"Avg":90,"Max":90,"date":"2026-02-02 00:36:28 -0500","source":"Amiel’s Apple Watch","Min":90}
+2/2/2026, 12:32:05 AM	2/2/2026	0	heart_rate	85	85	85	Amiel’s Apple Watch	{"Min":85,"Max":85,"date":"2026-02-02 00:32:05 -0500","source":"Amiel’s Apple Watch","Avg":85}
+2/2/2026, 12:27:30 AM	2/2/2026	0	step_count	24.06040045			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 00:27:30 -0500","qty":24.060400450724487}
+2/2/2026, 12:26:56 AM	2/2/2026	0	heart_rate	91	91	91	Amiel’s Apple Watch	{"Min":91,"Avg":91,"Max":91,"source":"Amiel’s Apple Watch","date":"2026-02-02 00:26:56 -0500"}
+2/2/2026, 12:26:30 AM	2/2/2026	0	step_count	11.93959955			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-02 00:26:30 -0500","qty":11.939599549275515}
+2/2/2026, 12:22:57 AM	2/2/2026	0	heart_rate	93	93	93	Amiel’s Apple Watch	{"Avg":93,"Max":93,"source":"Amiel’s Apple Watch","date":"2026-02-02 00:22:57 -0500","Min":93}
+2/2/2026, 12:21:13 AM	2/2/2026	0	heart_rate	93	93	93	Amiel’s Apple Watch	{"Max":93,"date":"2026-02-02 00:21:13 -0500","source":"Amiel’s Apple Watch","Min":93,"Avg":93}
+2/2/2026, 12:17:12 AM	2/2/2026	0	heart_rate	85	85	85	Amiel’s Apple Watch	{"Avg":85,"Max":85,"date":"2026-02-02 00:17:12 -0500","source":"Amiel’s Apple Watch","Min":85}
+2/2/2026, 12:09:53 AM	2/2/2026	0	heart_rate	84	84	84	Amiel’s Apple Watch	{"Min":84,"Avg":84,"Max":84,"date":"2026-02-02 00:09:53 -0500","source":"Amiel’s Apple Watch"}
+2/2/2026, 12:05:01 AM	2/2/2026	0	heart_rate	84	84	84	Amiel’s Apple Watch	{"date":"2026-02-02 00:05:01 -0500","Avg":84,"Min":84,"source":"Amiel’s Apple Watch","Max":84}
+2/2/2026, 12:02:11 AM	2/2/2026	0	heart_rate	83	83	83	Amiel’s Apple Watch	{"Min":83,"Avg":83,"date":"2026-02-02 00:02:11 -0500","source":"Amiel’s Apple Watch","Max":83}
+2/1/2026, 11:54:30 PM	2/1/2026	23	step_count	0.0641520158			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-01 23:54:30 -0500","qty":0.06415201579562302}
+2/1/2026, 11:53:30 PM	2/1/2026	23	step_count	3.8822113			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-01 23:53:30 -0500","qty":3.882211299572949,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/1/2026, 11:53:06 PM	2/1/2026	23	heart_rate	80	80	80	Amiel’s Apple Watch	{"Max":80,"Avg":80,"date":"2026-02-01 23:53:06 -0500","source":"Amiel’s Apple Watch","Min":80}
+2/1/2026, 11:52:30 PM	2/1/2026	23	step_count	3.8822113			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-01 23:52:30 -0500","qty":3.8822112995729494,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/1/2026, 11:51:30 PM	2/1/2026	23	step_count	3.8822113			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","qty":3.8822112995729494,"date":"2026-02-01 23:51:30 -0500"}
+2/1/2026, 11:50:30 PM	2/1/2026	23	step_count	3.8822113			Amiel’s Apple Watch + Amiel’s iphone	{"qty":3.8822112995729494,"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-01 23:50:30 -0500"}
+2/1/2026, 11:49:30 PM	2/1/2026	23	step_count	3.8822113			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-01 23:49:30 -0500","qty":3.882211299572949,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/1/2026, 11:48:32 PM	2/1/2026	23	heart_rate	88	88	88	Amiel’s Apple Watch	{"Max":88,"source":"Amiel’s Apple Watch","Avg":88,"date":"2026-02-01 23:48:32 -0500","Min":88}
+2/1/2026, 11:48:30 PM	2/1/2026	23	step_count	3.8822113			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","date":"2026-02-01 23:48:30 -0500","qty":3.8822112995729494}
+2/1/2026, 11:47:30 PM	2/1/2026	23	step_count	3.8822113			Amiel’s Apple Watch + Amiel’s iphone	{"qty":3.8822112995729503,"date":"2026-02-01 23:47:30 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/1/2026, 11:46:30 PM	2/1/2026	23	step_count	3.8822113			Amiel’s Apple Watch + Amiel’s iphone	{"qty":3.88221129957295,"date":"2026-02-01 23:46:30 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/1/2026, 11:45:30 PM	2/1/2026	23	step_count	3.878157588			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-01 23:45:30 -0500","qty":3.878157587620777,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/1/2026, 11:44:29 PM	2/1/2026	23	heart_rate	83	83	83	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Max":83,"Min":83,"Avg":83,"date":"2026-02-01 23:44:29 -0500"}
+2/1/2026, 11:41:46 PM	2/1/2026	23	heart_rate	80	80	80	Amiel’s Apple Watch	{"date":"2026-02-01 23:41:46 -0500","Max":80,"source":"Amiel’s Apple Watch","Min":80,"Avg":80}
+2/1/2026, 11:37:56 PM	2/1/2026	23	heart_rate	80	80	80	Amiel’s Apple Watch	{"date":"2026-02-01 23:37:56 -0500","Max":80,"Min":80,"source":"Amiel’s Apple Watch","Avg":80}
+2/1/2026, 11:29:56 PM	2/1/2026	23	heart_rate	87	87	87	Amiel’s Apple Watch	{"Avg":87,"Max":87,"source":"Amiel’s Apple Watch","date":"2026-02-01 23:29:56 -0500","Min":87}
+2/1/2026, 11:27:52 PM	2/1/2026	23	heart_rate	79	79	79	Amiel’s Apple Watch	{"Max":79,"date":"2026-02-01 23:27:52 -0500","Min":79,"Avg":79,"source":"Amiel’s Apple Watch"}
+2/1/2026, 11:24:30 PM	2/1/2026	23	step_count	9			Amiel’s Apple Watch + Amiel’s iphone	{"qty":9,"date":"2026-02-01 23:24:30 -0500","source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/1/2026, 11:20:16 PM	2/1/2026	23	heart_rate	81	81	81	Amiel’s Apple Watch	{"Min":81,"Avg":81,"date":"2026-02-01 23:20:16 -0500","source":"Amiel’s Apple Watch","Max":81}
+2/1/2026, 11:13:28 PM	2/1/2026	23	heart_rate	85	85	85	Amiel’s Apple Watch	{"Max":85,"date":"2026-02-01 23:13:28 -0500","Min":85,"source":"Amiel’s Apple Watch","Avg":85}
+2/1/2026, 11:12:53 PM	2/1/2026	23	heart_rate	85.07003021	85.07003021	85.07003021	Amiel’s Apple Watch	{"Avg":85.07003021240234,"Max":85.07003021240234,"source":"Amiel’s Apple Watch","Min":85.07003021240234,"date":"2026-02-01 23:12:53 -0500"}
+2/1/2026, 11:12:00 PM	2/1/2026	23	heart_rate_variability	19.40498297			Auto	{"qty":19.404982974567176,"date":"2026-02-01 23:12:00 -0500"}
+2/1/2026, 11:11:40 PM	2/1/2026	23	heart_rate	87	87	87	Amiel’s Apple Watch	{"Max":87,"source":"Amiel’s Apple Watch","Avg":87,"date":"2026-02-01 23:11:40 -0500","Min":87}
+2/1/2026, 11:11:31 PM	2/1/2026	23	heart_rate	100	100	100	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","date":"2026-02-01 23:11:31 -0500","Max":100,"Avg":100,"Min":100}
+2/1/2026, 11:11:26 PM	2/1/2026	23	heart_rate	100	100	100	Amiel’s Apple Watch	{"date":"2026-02-01 23:11:26 -0500","Min":100,"Avg":100,"source":"Amiel’s Apple Watch","Max":100}
+2/1/2026, 11:11:21 PM	2/1/2026	23	heart_rate	96	96	96	Amiel’s Apple Watch	{"date":"2026-02-01 23:11:21 -0500","Min":96,"source":"Amiel’s Apple Watch","Max":96,"Avg":96}
+2/1/2026, 11:11:19 PM	2/1/2026	23	heart_rate	96	96	96	Amiel’s Apple Watch	{"Min":96,"Avg":96,"date":"2026-02-01 23:11:19 -0500","source":"Amiel’s Apple Watch","Max":96}
+2/1/2026, 11:11:15 PM	2/1/2026	23	heart_rate	100	100	100	Amiel’s Apple Watch	{"date":"2026-02-01 23:11:15 -0500","Min":100,"source":"Amiel’s Apple Watch","Max":100,"Avg":100}
+2/1/2026, 11:11:10 PM	2/1/2026	23	heart_rate	105	105	105	Amiel’s Apple Watch	{"source":"Amiel’s Apple Watch","Min":105,"Max":105,"Avg":105,"date":"2026-02-01 23:11:10 -0500"}
+2/1/2026, 11:10:47 PM	2/1/2026	23	heart_rate	111	111	111	Amiel’s Apple Watch	{"Min":111,"source":"Amiel’s Apple Watch","Avg":111,"date":"2026-02-01 23:10:47 -0500","Max":111}
+2/1/2026, 11:10:30 PM	2/1/2026	23	step_count	10.3964628			Amiel’s Apple Watch + Amiel’s iphone	{"source":"Amiel’s Apple Watch|Amiel’s iphone","qty":10.396462798899357,"date":"2026-02-01 23:10:30 -0500"}
+2/1/2026, 11:09:30 PM	2/1/2026	23	step_count	41.6035372			Amiel’s Apple Watch + Amiel’s iphone	{"date":"2026-02-01 23:09:30 -0500","qty":41.60353720110064,"source":"Amiel’s Apple Watch|Amiel’s iphone"}
+2/1/2026, 11:08:30 PM	2/1/2026	23	step_count	16.23157613			Amiel’s iphone	{"source":"Amiel’s iphone","date":"2026-02-01 23:08:30 -0500","qty":16.23157612712475}
+2/1/2026, 11:08:29 PM	2/1/2026	23	heart_rate	87	87	87	Amiel’s Apple Watch	{"Avg":87,"date":"2026-02-01 23:08:29 -0500","Min":87,"source":"Amiel’s Apple Watch","Max":87}
+2/1/2026, 11:06:29 PM	2/1/2026	23	heart_rate	88	88	88	Amiel’s Apple Watch	{"Avg":88,"source":"Amiel’s Apple Watch","Min":88,"Max":88,"date":"2026-02-01 23:06:29 -0500"}
 2/1/2026, 10:43:07 PM	2/1/2026	22	heart_rate	99	99	99	Amiel’s Apple Watch	{"date":"2026-02-01 22:43:07 -0500","Min":99,"Max":99,"source":"Amiel’s Apple Watch","Avg":99}
 2/1/2026, 10:40:57 PM	2/1/2026	22	step_count	35.9588743			Amiel’s Apple Watch	{"qty":35.95887429743682,"source":"Amiel’s Apple Watch","date":"2026-02-01 22:40:57 -0500"}
 2/1/2026, 10:40:57 PM	2/1/2026	22	heart_rate	114	114	114	Amiel’s Apple Watch	{"Min":114,"date":"2026-02-01 22:40:57 -0500","Avg":114,"Max":114,"source":"Amiel’s Apple Watch"}
@@ -4738,4 +4945,3 @@ Timestamp	Date	Hour	Metric	Value	Min	Max	Source	Raw Data
 1/24/2026, 5:40:00 PM	1/24/2026	17	resting_heart_rate	66			Auto	{"date":"2026-01-24 17:40:00 -0500","qty":66}
 1/24/2026, 5:40:00 PM	1/24/2026	17	heart_rate_variability	89.53738739			Auto	{"date":"2026-01-24 17:40:00 -0500","qty":89.53738739368202}
 1/24/2026, 5:40:00 PM	1/24/2026	17	resting_heart_rate	64			Auto	{"date":"2026-01-24 17:40:00 -0500","qty":64}
-1/24/2026, 5:40:00 PM	1/24/2026	17	resting_heart_rate	64			Auto	{"qty":64,"date":"2026-01-24 17:40:00 -0500"}
