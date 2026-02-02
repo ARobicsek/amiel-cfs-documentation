@@ -95,10 +95,10 @@ Fixed the health webhook to correctly parse and store granular sleep stage data 
 - ✅ `sleep_stage` rows have proper stage values, start/end times, durations
 - ✅ Data available for stats visualization (Jan 24 – Feb 1, 2026)
 
-**Next Steps:**
-1. Compare old sophisticated sleep validation logic vs new granular data per day
-2. Verify daily sleep totals match between approaches
-3. Update Stats visualization to use granular `sleep_stage` data if more accurate
+**Next Steps (Session 58 PRIORITY):**
+1. **FIX CRITICAL BUG**: Multi-Day/History sleep totals don't match Single Day view
+2. Compare `statsDataService.js` (client) vs `lib/sleepValidation.js` (server) granular processing
+3. Ensure both use identical logic for attributing sleep to dates
 
 ---
 
@@ -116,15 +116,25 @@ Updated ALL sleep data consumers to use NEW granular `sleep_stage` data instead 
 3. **Updated Multi-Day Sleep Tooltip** — `SleepStackedBar.jsx` now shows "Total Sleep" (excluding awake) and "Time in Bed" (including awake) for transparency.
 
 **Files Modified:**
-- `lib/sleepValidation.js` — Granular data support, awake exclusion
+- `lib/sleepValidation.js` — Granular data support, awake exclusion, date attribution fixes
 - `src/utils/statsDataService.js` — Scope fix, granular summary calculation
-- `src/components/Stats/charts/SleepStackedBar.jsx` — Tooltip improvements
+- `src/components/Stats/charts/SleepStackedBar.jsx` — Tooltip simplified to Total Sleep only
+
+**Known Issue (Session 58 Priority):**
+Sleep totals differ between Single Day view vs Multi-Day/History views:
+| Date | Single Day (trusted) | Multi-Day/History |
+|------|---------------------|-------------------|
+| Jan 27 | 4h 38m | 7h 31m |
+| Jan 28 | 10h 25m | 7h 45m |
+| Jan 29 | 8h 33m | 7h 53m |
+| Jan 30 | 4h 59m | 8h 19m |
+
+Root cause: Different code paths (`statsDataService.js` vs `lib/sleepValidation.js`) processing granular data differently.
 
 **Status at End of Session:**
 - ✅ Build passes (442KB JS)
-- ✅ All sleep consumers use NEW granular data when available
-- ✅ Awake stages excluded from sleep totals
-- ⏳ Needs manual browser verification
+- ✅ Code committed and pushed
+- ⚠️ **CRITICAL BUG**: Multi-Day/History sleep totals don't match Single Day view
 
 ---
 
