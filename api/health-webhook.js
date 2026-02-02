@@ -514,15 +514,23 @@ function normalizePayload(body) {
             // Explode sleep_analysis into sub-metrics for hourly detail
             if (name === 'sleep_analysis') {
                 // Check for GRANULAR sleep stage data (non-aggregated export)
-                // Granular data has value as a string like "HKCategoryValueSleepAnalysisAsleepCore"
+                // Health Auto Export sends simple stage names: "Asleep", "Core", "REM", "Deep", "Awake", "InBed"
                 const valStr = String(point.value || '');
-                const isGranular = valStr.startsWith('HKCategoryValueSleepAnalysis');
+                const granularStages = ['Asleep', 'Core', 'REM', 'Deep', 'Awake', 'InBed'];
+                const isGranular = granularStages.includes(valStr) && point.startDate && point.endDate;
 
-                if (isGranular && point.startDate && point.endDate) {
-                    // Parse the stage name from the HealthKit constant
-                    // e.g., "HKCategoryValueSleepAnalysisAsleepCore" -> "asleepCore"
-                    const stagePart = valStr.replace('HKCategoryValueSleepAnalysis', '');
-                    const stage = stagePart.charAt(0).toLowerCase() + stagePart.slice(1);
+                if (isGranular) {
+                    // Map the simple stage name to our internal format
+                    // "Core" -> "asleepCore", "REM" -> "asleepREM", "Deep" -> "asleepDeep", 
+                    // "Asleep" -> "asleep" (generic), "Awake" -> "awake", "InBed" -> "inBed"
+                    let stage;
+                    if (valStr === 'Core') stage = 'asleepCore';
+                    else if (valStr === 'REM') stage = 'asleepREM';
+                    else if (valStr === 'Deep') stage = 'asleepDeep';
+                    else if (valStr === 'Asleep') stage = 'asleep';
+                    else if (valStr === 'Awake') stage = 'awake';
+                    else if (valStr === 'InBed') stage = 'inBed';
+                    else stage = valStr.toLowerCase();
 
                     const startDt = new Date(point.startDate);
                     const endDt = new Date(point.endDate);
