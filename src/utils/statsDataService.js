@@ -512,40 +512,10 @@ export function processSingleDayData(rows, dateStr) {
     .sort((a, b) => a.minuteOfDay - b.minuteOfDay);
 
   // 7. Compute summary stats
-  // Sleep total: use granular stages (excluding awake) or validated sessions
-  // IMPORTANT: Clip stage durations to day boundaries (same as graph rendering)
-  let totalSleepMin = 0;
-  if (hasGranularData) {
-    // NEW PATH: Sum granular stage durations, excluding awake/inBed
-    // Clip each stage to this day's boundaries to handle overnight sleep correctly
-    for (const stage of granularStages) {
-      const s = stage.stage?.toLowerCase() || '';
-      // Count only actual sleep stages
-      if (s.includes('asleep') || s === 'deep' || s === 'rem' || s === 'core') {
-        // Clip stage to this day's boundaries (same logic as graph rendering)
-        const sStart = Math.max(stage.startDate.getTime(), dayStartMs);
-        const sEnd = Math.min(stage.endDate.getTime(), dayEndMs);
-        if (sStart < sEnd) {
-          // Calculate clipped duration in minutes
-          const clippedMins = (sEnd - sStart) / 60000;
-          totalSleepMin += clippedMins;
-        }
-      }
-    }
-    totalSleepMin = Math.round(totalSleepMin);
-  } else {
-    // OLD PATH: Sum validated session durations, excluding awake
-    for (const best of validatedClusters) {
-      const endsOnTarget = best.sleepEnd.getFullYear() === targetYearNum &&
-        best.sleepEnd.getMonth() === targetMonthNum &&
-        best.sleepEnd.getDate() === targetDayNum;
-      if (endsOnTarget) {
-        // Exclude awake time from total (fullDurationMin includes awake)
-        const sleepOnlyMin = best.totalSleepMin || 0;
-        totalSleepMin += Math.round(sleepOnlyMin);
-      }
-    }
-  }
+  // Sleep total: Count ASLEEP minutes from activityMinutes array
+  // This GUARANTEES the summary matches what's visible on the graph
+  const totalSleepMin = activityMinutes.filter(status => status === 'ASLEEP').length;
+
   // Count walking minutes from the separate array
   const totalWalkingMin = walkingMinutes.filter(isWalking => isWalking).length;
 
