@@ -525,9 +525,36 @@ export function processSingleDayData(rows, dateStr) {
     .sort((a, b) => a.minuteOfDay - b.minuteOfDay);
 
   // 7. Compute summary stats
-  // Sleep total: Count ASLEEP minutes from activityMinutes array
-  // This GUARANTEES the summary matches what's visible on the graph
-  const totalSleepMin = activityMinutes.filter(status => status === 'ASLEEP').length;
+  // Sleep total: Calculate fractional durations (same as Multi-Day)
+  // This ensures Single Day and Multi-Day produce identical totals
+  let totalSleepMin = 0;
+  if (hasGranularData) {
+    // Sum clipped fractional durations for actual sleep stages
+    for (const stage of granularStages) {
+      const s = stage.stage?.toLowerCase() || '';
+      // Count only actual sleep stages (exclude awake/inBed)
+      if (s.includes('asleep') || s === 'deep' || s === 'rem' || s === 'core') {
+        // Clip to day boundaries (same as Multi-Day)
+        const sStart = Math.max(stage.startDate.getTime(), dayStartMs);
+        const sEnd = Math.min(stage.endDate.getTime(), dayEndMs);
+        if (sStart < sEnd) {
+          totalSleepMin += (sEnd - sStart) / 60000;
+        }
+      }
+    }
+    totalSleepMin = Math.round(totalSleepMin);
+  } else {
+    // OLD PATH: Sum validated session durations, excluding awake
+    for (const best of validatedClusters) {
+      const endsOnTarget = best.sleepEnd.getFullYear() === targetYearNum &&
+        best.sleepEnd.getMonth() === targetMonthNum &&
+        best.sleepEnd.getDate() === targetDayNum;
+      if (endsOnTarget) {
+        const sleepOnlyMin = best.totalSleepMin || 0;
+        totalSleepMin += Math.round(sleepOnlyMin);
+      }
+    }
+  }
 
   // Count walking minutes from the separate array
   const totalWalkingMin = walkingMinutes.filter(isWalking => isWalking).length;
