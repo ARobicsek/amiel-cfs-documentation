@@ -140,13 +140,17 @@ export default function SleepStackedBar({ days = [], isDark, isFullscreen }) {
             const h = Math.floor(mins / 60);
             const m = mins % 60;
 
-            // Calculate percentage of total sleep
+            // Calculate percentage of actual sleep (excluding awake)
             const idx = item.dataIndex;
             const sleep = days[idx]?.sleep;
             let pct = '';
-            if (sleep && sleep.total > 0 && mins > 0) {
-              const percentage = Math.round((mins / sleep.total) * 100);
-              pct = ` (${percentage}%)`;
+            if (sleep && mins > 0) {
+              // Calculate sleep-only total (total already excludes awake from API)
+              const sleepTotal = sleep.total || 0;
+              if (sleepTotal > 0) {
+                const percentage = Math.round((mins / sleepTotal) * 100);
+                pct = ` (${percentage}%)`;
+              }
             }
             return `${item.dataset.label}: ${h}h ${m}m${pct}`;
           },
@@ -155,9 +159,11 @@ export default function SleepStackedBar({ days = [], isDark, isFullscreen }) {
             const idx = items[0].dataIndex;
             const sleep = days[idx]?.sleep;
             if (!sleep) return '';
+
+            // Total sleep (excludes awake)
             const totalH = Math.floor(sleep.total / 60);
-            const totalM = sleep.total % 60;
-            return `Total: ${totalH}h ${totalM}m`;
+            const totalM = Math.round(sleep.total % 60);
+            return `Total Sleep: ${totalH}h ${totalM}m`;
           },
         },
         backgroundColor: isDark ? '#1e293b' : '#ffffff',

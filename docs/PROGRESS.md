@@ -102,6 +102,32 @@ Fixed the health webhook to correctly parse and store granular sleep stage data 
 
 ---
 
+### 2026-02-02 - Migrating to NEW Granular Sleep Data (Session 57)
+
+**Session Summary:**
+Updated ALL sleep data consumers to use NEW granular `sleep_stage` data instead of OLD aggregated `sleep_analysis` sessions. Awake stages are now excluded from sleep totals, matching Apple Watch's actual sleep display.
+
+**Accomplishments:**
+
+1. **Updated Shared Sleep Validation Library** — `lib/sleepValidation.js` now prefers granular `sleep_stage` data when available. Added `parseSleepStage()`, `isSleepStage()`, and `categorizeStage()` functions. Falls back to OLD algorithm when no granular data exists. Both paths now exclude awake from totals.
+
+2. **Fixed Single Day View Bug** — `statsDataService.js` had a scope bug where `validatedClusters` was undefined when using granular path. Moved to outer scope and updated summary calculation to use granular stage durations (excluding awake).
+
+3. **Updated Multi-Day Sleep Tooltip** — `SleepStackedBar.jsx` now shows "Total Sleep" (excluding awake) and "Time in Bed" (including awake) for transparency.
+
+**Files Modified:**
+- `lib/sleepValidation.js` — Granular data support, awake exclusion
+- `src/utils/statsDataService.js` — Scope fix, granular summary calculation
+- `src/components/Stats/charts/SleepStackedBar.jsx` — Tooltip improvements
+
+**Status at End of Session:**
+- ✅ Build passes (442KB JS)
+- ✅ All sleep consumers use NEW granular data when available
+- ✅ Awake stages excluded from sleep totals
+- ⏳ Needs manual browser verification
+
+---
+
 ### 2026-02-02 - Sleep Algorithm Comparison & Validation (Session 56)
 
 **Session Summary:**

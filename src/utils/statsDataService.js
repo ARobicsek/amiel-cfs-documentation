@@ -372,6 +372,9 @@ export function processSingleDayData(rows, dateStr) {
   const dayStartMs = targetDate.getTime();
   const dayEndMs = dayStartMs + 1440 * 60000;
 
+  // Initialize validatedClusters at outer scope (used by OLD path)
+  let validatedClusters = [];
+
   if (hasGranularData) {
     // 3b. GRANULAR PATH: Use exact sleep stage times for overlay
     // Only mark "asleep" stages (asleepCore, asleepDeep, asleepREM), not "awake" or "inBed"
@@ -393,7 +396,7 @@ export function processSingleDayData(rows, dateStr) {
     // 3c. AGGREGATED PATH: Cluster overlapping sessions and validate each cluster
     // using HR/step data (existing logic for session-level data)
     const clusters = clusterSleepSessions(sleepSessions);
-    const validatedClusters = clusters.map(cluster =>
+    validatedClusters = clusters.map(cluster =>
       findBestSessionInCluster(cluster, tsHrReadings, tsStepReadings)
     );
 
@@ -509,15 +512,35 @@ export function processSingleDayData(rows, dateStr) {
     .sort((a, b) => a.minuteOfDay - b.minuteOfDay);
 
   // 7. Compute summary stats
-  // Sleep total: sum (totalSleep + awake) from the validated best session per
-  // cluster, but only for clusters whose best session ends on this date.
+  // Sleep total: use granular stages (excluding awake) or validated sessions
   let totalSleepMin = 0;
-  for (const best of validatedClusters) {
-    const endsOnTarget = best.sleepEnd.getFullYear() === targetYearNum &&
-      best.sleepEnd.getMonth() === targetMonthNum &&
-      best.sleepEnd.getDate() === targetDayNum;
-    if (endsOnTarget) {
-      totalSleepMin += Math.round(best.fullDurationMin);
+  if (hasGranularData) {
+    // NEW PATH: Sum granular stage durations, excluding awake/inBed
+    for (const stage of granularStages) {
+      const s = stage.stage?.toLowerCase() || '';
+      // Count only actual sleep stages
+      if (s.includes('asleep') || s === 'deep' || s === 'rem' || s === 'core') {
+        // Only count stages that end on target date
+        const endsOnTarget = stage.endDate.getFullYear() === targetYearNum &&
+          stage.endDate.getMonth() === targetMonthNum &&
+          stage.endDate.getDate() === targetDayNum;
+        if (endsOnTarget) {
+          totalSleepMin += stage.durationMins || 0;
+        }
+      }
+    }
+    totalSleepMin = Math.round(totalSleepMin);
+  } else {
+    // OLD PATH: Sum validated session durations, excluding awake
+    for (const best of validatedClusters) {
+      const endsOnTarget = best.sleepEnd.getFullYear() === targetYearNum &&
+        best.sleepEnd.getMonth() === targetMonthNum &&
+        best.sleepEnd.getDate() === targetDayNum;
+      if (endsOnTarget) {
+        // Exclude awake time from total (fullDurationMin includes awake)
+        const sleepOnlyMin = best.totalSleepMin || 0;
+        totalSleepMin += Math.round(sleepOnlyMin);
+      }
     }
   }
   // Count walking minutes from the separate array
