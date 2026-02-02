@@ -366,6 +366,19 @@ export function processSingleDayData(rows, dateStr) {
     }
   });
 
+  // 3a. Deduplicate granular stages (handles duplicate uploads)
+  // Use startTime + endTime + stage as unique key
+  const seenStages = new Set();
+  const dedupedStages = granularStages.filter(stage => {
+    const key = `${stage.startDate.getTime()}-${stage.endDate.getTime()}-${stage.stage}`;
+    if (seenStages.has(key)) return false;
+    seenStages.add(key);
+    return true;
+  });
+  // Replace with deduplicated array
+  granularStages.length = 0;
+  granularStages.push(...dedupedStages);
+
   // 3a. Determine if we have granular sleep data
   const hasGranularData = granularStages.length > 0;
 
