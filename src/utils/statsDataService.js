@@ -513,19 +513,22 @@ export function processSingleDayData(rows, dateStr) {
 
   // 7. Compute summary stats
   // Sleep total: use granular stages (excluding awake) or validated sessions
+  // IMPORTANT: Clip stage durations to day boundaries (same as graph rendering)
   let totalSleepMin = 0;
   if (hasGranularData) {
     // NEW PATH: Sum granular stage durations, excluding awake/inBed
+    // Clip each stage to this day's boundaries to handle overnight sleep correctly
     for (const stage of granularStages) {
       const s = stage.stage?.toLowerCase() || '';
       // Count only actual sleep stages
       if (s.includes('asleep') || s === 'deep' || s === 'rem' || s === 'core') {
-        // Only count stages that end on target date
-        const endsOnTarget = stage.endDate.getFullYear() === targetYearNum &&
-          stage.endDate.getMonth() === targetMonthNum &&
-          stage.endDate.getDate() === targetDayNum;
-        if (endsOnTarget) {
-          totalSleepMin += stage.durationMins || 0;
+        // Clip stage to this day's boundaries (same logic as graph rendering)
+        const sStart = Math.max(stage.startDate.getTime(), dayStartMs);
+        const sEnd = Math.min(stage.endDate.getTime(), dayEndMs);
+        if (sStart < sEnd) {
+          // Calculate clipped duration in minutes
+          const clippedMins = (sEnd - sStart) / 60000;
+          totalSleepMin += clippedMins;
         }
       }
     }
