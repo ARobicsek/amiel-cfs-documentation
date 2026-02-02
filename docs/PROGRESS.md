@@ -102,6 +102,38 @@ Fixed the health webhook to correctly parse and store granular sleep stage data 
 
 ---
 
+### 2026-02-02 - Sleep Algorithm Comparison & Validation (Session 56)
+
+**Session Summary:**
+Compared OLD aggregated sleep validation algorithm vs NEW granular `sleep_stage` data (from Session 55) to determine accuracy and inform next implementation steps.
+
+**Accomplishments:**
+
+1. **Built Comparison Script** — `scripts/compare_sleep_algorithms.js` analyzes sleep data from both approaches for Jan 24 – Feb 1, 2026. OLD uses aggregated sessions from `new_hourly.txt`, NEW uses granular stages from `new_hourly_2.txt`.
+
+2. **Validated Both Algorithms Work Correctly** — OLD now correctly shows Jan 28 = 9h 37m (matching app screenshot). Differences between OLD and NEW typically within ~1 hour.
+
+3. **Confirmed NEW Data Quality** — Analyzed 104 sleep stages (≥5 min) against HR/step data. Zero suspicious periods found - NEW is not overcalling sleep.
+
+4. **Created Sleep Data Documentation** — `docs/SLEEP_DATA_DOCUMENTATION.md` explains data formats, stage values, and implementation recommendations.
+
+**Key Findings:**
+- Both algorithms produce similar totals
+- NEW provides detailed stage breakdown (Deep, REM, Core, Awake)
+- "Awake" stages should be excluded from sleep totals
+- NEW captures additional sleep periods OLD missed
+
+**Files Created:**
+- `docs/SLEEP_DATA_DOCUMENTATION.md` — Persistent documentation
+- `scripts/compare_sleep_algorithms.js` — Analysis reference script
+
+**Next Steps (Session 57):**
+1. Update ALL sleep data consumers to use NEW granular `sleep_stage` data
+2. Exclude "awake" stages from sleep calculations/visualizations
+3. Ensure consistency across: Single Day viz, Multi-Day graphs, Summary stats, History cards
+
+---
+
 ### 2026-01-31 - UX Fix: Cleaner API Error Messages (Session 54)
 
 **Session Summary:**
