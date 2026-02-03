@@ -70,6 +70,36 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-02-02 - Production Timezone Bug Fix (Session 59)
+
+**Session Summary:**
+Fixed critical timezone bugs causing production (Vercel/UTC) to show different sleep totals than local dev (ET). Root cause: `lib/sleepValidation.js` used server timezone for date attribution and day boundary calculations.
+
+**Accomplishments:**
+
+1. **Fixed Date Attribution Timezone Bug** — Sleep stages have timestamps like `"2026-01-28 20:53:08 -0500"`. The code used `new Date().getDate()` to extract the date, which returns the date in the SERVER's timezone. On Vercel (UTC), 8:53 PM ET on Jan 28 = 1:53 AM UTC on Jan 29, causing stages to be attributed to the wrong day. **Fix**: Added `extractLocalDateFromTimestamp()` that parses the date directly from the timestamp string (which is already in the original ET timezone).
+
+2. **Fixed Day Boundary Clipping Timezone Bug** — Day boundaries for clipping overnight sleep used `new Date(year, month, day)` which creates boundaries in server timezone. On Vercel, `dayEnd` for Jan 28 UTC is 11:59 PM UTC, but stages occurring 7 PM - midnight ET are after this boundary and were being skipped. **Fix**: Use `Date.UTC()` with ET offset (+5 hours) to create boundaries that represent midnight-to-midnight ET.
+
+3. **All Dates Now Match** — Multi-Day and Single-Day sleep totals now identical across all dates for both production and local:
+   - Jan 27: 278 min ✅
+   - Jan 28: 625 min ✅
+   - Jan 29: 513 min ✅
+   - Jan 30: 299 min ✅
+   - Feb 01: 396 min ✅
+   - Feb 02: 313 min ✅
+
+**Files Modified:**
+- `lib/sleepValidation.js` — Added `extractLocalDateFromTimestamp()`, fixed `parseSleepStage()` to return original endDate string, updated day boundary calculation to use ET-aware UTC boundaries
+
+**Status at End of Session:**
+- ✅ Build passes
+- ✅ All sleep totals match between production and local
+- ✅ Code committed and pushed to GitHub
+- ✅ Deployed to Vercel production
+
+---
+
 ### 2026-02-02 - Sleep Calculation Bug Fixes (Session 58)
 
 **Session Summary:**
