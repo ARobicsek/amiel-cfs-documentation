@@ -156,9 +156,11 @@ async function handleSingleDay(req, res, date) {
 
     // NEW: Also collect sleep_stage rows from the PREVIOUS day to handle overnight sleep sessions
     // that start on the previous day and end on the target day.
-    // Calculate previous date
-    const prevDate = new Date(targetDate);
-    prevDate.setDate(prevDate.getDate() - 1);
+    // NEW: Also collect sleep_stage rows from the PREVIOUS day to handle overnight sleep sessions
+    // that start on the previous day and end on the target day.
+    // Calculate previous date (using targetYear, targetMonth, targetDay directly)
+    // Note: Month is 0-indexed in Date constructor (targetMonth is 1-indexed)
+    const prevDate = new Date(targetYear, targetMonth - 1, targetDay - 1);
     const prevYear = prevDate.getFullYear();
     const prevMonth = prevDate.getMonth() + 1;
     const prevDay = prevDate.getDate();

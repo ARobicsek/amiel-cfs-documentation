@@ -145,6 +145,30 @@ Fixed a discrepancy where `Health_Daily` sleep totals (used for reference, thoug
 
 ---
 
+
+---
+
+### 2026-02-03 - Debugging API 500 Error & Data Anomaly (Session 62)
+
+**Session Summary:**
+Addressed a 500 Error in Single Day view and investigated a reported 13h sleep anomaly in Multi-Day view. Identified the 500 error as a `ReferenceError` in the new "lookback" logic. Fixed the error and deployed locally.
+
+**Accomplishments:**
+1.  **Fixed 500 Error (Single Day View)** — Corrected the previous day date calculation in `api/get-hourly-data.js` (replaced undefined `targetDate` with `targetYear/Month/Day`). Verified API now returns data.
+2.  **Investigated 13h Sleep Anomaly** — Added granular debug logging to `lib/sleepValidation.js` to trace why Feb 3 shows inflated sleep (13h+).
+3.  **Identified Port/CORS Issue** — Discovered that `npm run dev:api` was binding to port 3002 (due to zombies), while the frontend was configured to hit port 3000, causing CORS failures on local dev.
+
+**Files Modified:**
+-   `api/get-hourly-data.js` — Fixed `prevDate` calculation.
+-   `lib/sleepValidation.js` — Added debug logs (currently inactive due to port mismatch).
+
+**Status at End of Session:**
+-   ✅ Single Day View 500 error fixed (logic correct).
+-   ⚠️ Local Dev Port Mismatch: API on 3002, Client hitting 3000. Needs config fix.
+-   ⚠️ Data Anomaly: Feb 3 sleep duration still shows ~13h. Debug logs ready to capture on next run.
+
+---
+
 ## Completed Features Log
 
 ### 2026-02-02 - Production Timezone Bug Fix (Session 59)
