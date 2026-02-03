@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import CombinedChart from './charts/CombinedChart';
 import FullscreenChart from './FullscreenChart';
 import { processSingleDayData, formatMinutes } from '../../utils/statsDataService';
-import { getSecretToken } from '../../utils/auth';
+import { getHourlyData } from '../../utils/api';
 
 /**
  * Single Day Stats view.
@@ -26,16 +26,8 @@ export default function SingleDayView({ isDark }) {
     // REMOVED: setData(null); -- Keep showing old data while loading to prevent FullscreenChart unmount
 
     try {
-      const token = getSecretToken();
-      const res = await fetch(`/api/get-hourly-data?date=${dateStr}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        throw new Error(`API error: ${res.status}`);
-      }
-
-      const json = await res.json();
+      // Use centralized API utility
+      const json = await getHourlyData(dateStr);
 
       if (json.rows.length === 0) {
         setData({ empty: true, summary: null });

@@ -9,9 +9,11 @@ import { getSecretToken } from './auth';
 
 // Use VITE_API_URL for local dev, otherwise use relative URLs
 // In production (Vercel), relative URLs automatically hit the same domain's /api endpoints
-const API_BASE = import.meta.env.DEV && import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL
+const API_BASE = import.meta.env.DEV
+  ? (import.meta.env.VITE_API_URL || 'http://localhost:3000')
   : '';
+
+console.log('API config:', { DEV: import.meta.env.DEV, VITE_API_URL: import.meta.env.VITE_API_URL, API_BASE });
 
 /**
  * Make an authenticated API request
@@ -71,6 +73,13 @@ export async function getHealthStats(startDate, endDate) {
 }
 
 /**
+ * Get hourly data for a single day (Single Day view)
+ */
+export async function getHourlyData(dateStr) {
+  return apiRequest(`/api/get-hourly-data?date=${dateStr}`);
+}
+
+/**
  * Subscribe to push notifications
  */
 export async function subscribeToPush(subscription) {
@@ -90,5 +99,32 @@ export async function addMedication(name) {
       action: 'add-medication',
       name
     }),
+  });
+}
+
+/**
+ * Get notification settings
+ */
+export async function getNotificationSettings() {
+  return apiRequest('/api/notification-settings');
+}
+
+/**
+ * Save notification settings
+ */
+export async function saveNotificationSettings(settings) {
+  return apiRequest('/api/notification-settings', {
+    method: 'POST',
+    body: JSON.stringify(settings),
+  });
+}
+
+/**
+ * Send a manual/test notification
+ */
+export async function sendNotification(payload = {}) {
+  return apiRequest('/api/send-notification', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
 }

@@ -4,6 +4,7 @@
  */
 
 import { getSecretToken } from './auth.js';
+import { subscribeToPush as apiSubscribeToPush } from './api.js';
 
 // Convert VAPID key from base64 string to Uint8Array
 function urlBase64ToUint8Array(base64String) {
@@ -28,7 +29,7 @@ export function isPushSupported() {
   const hasSW = 'serviceWorker' in navigator;
   const hasPush = 'PushManager' in window;
   const hasNotif = 'Notification' in window;
-  
+
   return hasSW && hasPush && hasNotif;
 }
 
@@ -105,19 +106,23 @@ export async function subscribeToPush() {
     });
 
     // Send subscription to backend
-    const token = getSecretToken();
-    const response = await fetch('/api/subscribe', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(subscription)
-    });
+    // Use the API utility to ensure correct port usage
+    // We can't import subscribeToPush from api.js because api.js might depend on this file in the future
+    // So we'll dynamically import or just use apiRequest if we exported it.
+    // Actually, simpler: import apiRequest.
 
-    if (!response.ok) {
-      throw new Error('Failed to save subscription to server');
-    }
+    // Changing approach: pushNotification.js is a utility. api.js is the API layer.
+    // We should call the API layer.
+    // But duplicate subscribeToPush exists in api.js.
+    // Let's import the one from api.js and rename it locally to avoid conflict.
+
+    // Send subscription to backend using the API utility
+    await apiSubscribeToPush(subscription);
+
+    // response check is handled inside apiRequest
+    return subscription;
+
+
 
     return subscription;
   } catch (error) {

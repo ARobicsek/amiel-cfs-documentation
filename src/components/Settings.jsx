@@ -8,7 +8,13 @@ import {
   isSubscribed
 } from '../utils/pushNotification.js';
 import { getAuthToken } from '../utils/auth.js';
-import { getEntries, addMedication } from '../utils/api.js';
+import {
+  getEntries,
+  addMedication,
+  getNotificationSettings,
+  saveNotificationSettings,
+  sendNotification
+} from '../utils/api.js';
 import './Settings.css';
 
 export default function Settings() {
@@ -162,17 +168,9 @@ export default function Settings() {
 
   async function fetchReminderSettings() {
     try {
-      const token = getAuthToken();
-      const response = await fetch('/api/notification-settings', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const settings = await response.json();
-        setReminderSettings(settings);
-      }
+      // getAuthToken() check not strictly needed as apiRequest handles it, but keeps UI logic consistent
+      const settings = await getNotificationSettings();
+      setReminderSettings(settings);
     } catch (error) {
       console.error('Failed to fetch reminder settings:', error);
     }
@@ -192,23 +190,12 @@ export default function Settings() {
     setSettingsMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch('/api/notification-settings', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(reminderSettings)
-      });
+      await saveNotificationSettings(reminderSettings);
 
-      if (response.ok) {
-        setSettingsMessage({
-          type: 'success',
-          text: 'Reminder settings saved successfully!'
-        });
-      } else {
-        throw new Error('Failed to save settings');
-      }
+      setSettingsMessage({
+        type: 'success',
+        text: 'Reminder settings saved successfully!'
+      });
     } catch (error) {
       console.error('Failed to save reminder settings:', error);
       setSettingsMessage({
@@ -234,15 +221,12 @@ export default function Settings() {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch('/api/send-notification', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const data = await sendNotification();
+      // apiRequest throws if not OK, so if we are here, it's success.
+      // But we need the data. sendNotification returns json.
 
-      if (response.ok) {
-        const data = await response.json();
+      if (data) {
+        // We already have data
         let successMsg = `Test notification sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
 
         if (data.debug_info && data.debug_info.vapid) {
@@ -301,15 +285,12 @@ export default function Settings() {
           type: 'success',
           text: successMsg
         });
-      } else {
-        const errorData = await response.json();
-        const errorMessage = errorData.details
-          ? `${errorData.error}: ${errorData.details}`
-          : (errorData.error || 'Failed to send test notification');
-        throw new Error(errorMessage);
       }
+
+      // Removed else block as apiRequest throws errors
     } catch (error) {
       console.error('Failed to send test notification:', error);
+      // apiRequest error object structure might be different, let's just use message
       setMessage({
         type: 'error',
         text: `Error: ${error.message}`
@@ -406,20 +387,13 @@ export default function Settings() {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch('/api/send-notification', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: manualAlertMessage,
-          includeJoke: includeJoke
-        })
+      const data = await sendNotification({
+        message: manualAlertMessage,
+        includeJoke: includeJoke
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      // apiRequest returns the JSON directly
+      if (data) {
         let successMsg = `Manual alert sent! (${data.sent} device${data.sent !== 1 ? 's' : ''})`;
 
         // Show errors if any
@@ -435,9 +409,6 @@ export default function Settings() {
           text: successMsg
         });
         setManualAlertMessage(''); // Clear input on success
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send alert');
       }
     } catch (error) {
       console.error('Failed to send manual alert:', error);
