@@ -1,0 +1,313 @@
+{
+  "date": "2026-01-28",
+  "production": {
+    "rowCount": 1758,
+    "sleepStageCount": 21,
+    "duplicatesRemoved": 0,
+    "totalSleepMins": 625,
+    "stages": [
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-29T01:36:36.000Z",
+        "endDate": "2026-01-29T01:53:08.000Z",
+        "durationMins": 16.53,
+        "clippedMins": 16.53
+      },
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-29T00:33:01.000Z",
+        "endDate": "2026-01-29T01:29:05.000Z",
+        "durationMins": 56.07,
+        "clippedMins": 56.07
+      },
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-28T23:03:53.000Z",
+        "endDate": "2026-01-29T00:31:31.000Z",
+        "durationMins": 87.63,
+        "clippedMins": 87.63
+      },
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-28T19:49:19.000Z",
+        "endDate": "2026-01-28T21:26:57.000Z",
+        "durationMins": 97.63,
+        "clippedMins": 97.63
+      },
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-28T19:41:18.000Z",
+        "endDate": "2026-01-28T19:44:48.000Z",
+        "durationMins": 3.5,
+        "clippedMins": 3.5
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T17:47:25.000Z",
+        "endDate": "2026-01-28T18:00:56.000Z",
+        "durationMins": 13.52,
+        "clippedMins": 13.52
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T17:43:54.000Z",
+        "endDate": "2026-01-28T17:44:54.000Z",
+        "durationMins": 1,
+        "clippedMins": 1
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T16:35:18.000Z",
+        "endDate": "2026-01-28T17:43:24.000Z",
+        "durationMins": 68.1,
+        "clippedMins": 68.1
+      },
+      {
+        "stage": "asleepREM",
+        "startDate": "2026-01-28T16:14:47.000Z",
+        "endDate": "2026-01-28T16:32:18.000Z",
+        "durationMins": 17.52,
+        "clippedMins": 17.52
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T15:03:40.000Z",
+        "endDate": "2026-01-28T16:14:47.000Z",
+        "durationMins": 71.12,
+        "clippedMins": 71.12
+      },
+      {
+        "stage": "asleepREM",
+        "startDate": "2026-01-28T14:30:08.000Z",
+        "endDate": "2026-01-28T15:03:40.000Z",
+        "durationMins": 33.53,
+        "clippedMins": 33.53
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T14:24:07.000Z",
+        "endDate": "2026-01-28T14:30:08.000Z",
+        "durationMins": 6.02,
+        "clippedMins": 6.02
+      },
+      {
+        "stage": "asleepDeep",
+        "startDate": "2026-01-28T14:17:06.000Z",
+        "endDate": "2026-01-28T14:24:07.000Z",
+        "durationMins": 7.02,
+        "clippedMins": 7.02
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T13:52:34.000Z",
+        "endDate": "2026-01-28T14:17:06.000Z",
+        "durationMins": 24.53,
+        "clippedMins": 24.53
+      },
+      {
+        "stage": "asleepDeep",
+        "startDate": "2026-01-28T13:34:03.000Z",
+        "endDate": "2026-01-28T13:52:34.000Z",
+        "durationMins": 18.52,
+        "clippedMins": 18.52
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T13:10:00.000Z",
+        "endDate": "2026-01-28T13:34:03.000Z",
+        "durationMins": 24.05,
+        "clippedMins": 24.05
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T13:06:30.000Z",
+        "endDate": "2026-01-28T13:08:30.000Z",
+        "durationMins": 2,
+        "clippedMins": 2
+      },
+      {
+        "stage": "asleepREM",
+        "startDate": "2026-01-28T12:40:28.000Z",
+        "endDate": "2026-01-28T13:06:30.000Z",
+        "durationMins": 26.03,
+        "clippedMins": 26.03
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T12:34:57.000Z",
+        "endDate": "2026-01-28T12:40:28.000Z",
+        "durationMins": 5.52,
+        "clippedMins": 5.52
+      },
+      {
+        "stage": "asleepDeep",
+        "startDate": "2026-01-28T12:08:55.000Z",
+        "endDate": "2026-01-28T12:34:57.000Z",
+        "durationMins": 26.03,
+        "clippedMins": 26.03
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T11:49:53.000Z",
+        "endDate": "2026-01-28T12:08:55.000Z",
+        "durationMins": 19.03,
+        "clippedMins": 19.03
+      }
+    ]
+  },
+  "local": {
+    "rowCount": 1758,
+    "sleepStageCount": 21,
+    "duplicatesRemoved": 0,
+    "totalSleepMins": 625,
+    "stages": [
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-29T01:36:36.000Z",
+        "endDate": "2026-01-29T01:53:08.000Z",
+        "durationMins": 16.53,
+        "clippedMins": 16.53
+      },
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-29T00:33:01.000Z",
+        "endDate": "2026-01-29T01:29:05.000Z",
+        "durationMins": 56.07,
+        "clippedMins": 56.07
+      },
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-28T23:03:53.000Z",
+        "endDate": "2026-01-29T00:31:31.000Z",
+        "durationMins": 87.63,
+        "clippedMins": 87.63
+      },
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-28T19:49:19.000Z",
+        "endDate": "2026-01-28T21:26:57.000Z",
+        "durationMins": 97.63,
+        "clippedMins": 97.63
+      },
+      {
+        "stage": "asleep",
+        "startDate": "2026-01-28T19:41:18.000Z",
+        "endDate": "2026-01-28T19:44:48.000Z",
+        "durationMins": 3.5,
+        "clippedMins": 3.5
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T17:47:25.000Z",
+        "endDate": "2026-01-28T18:00:56.000Z",
+        "durationMins": 13.52,
+        "clippedMins": 13.52
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T17:43:54.000Z",
+        "endDate": "2026-01-28T17:44:54.000Z",
+        "durationMins": 1,
+        "clippedMins": 1
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T16:35:18.000Z",
+        "endDate": "2026-01-28T17:43:24.000Z",
+        "durationMins": 68.1,
+        "clippedMins": 68.1
+      },
+      {
+        "stage": "asleepREM",
+        "startDate": "2026-01-28T16:14:47.000Z",
+        "endDate": "2026-01-28T16:32:18.000Z",
+        "durationMins": 17.52,
+        "clippedMins": 17.52
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T15:03:40.000Z",
+        "endDate": "2026-01-28T16:14:47.000Z",
+        "durationMins": 71.12,
+        "clippedMins": 71.12
+      },
+      {
+        "stage": "asleepREM",
+        "startDate": "2026-01-28T14:30:08.000Z",
+        "endDate": "2026-01-28T15:03:40.000Z",
+        "durationMins": 33.53,
+        "clippedMins": 33.53
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T14:24:07.000Z",
+        "endDate": "2026-01-28T14:30:08.000Z",
+        "durationMins": 6.02,
+        "clippedMins": 6.02
+      },
+      {
+        "stage": "asleepDeep",
+        "startDate": "2026-01-28T14:17:06.000Z",
+        "endDate": "2026-01-28T14:24:07.000Z",
+        "durationMins": 7.02,
+        "clippedMins": 7.02
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T13:52:34.000Z",
+        "endDate": "2026-01-28T14:17:06.000Z",
+        "durationMins": 24.53,
+        "clippedMins": 24.53
+      },
+      {
+        "stage": "asleepDeep",
+        "startDate": "2026-01-28T13:34:03.000Z",
+        "endDate": "2026-01-28T13:52:34.000Z",
+        "durationMins": 18.52,
+        "clippedMins": 18.52
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T13:10:00.000Z",
+        "endDate": "2026-01-28T13:34:03.000Z",
+        "durationMins": 24.05,
+        "clippedMins": 24.05
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T13:06:30.000Z",
+        "endDate": "2026-01-28T13:08:30.000Z",
+        "durationMins": 2,
+        "clippedMins": 2
+      },
+      {
+        "stage": "asleepREM",
+        "startDate": "2026-01-28T12:40:28.000Z",
+        "endDate": "2026-01-28T13:06:30.000Z",
+        "durationMins": 26.03,
+        "clippedMins": 26.03
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T12:34:57.000Z",
+        "endDate": "2026-01-28T12:40:28.000Z",
+        "durationMins": 5.52,
+        "clippedMins": 5.52
+      },
+      {
+        "stage": "asleepDeep",
+        "startDate": "2026-01-28T12:08:55.000Z",
+        "endDate": "2026-01-28T12:34:57.000Z",
+        "durationMins": 26.03,
+        "clippedMins": 26.03
+      },
+      {
+        "stage": "asleepCore",
+        "startDate": "2026-01-28T11:49:53.000Z",
+        "endDate": "2026-01-28T12:08:55.000Z",
+        "durationMins": 19.03,
+        "clippedMins": 19.03
+      }
+    ]
+  }
+}
