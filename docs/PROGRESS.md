@@ -68,30 +68,56 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 60)
+## Next Session Priority (Session 61)
 
-**Goal**: Fix `Health_Daily` sleep category totals to match the validated granular data.
+**Goal**: Monitor production data and refine deduplication strategies.
 
-**Context**: The `Health_Daily` Google Sheet has a single row per day with pre-aggregated sleep totals (`total_sleep`, `deep_sleep`, `rem_sleep`, `core_sleep`) that were written by the Health Auto Export automation. These totals may not match the validated/deduped values now calculated from `Health_Hourly` granular data.
+**Context**: Session 60 fixed a specific data anomaly (Feb 2 sleep) and corrected the webhook logic for future ingestion. However, `Health_Hourly` still contains duplicate rows for Feb 2 (though they are now handled correctly).
 
 **Tasks**:
-1. Compare `Health_Daily` sleep totals vs. validated totals from `computeValidatedSleepByDate()` for recent dates
-2. If discrepancies exist:
-   - Either update the webhook to write correct totals at ingestion time
-   - Or create a script to backfill/correct past `Health_Daily` rows
-3. Verify the History view (which may use `Health_Daily`) shows correct values
+1. Monitor next automated health import to verify `Health_Daily` sleep totals are correct without intervention.
+2. Consider creating a "Dedup-Hourly-Sheet" script to systematically clean up the 40 duplicate rows found in Feb 2 (and potential others).
+3. Verify iPhone production app matches the fix.
 
 **Starting Prompt**:
 ```
-The Stats Multi-Day view now shows correct sleep totals from validated granular data.
-However, the Health_Daily sheet has pre-aggregated sleep totals that may be incorrect.
+We recently fixed the health-webhook.js to attribute sleep stages to the correct endDate, and manually backfilled Feb 2 data to fix a discrepancy.
 
 Please:
-1. Check if any views use Health_Daily sleep totals directly (vs. computing from Health_Hourly)
-2. Compare Health_Daily values vs. validated values for Jan 27 - Feb 2
-3. Recommend whether to fix at webhook ingestion time or backfill historic data
-4. Implement the fix and verify the History view shows correct sleep totals
+1. Check the latest Health_Daily data to see if any new updates have arrived and are correct.
+2. Create a script to scan Health_Hourly for duplicate rows (identical signature) and cleaner them up to reduce sheet size and confusion.
+3. Verify that the daily sheet remains correct after cleanup.
 ```
+
+---
+
+## Completed Features Log
+
+### 2026-02-03 - Health_Daily Sleep Data Fixes (Session 60)
+
+**Session Summary:**
+Fixed a discrepancy where `Health_Daily` sleep totals (used for reference, though API overrides them) were incorrect (e.g., Feb 2 showed 15+ hours). Root cause was duplicate raw data + old webhook logic that attributed sleep to start date and included "awake" time.
+
+**Accomplishments:**
+
+1. **Fixed Webhook Date Attribution** — Updated `api/health-webhook.js` to attribute granular `sleep_stage` data to the `endDate` (Wake Up Date). Previously, overnight sleep starting on Jan 27 was attributed to Jan 27, causing daily aggregation errors. Now correctly attributes to Jan 28.
+
+2. **Fixed Feb 2 Data Anomaly** — User reported 925 minutes (15h 25m) of sleep for Feb 2.
+   - Investigation found **40 duplicate** sleep stage records for that date in `Health_Hourly`.
+   - The old aggregation logic summed duplicates and included "Awake" time.
+   - Created and ran `backfill_daily_from_validated.js` to overwrite Feb 2 `Health_Daily` entry with correct, validated totals (384 min).
+
+3. **Verified Consistency** — Confirmed that API endpoints (`get-hourly-data`, `get-entries`) were already correctly overriding bad `Health_Daily` values with validated granular data. The backfill was done to align the backing sheet with the app view.
+
+**Files Modified:**
+- `api/health-webhook.js` — Changed `sleep_stage` date attribution to `endDate`.
+- `scripts/backfill_daily_from_validated.js` (Created) — One-off repair script.
+
+**Status at End of Session:**
+- ✅ Feb 2 `Health_Daily` corrected (384 min).
+- ✅ Webhook logic corrected for future data.
+- ✅ API views remain correct.
+
 
 ---
 

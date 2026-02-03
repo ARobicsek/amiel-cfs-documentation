@@ -545,7 +545,7 @@ function normalizePayload(body) {
                         value: stage,  // e.g., "asleepCore", "asleepDeep", "awake", "inBed"
                         min: '',
                         max: '',
-                        date: point.startDate,  // Use startDate as the primary timestamp
+                        date: point.endDate,  // Use endDate as the primary timestamp (attributes to wake-up day)
                         source: parsedSource,
                         raw: {
                             stage,
