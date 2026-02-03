@@ -68,30 +68,57 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 61)
+## Next Session Priority (Session 64)
 
-**Goal**: Monitor production data and refine deduplication strategies.
+**Goal**: Monitor production data and verify the fix for "13h Sleep Anomaly".
 
-**Context**: Session 60 fixed a specific data anomaly (Feb 2 sleep) and corrected the webhook logic for future ingestion. However, `Health_Hourly` still contains duplicate rows for Feb 2 (though they are now handled correctly).
+**Context**: Session 63 fixed the granular sleep duration calculation bug that caused inflated sleep totals (e.g., 13h on Feb 3). We also hardened the local dev environment (ports/CORS).
 
 **Tasks**:
-1. Monitor next automated health import to verify `Health_Daily` sleep totals are correct without intervention.
-2. Consider creating a "Dedup-Hourly-Sheet" script to systematically clean up the 40 duplicate rows found in Feb 2 (and potential others).
-3. Verify iPhone production app matches the fix.
+1. Monitor the "Multi-Day" view for Feb 3 to confirm the sleep duration is now ~4.6h (matching Single Day view).
+2. Verify that future sleep data (Feb 4+) is processed correctly without anomalies.
+3. Test the "Single Day" view on production mobile devices to ensure the API refactoring works as expected.
 
 **Starting Prompt**:
 ```
-We recently fixed the health-webhook.js to attribute sleep stages to the correct endDate, and manually backfilled Feb 2 data to fix a discrepancy.
+We just deployed a fix for the "13h Sleep Anomaly" overlapping sleep calculation bug and hardened the API/CORS configuration.
 
 Please:
-1. Check the latest Health_Daily data to see if any new updates have arrived and are correct.
-2. Create a script to scan Health_Hourly for duplicate rows (identical signature) and cleaner them up to reduce sheet size and confusion.
-3. Verify that the daily sheet remains correct after cleanup.
+1. Check the Multi-Day view for Feb 3. It should now show ~4.6 hours of sleep (not 13h).
+2. Verify that the Single Day view works correctly on your device.
+3. Check if any new data has arrived for Feb 4 and if it looks correct.
 ```
 
 ---
 
 ## Completed Features Log
+
+### 2026-02-03 - Fixed 13h Sleep Anomaly & Local Dev Port Issues (Session 63)
+
+**Session Summary:**
+Resolved the "13h Sleep Anomaly" where Feb 3 sleep was grossly over-reported, and fixed persistent local development issues (Port 3000 vs 3005, CORS errors, "Unexpected token" source code responses).
+
+**Accomplishments:**
+
+1.  **Fixed 13h Sleep Anomaly** — The root cause was `lib/sleepValidation.js` falling back to an "aggregated" calculation method because the granular data parser (`parseSleepStage`) was missing `startDateStr`. Added this field, enabling the correct granular logic. Validated with reproduction script: Feb 3 sleep dropped from ~13h to ~4.6h (correct).
+2.  **Fixed Local Dev Ports & CORS** — Configured `package.json` to explicitly run API on port 3000 and Vite on 3005. Added `.env.local` with `VITE_API_URL=http://localhost:3000` to ensure the frontend finds the backend.
+3.  **Hardened API Client** — Refactored `src/components/Stats/SingleDayView.jsx`, `Settings.jsx`, and `src/utils/pushNotification.js` to use the centralized `src/utils/api.js` client. This prevents components from accidentally fetching relative URLs (`/api/...`) which return HTML/JS source code instead of JSON in the dev environment.
+
+**Files Modified:**
+-   `lib/sleepValidation.js` — Added `startDateStr` to `parseSleepStage`.
+-   `package.json` — Explicit ports for `dev` and `dev:api`.
+-   `src/utils/api.js` — Added Notification methods, fallback to localhost:3000.
+-   `src/components/Stats/SingleDayView.jsx` — Switched to `getHourlyData`.
+-   `src/components/Settings.jsx` — Switched to `api` utility methods.
+-   `src/utils/pushNotification.js` — Switched to `api` utility methods.
+
+**Status at End of Session:**
+-   ✅ 13h Anomaly fixed (verified locally).
+-   ✅ Local Dev environment stable (Ports 3000/3005).
+-   ✅ CORS errors resolved.
+-   ✅ Code committed, pushed, and deployed to Vercel.
+
+---
 
 ### 2026-02-03 - Investigate Sleep Data Discrepancy (Session 61)
 
