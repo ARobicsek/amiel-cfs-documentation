@@ -138,8 +138,8 @@ async function handleSingleDay(req, res, date) {
         const parts = dateStr.split('/');
         if (parts.length === 3) {
           return parseInt(parts[0], 10) === m &&
-                 parseInt(parts[1], 10) === d &&
-                 parseInt(parts[2], 10) === y;
+            parseInt(parts[1], 10) === d &&
+            parseInt(parts[2], 10) === y;
         }
       }
       if (dateStr.includes('-')) {
@@ -154,24 +154,46 @@ async function handleSingleDay(req, res, date) {
     // Collect all next-day sleep_analysis rows with parsed time ranges for sibling detection
     const nextDaySleepRows = [];
 
+    // NEW: Also collect sleep_stage rows from the PREVIOUS day to handle overnight sleep sessions
+    // that start on the previous day and end on the target day.
+    // Calculate previous date
+    const prevDate = new Date(targetDate);
+    prevDate.setDate(prevDate.getDate() - 1);
+    const prevYear = prevDate.getFullYear();
+    const prevMonth = prevDate.getMonth() + 1;
+    const prevDay = prevDate.getDate();
+
+    const prevDaySleepStageRows = [];
+
     for (const row of allRows) {
       const dateStr = row[1];
+      // Standard match for Target Date (all metrics)
       if (rowMatchesDate(dateStr, targetMonth, targetDay, targetYear)) {
         matchingRows.push(row);
-      } else if (row[3] === 'sleep_analysis' && rowMatchesDate(dateStr, nextMonth, nextDay, nextYear)) {
+      }
+      // Next Day Spillover (sleep_analysis only - OLD logic, kept for consistency)
+      else if (row[3] === 'sleep_analysis' && rowMatchesDate(dateStr, nextMonth, nextDay, nextYear)) {
         // Parse time range for this next-day sleep session
         try {
           const rawJson = row[8] ? JSON.parse(row[8]) : {};
           if (rawJson.sleepStart && rawJson.sleepEnd) {
-            const startMs = new Date(rawJson.sleepStart).getTime();
-            const endMs = new Date(rawJson.sleepEnd).getTime();
             const startDate = new Date(rawJson.sleepStart);
             const isSpillover = startDate.getFullYear() === targetYear &&
-                (startDate.getMonth() + 1) === targetMonth &&
-                startDate.getDate() === targetDay;
-            nextDaySleepRows.push({ row, startMs, endMs, isSpillover });
+              (startDate.getMonth() + 1) === targetMonth &&
+              startDate.getDate() === targetDay;
+            if (isSpillover) {
+              const startMs = new Date(rawJson.sleepStart).getTime();
+              const endMs = new Date(rawJson.sleepEnd).getTime();
+              nextDaySleepRows.push({ row, startMs, endMs, isSpillover });
+            }
           }
         } catch { /* skip unparseable rows */ }
+      }
+      // NEW: Previous Day Sleep Stages (granular data)
+      else if (row[3] === 'sleep_stage' && rowMatchesDate(dateStr, prevMonth, prevDay, prevYear)) {
+        // Optimization: could check if endDate falls on targetDate, but simpler to return all 
+        // and let client statsDataService handle the clipping/filtering.
+        prevDaySleepStageRows.push(row);
       }
     }
 
@@ -206,6 +228,7 @@ async function handleSingleDay(req, res, date) {
     const rows = [
       ...matchingRows.map(row => mapRow(row)),
       ...spilloverRows.map(row => mapRow(row, true)),
+      ...prevDaySleepStageRows.map(row => mapRow(row)),
     ];
 
     return res.status(200).json({ date, rows, count: rows.length });

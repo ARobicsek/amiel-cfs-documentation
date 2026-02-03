@@ -93,6 +93,30 @@ Please:
 
 ## Completed Features Log
 
+### 2026-02-03 - Investigate Sleep Data Discrepancy (Session 61)
+
+**Session Summary:**
+Fixed discrepancies in sleep data totals between Single Day and Multi-Day views (Feb 2: 7h 9m vs 6h 24m; Feb 3: 4h 24m vs 4h 37m). Root causes were inconsistent day attribution (Strict Day Attribution vs End Date Bucket) and missing data fetch for cross-midnight sessions.
+
+**Accomplishments:**
+
+1.  **Multi-Bucket Attribution (Server Fix)** — Updated `lib/sleepValidation.js` to attribute sleep stages to **all** dates they overlap with (e.g., 23:00 Feb 2 -> 06:00 Feb 3 is attributed to both buckets). This ensures the Feb 2 portion (23:00-24:00) is counted in the Feb 2 total after clipping.
+
+2.  **Lookback Data Fetching (Client Fix)** — Updated `api/get-hourly-data.js` to fetch `sleep_stage` rows from the **Previous Day** when requesting Single Day data. This ensures that sleep sessions starting the night before are available for the client to count the post-midnight portion.
+
+3.  **Strict Day Attribution Confirmed** — Logic now consistently attributes sleep minutes to the calendar day they occurred on (clipping at midnight). Comparison script verified 100% match between Single and Multi Day views for Feb 1, 2, and 3.
+
+**Files Modified:**
+-   `lib/sleepValidation.js` — Changed `computeValidatedSleepByDate` to use multi-bucket attribution.
+-   `api/get-hourly-data.js` — Added previous day's `sleep_stage` rows to `handleSingleDay` response.
+
+**Status at End of Session:**
+-   ✅ Sleep totals match between Single and Multi Day views.
+-   ✅ Pre-midnight sleep correctly credited to the starting day (Feb 2 increased).
+-   ✅ Post-midnight sleep correctly credited to the ending day (Feb 3 increased).
+
+---
+
 ### 2026-02-03 - Health_Daily Sleep Data Fixes (Session 60)
 
 **Session Summary:**
