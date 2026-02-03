@@ -1,0 +1,18 @@
+{
+  "date": "2026-01-28",
+  "sleepStageCount": 28,
+  "byLocalDate": {
+    "2026-01-28": {
+      "count": 28,
+      "sleepMins": 625
+    }
+  },
+  "multiDayResult": {
+    "total": 521,
+    "deep": 52,
+    "rem": 77,
+    "core": 392,
+    "awake": 12
+  },
+  "wrongDateStageCount": 0
+}
