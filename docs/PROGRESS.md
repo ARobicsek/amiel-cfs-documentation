@@ -68,30 +68,55 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 64)
+## Next Session Priority (Session 65)
 
-**Goal**: Monitor production data and verify the fix for "13h Sleep Anomaly".
+**Goal**: Monitor production and verify Health_Daily sleep totals are accurate going forward.
 
-**Context**: Session 63 fixed the granular sleep duration calculation bug that caused inflated sleep totals (e.g., 13h on Feb 3). We also hardened the local dev environment (ports/CORS).
+**Context**: Session 64 fixed Health_Daily sleep totals by replacing the webhook's naive aggregation with the shared `computeValidatedSleepByDate()` algorithm. Feb 3 was corrected via backfill script (964 min → 365 min).
 
 **Tasks**:
-1. Monitor the "Multi-Day" view for Feb 3 to confirm the sleep duration is now ~4.6h (matching Single Day view).
-2. Verify that future sleep data (Feb 4+) is processed correctly without anomalies.
-3. Test the "Single Day" view on production mobile devices to ensure the API refactoring works as expected.
+1. Trigger a health data sync and verify Health_Daily updates correctly.
+2. Check that visualizations still match Health_Daily values.
+3. Consider running backfill for other dates if discrepancies are found.
 
 **Starting Prompt**:
 ```
-We just deployed a fix for the "13h Sleep Anomaly" overlapping sleep calculation bug and hardened the API/CORS configuration.
+Session 64 fixed Health_Daily sleep totals by using the shared validation algorithm.
 
 Please:
-1. Check the Multi-Day view for Feb 3. It should now show ~4.6 hours of sleep (not 13h).
-2. Verify that the Single Day view works correctly on your device.
-3. Check if any new data has arrived for Feb 4 and if it looks correct.
+1. Check Health_Daily in Google Sheets - verify Feb 3 shows 365 min (not 964).
+2. Trigger a health sync and confirm new data is processed correctly.
+3. If other dates look wrong, we can run the backfill script for those dates.
 ```
 
 ---
 
 ## Completed Features Log
+
+### 2026-02-03 - Fixed Health_Daily Sleep Totals (Session 64)
+
+**Session Summary:**
+Fixed incorrect sleep totals in the Health_Daily Google Sheet (e.g., Feb 3 showed 964 min instead of 365 min). The webhook had naive aggregation that didn't deduplicate or clip to day boundaries.
+
+**Accomplishments:**
+
+1.  **Identified Root Cause** — The webhook's granular sleep path simply summed all `sleep_stage` segments without deduplication or day-boundary clipping. Cross-midnight sleep was fully attributed to the wake-up date, and duplicate syncs caused over-counting.
+
+2.  **Fixed Webhook Aggregation** — Replaced inline sleep aggregation in `api/health-webhook.js` with `computeValidatedSleepByDate()` from `lib/sleepValidation.js`. This ensures Health_Daily uses the same algorithm as visualizations (deduplication, day-boundary clipping, multi-bucket attribution).
+
+3.  **Corrected Feb 3 Data** — Ran `scripts/backfill_daily_from_validated.js` to fix Feb 3: 964 min → 365 min (~6h 5m).
+
+**Files Modified:**
+-   `api/health-webhook.js` — Now uses shared `computeValidatedSleepByDate()` for sleep aggregation.
+-   `scripts/backfill_daily_from_validated.js` — Updated target date and env path.
+
+**Status at End of Session:**
+-   ✅ Health_Daily now uses validated sleep algorithm.
+-   ✅ Feb 3 corrected (365 min).
+-   ✅ Future syncs will produce accurate totals.
+-   ✅ Duplicates handled correctly via deduplication.
+
+---
 
 ### 2026-02-03 - Fixed 13h Sleep Anomaly & Local Dev Port Issues (Session 63)
 
