@@ -68,6 +68,33 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
+## Next Session Priority (Session 60)
+
+**Goal**: Fix `Health_Daily` sleep category totals to match the validated granular data.
+
+**Context**: The `Health_Daily` Google Sheet has a single row per day with pre-aggregated sleep totals (`total_sleep`, `deep_sleep`, `rem_sleep`, `core_sleep`) that were written by the Health Auto Export automation. These totals may not match the validated/deduped values now calculated from `Health_Hourly` granular data.
+
+**Tasks**:
+1. Compare `Health_Daily` sleep totals vs. validated totals from `computeValidatedSleepByDate()` for recent dates
+2. If discrepancies exist:
+   - Either update the webhook to write correct totals at ingestion time
+   - Or create a script to backfill/correct past `Health_Daily` rows
+3. Verify the History view (which may use `Health_Daily`) shows correct values
+
+**Starting Prompt**:
+```
+The Stats Multi-Day view now shows correct sleep totals from validated granular data.
+However, the Health_Daily sheet has pre-aggregated sleep totals that may be incorrect.
+
+Please:
+1. Check if any views use Health_Daily sleep totals directly (vs. computing from Health_Hourly)
+2. Compare Health_Daily values vs. validated values for Jan 27 - Feb 2
+3. Recommend whether to fix at webhook ingestion time or backfill historic data
+4. Implement the fix and verify the History view shows correct sleep totals
+```
+
+---
+
 ## Completed Features Log
 
 ### 2026-02-02 - Production Timezone Bug Fix (Session 59)
