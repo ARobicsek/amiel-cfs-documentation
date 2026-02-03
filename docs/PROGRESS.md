@@ -70,6 +70,38 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ## Completed Features Log
 
+### 2026-02-02 - Sleep Calculation Bug Fixes (Session 58)
+
+**Session Summary:**
+Fixed multiple critical bugs in sleep total calculations that caused discrepancies between Single Day and Multi-Day views. Identified and resolved duplicate data entries from manual uploads and algorithm mismatches.
+
+**Accomplishments:**
+
+1. **Fixed Duplicate Sleep Stage Counting** — Multiple manual data uploads caused exact duplicate entries (each stage appeared 2x). Added deduplication using `startTime+endTime+stage` as unique key to both `statsDataService.js` (client) and `lib/sleepValidation.js` (server). Feb 2 totals went from 11h 22m (wrong) to ~5h 41m (correct).
+
+2. **Fixed Fractional Duration Calculation** — Single Day was counting minute slots from `activityMinutes` array (rounded), while Multi-Day calculated fractional durations. Changed Single Day to use same fractional approach with day-boundary clipping. Eliminates ~8 minute discrepancies (e.g., 10h 33m vs 10h 25m).
+
+3. **Fixed Overnight Stage Clipping** — Both views now clip stages to `[dayStart, dayEnd]` boundaries. Previously, a 9-hour overnight sleep (11pm-8am) was fully counted for the next day instead of just the 8 hours within that day.
+
+4. **Sleep Summary Matches Visual Graph** — Summary calculation now uses identical logic to graph rendering for complete consistency.
+
+**Files Modified:**
+- `src/utils/statsDataService.js` — Deduplication, fractional durations, day-boundary clipping
+- `lib/sleepValidation.js` — Deduplication, day-boundary clipping
+
+**Status at End of Session:**
+- ✅ Build passes (442KB JS)
+- ✅ Code committed and pushed
+- ✅ Dev environment shows matching totals between Single Day and Multi-Day
+- ⚠️ **REMAINING ISSUE**: iPhone (production) Multi-Day view still shows incorrect values — likely stale deployment
+
+**Next Steps (Session 59 PRIORITY):**
+1. Deploy to Vercel and verify iPhone Multi-Day matches dev
+2. If still different, investigate production API vs dev API data sources
+3. Consider systematic removal of duplicate rows from Google Sheets source data
+
+---
+
 ### 2026-02-01 - Granular Sleep Stage Data Capture (Session 55)
 
 **Session Summary:**
