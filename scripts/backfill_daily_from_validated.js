@@ -5,8 +5,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { computeValidatedSleepByDate } from '../lib/sleepValidation.js';
 
-// Load env vars
-dotenv.config({ path: '.env.local' });
+// Load env vars (try .env first, fallback to .env.local)
+dotenv.config({ path: '.env' });
 
 // Get Auth
 const keyData = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
@@ -17,7 +17,7 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: 'v4', auth });
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
-const TARGET_DATE = '2026-02-02';
+const TARGET_DATE = '2026-02-03';
 
 async function backfillDailyStats() {
     console.log(`Starting backfill for ${TARGET_DATE}...`);
