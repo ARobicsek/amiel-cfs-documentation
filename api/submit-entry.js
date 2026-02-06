@@ -35,6 +35,15 @@ function columnIndexToLetter(index) {
   return letter;
 }
 
+// Normalize a US date string so leading zeros don't affect comparison.
+// "02/05/2026", "2/5/2026", "2/05/2026" all become "2/5/2026".
+function normalizeDate(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('/');
+  if (parts.length !== 3) return dateStr;
+  return `${parseInt(parts[0], 10)}/${parseInt(parts[1], 10)}/${parts[2]}`;
+}
+
 // Core fields occupy columns A-J (indices 0-9)
 // Medications start at column K (index 10)
 const MEDICATION_START_INDEX = 10;
@@ -191,10 +200,12 @@ export default async function handler(req, res) {
       }
     }
 
-    // Find existing row for this date
+    // Find existing row for this date (normalize both sides to handle
+    // Google Sheets stripping leading zeros from dates, e.g. "02/05/2026" vs "2/5/2026")
+    const normalizedEntryDate = normalizeDate(entryDateFor);
     let existingRowIndex = -1;
     for (let i = 0; i < dataRows.length; i++) {
-      if (dataRows[i] && dataRows[i][1] === entryDateFor) {
+      if (dataRows[i] && normalizeDate(dataRows[i][1]) === normalizedEntryDate) {
         existingRowIndex = i + 2; // +2 because: +1 for header, +1 for 1-indexed sheets
         break;
       }

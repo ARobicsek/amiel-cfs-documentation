@@ -68,30 +68,49 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 65)
+## Next Session Priority (Session 66)
 
 **Goal**: Monitor production and verify Health_Daily sleep totals are accurate going forward.
 
-**Context**: Session 64 fixed Health_Daily sleep totals by replacing the webhook's naive aggregation with the shared `computeValidatedSleepByDate()` algorithm. Feb 3 was corrected via backfill script (964 min → 365 min).
+**Context**: Session 64 fixed Health_Daily sleep totals. Session 65 fixed duplicate daily entries caused by date format mismatch.
 
 **Tasks**:
-1. Trigger a health data sync and verify Health_Daily updates correctly.
-2. Check that visualizations still match Health_Daily values.
-3. Consider running backfill for other dates if discrepancies are found.
+1. Verify no new duplicate entries appear in Sheet1 after the Session 65 fix.
+2. Clean up any remaining duplicate rows in Sheet1 (keep the most recent entry per date).
+3. Trigger a health data sync and verify Health_Daily updates correctly.
+4. Check that visualizations still match Health_Daily values.
 
 **Starting Prompt**:
 ```
-Session 64 fixed Health_Daily sleep totals by using the shared validation algorithm.
+Session 65 fixed duplicate daily entries by normalizing date comparisons in submit-entry.js.
 
 Please:
-1. Check Health_Daily in Google Sheets - verify Feb 3 shows 365 min (not 964).
-2. Trigger a health sync and confirm new data is processed correctly.
-3. If other dates look wrong, we can run the backfill script for those dates.
+1. Check Sheet1 in Google Sheets - verify no new duplicates are appearing.
+2. If old duplicates remain, help me clean them up (keep latest entry per date).
+3. Trigger a health sync and confirm data is processed correctly.
 ```
 
 ---
 
 ## Completed Features Log
+
+### 2026-02-06 - Fixed Duplicate Daily Entries (Session 65)
+
+**Session Summary:**
+Fixed a bug where submitting multiple entries for the same day created duplicate rows instead of updating the existing row. The root cause was a date format mismatch: the client sends dates with leading zeros (`02/05/2026`) but Google Sheets' `USER_ENTERED` mode strips them (`2/5/2026`), causing the strict equality check to fail.
+
+**Accomplishments:**
+
+1. **Diagnosed Root Cause** — `submit-entry.js` compared `dateFor` using `===`, but `USER_ENTERED` valueInputOption caused Google Sheets to reformat dates, stripping leading zeros. `"02/05/2026" !== "2/5/2026"` → no match → duplicate row appended.
+
+2. **Added `normalizeDate()` Helper** — Strips leading zeros from month/day (`"02/05/2026"` → `"2/5/2026"`) so both sides of the comparison match regardless of formatting.
+
+3. **Applied to Dedup Loop** — The existing-row lookup in `submit-entry.js` now normalizes both the incoming `dateFor` and the sheet value before comparing.
+
+**Files Changed:**
+- `api/submit-entry.js` — Added `normalizeDate()` function and updated date comparison logic.
+
+---
 
 ### 2026-02-03 - Fixed Health_Daily Sleep Totals (Session 64)
 
