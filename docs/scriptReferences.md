@@ -33,6 +33,7 @@ Frontend helper modules.
 | `offlineStorage.js` | `saveOfflineEntry`, `getPendingEntries`, `syncPendingEntries`, `setupOfflineSync` | IndexedDB utilities for offline-first entry storage and sync. | [offlineStorage.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/offlineStorage.js) |
 | `pushNotification.js` | `isPushSupported`, `subscribeToPush`, `unsubscribeFromPush`, `isSubscribed` | Push notification subscription and management. | [pushNotification.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/pushNotification.js) |
 | `statsDataService.js` | `processSingleDayData`, `formatMinutes`, `formatTime` | Stats data processing: HR/step-based sleep session validation (awake-score algorithm), step suppression, HR point extraction. | [statsDataService.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/statsDataService.js) |
+| `noWatchDays.js` | `isNoWatchDay`, `NO_WATCH_GREY` | Identifies Fri/Sat as no-watch days and provides shared grey color constants for greying out device-derived data. | [noWatchDays.js](file:///c:/Users/ariro/OneDrive/Documents/Personal/Amiel%20CFS%20documentation%20app/src/utils/noWatchDays.js) |
 
 ---
 
