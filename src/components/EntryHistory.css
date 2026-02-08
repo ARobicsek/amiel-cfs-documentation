@@ -237,10 +237,31 @@
   color: var(--text-secondary);
 }
 
+/* No-watch day (Fri/Sat) — grey out device-derived health data */
+.entry-health-metrics.no-watch-day .health-value {
+  color: #9ca3af;
+}
+
+.entry-health-metrics.no-watch-day .health-value small {
+  color: #9ca3af;
+}
+
+.entry-health-metrics.no-watch-day .health-icon {
+  opacity: 0.4;
+}
+
 /* Dark mode tweaks for health items */
 @media (prefers-color-scheme: dark) {
   .health-item {
     background: rgba(255, 255, 255, 0.03);
     border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .entry-health-metrics.no-watch-day .health-value {
+    color: #6b7280;
+  }
+
+  .entry-health-metrics.no-watch-day .health-value small {
+    color: #6b7280;
   }
 }

@@ -8,6 +8,7 @@ import {
   Tooltip,
   Interaction,
 } from 'chart.js';
+import { isNoWatchDay, NO_WATCH_GREY } from '../../../utils/noWatchDays';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -68,15 +69,17 @@ export default function HRBoxPlotChart({ days = [], isDark, isFullscreen }) {
   const daysRef = useRef(days);
   daysRef.current = days;
 
-  const { labels, lowerBoxData, upperBoxData, rawData } = useMemo(() => {
+  const { labels, lowerBoxData, upperBoxData, rawData, noWatchFlags } = useMemo(() => {
     const labels = [];
     const lowerBoxData = [];
     const upperBoxData = [];
     const rawData = [];
+    const noWatchFlags = [];
 
     for (const day of days) {
       const [, m, d] = day.date.split('-');
       labels.push(`${parseInt(m)}/${parseInt(d)}`);
+      noWatchFlags.push(isNoWatchDay(day.date));
 
       if (day.hr) {
         // Lower box: q1 to median (bar starts at q1, height = median - q1)
@@ -91,14 +94,18 @@ export default function HRBoxPlotChart({ days = [], isDark, isFullscreen }) {
       }
     }
 
-    return { labels, lowerBoxData, upperBoxData, rawData };
+    return { labels, lowerBoxData, upperBoxData, rawData, noWatchFlags };
   }, [days]);
+
+  const noWatchRef = useRef(noWatchFlags);
+  noWatchRef.current = noWatchFlags;
 
   // Custom plugin to draw whiskers (lines from min→q1 and q3→max) and median line
   const whiskerPlugin = useMemo(() => ({
     id: 'boxplotWhiskers',
     afterDatasetsDraw: (chart) => {
       const data = daysRef.current;
+      const nwFlags = noWatchRef.current;
       const { ctx, scales, chartArea } = chart;
       const xScale = scales.x;
       const yScale = scales.y;
@@ -111,9 +118,12 @@ export default function HRBoxPlotChart({ days = [], isDark, isFullscreen }) {
 
         const x = xScale.getPixelForValue(i);
         const barWidth = (chartArea.width / data.length) * 0.5;
+        const nw = nwFlags[i];
 
-        // Whisker color
-        ctx.strokeStyle = dark ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)';
+        // Whisker color — grey for no-watch days
+        ctx.strokeStyle = nw
+          ? (dark ? NO_WATCH_GREY.borderDark : NO_WATCH_GREY.borderLight)
+          : (dark ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)');
         ctx.lineWidth = 1.5;
 
         // Lower whisker: min to q1
@@ -142,9 +152,11 @@ export default function HRBoxPlotChart({ days = [], isDark, isFullscreen }) {
         ctx.lineTo(x + barWidth * 0.3, yMax);
         ctx.stroke();
 
-        // Median line (bold white/dark line across the box)
+        // Median line (bold white/dark line across the box) — grey for no-watch days
         const yMedian = yScale.getPixelForValue(day.hr.median);
-        ctx.strokeStyle = dark ? '#f8fafc' : '#0f172a';
+        ctx.strokeStyle = nw
+          ? (dark ? NO_WATCH_GREY.textDark : NO_WATCH_GREY.textLight)
+          : (dark ? '#f8fafc' : '#0f172a');
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(x - barWidth * 0.5, yMedian);
@@ -156,14 +168,27 @@ export default function HRBoxPlotChart({ days = [], isDark, isFullscreen }) {
     }
   }), [isDark]);
 
+  // Per-bar colors: grey for no-watch days
+  const boxColors = useMemo(() => {
+    const normalBg = isDark ? 'rgba(74, 144, 217, 0.5)' : 'rgba(74, 144, 217, 0.4)';
+    const normalBorder = isDark ? 'rgba(74, 144, 217, 0.8)' : 'rgba(74, 144, 217, 0.7)';
+    const greyBg = isDark ? NO_WATCH_GREY.dark : NO_WATCH_GREY.light;
+    const greyBorder = isDark ? NO_WATCH_GREY.borderDark : NO_WATCH_GREY.borderLight;
+
+    return {
+      bg: noWatchFlags.map(nw => nw ? greyBg : normalBg),
+      border: noWatchFlags.map(nw => nw ? greyBorder : normalBorder),
+    };
+  }, [isDark, noWatchFlags]);
+
   const data = useMemo(() => ({
     labels,
     datasets: [
       {
         label: 'Q1→Median',
         data: lowerBoxData,
-        backgroundColor: isDark ? 'rgba(74, 144, 217, 0.5)' : 'rgba(74, 144, 217, 0.4)',
-        borderColor: isDark ? 'rgba(74, 144, 217, 0.8)' : 'rgba(74, 144, 217, 0.7)',
+        backgroundColor: boxColors.bg,
+        borderColor: boxColors.border,
         borderWidth: 1,
         borderSkipped: false,
         barPercentage: 0.5,
@@ -172,15 +197,15 @@ export default function HRBoxPlotChart({ days = [], isDark, isFullscreen }) {
       {
         label: 'Median→Q3',
         data: upperBoxData,
-        backgroundColor: isDark ? 'rgba(74, 144, 217, 0.5)' : 'rgba(74, 144, 217, 0.4)',
-        borderColor: isDark ? 'rgba(74, 144, 217, 0.8)' : 'rgba(74, 144, 217, 0.7)',
+        backgroundColor: boxColors.bg,
+        borderColor: boxColors.border,
         borderWidth: 1,
         borderSkipped: false,
         barPercentage: 0.5,
         categoryPercentage: 0.8,
       },
     ],
-  }), [labels, lowerBoxData, upperBoxData, isDark]);
+  }), [labels, lowerBoxData, upperBoxData, boxColors]);
 
   const options = useMemo(() => ({
     responsive: true,

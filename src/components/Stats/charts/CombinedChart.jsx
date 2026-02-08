@@ -9,6 +9,7 @@ import {
     Title
 } from 'chart.js';
 import { formatTime } from '../../../utils/statsDataService';
+import { NO_WATCH_GREY } from '../../../utils/noWatchDays';
 
 ChartJS.register(LinearScale, PointElement, Tooltip, TimeScale, Title);
 
@@ -23,7 +24,7 @@ ChartJS.register(LinearScale, PointElement, Tooltip, TimeScale, Title);
  *   activityMinutes: Array(1440) of 'ASLEEP' | 'WALKING' | 'BLANK'
  *   isDark: boolean
  */
-export default function CombinedChart({ hrPoints = [], activityMinutes = [], walkingMinutes = [], stepCounts = [], sleepSessions = [], isDark, isFullscreen }) {
+export default function CombinedChart({ hrPoints = [], activityMinutes = [], walkingMinutes = [], stepCounts = [], sleepSessions = [], isDark, isFullscreen, noWatch = false }) {
     const chartRef = useRef(null);
     const [tooltipState, setTooltipState] = useState({ visible: false, x: 0, y: 0, text: '' });
 
@@ -55,19 +56,23 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
     }, [isFullscreen]);
 
     // Memoize chart data
+    const pointColor = noWatch
+        ? (isDark ? NO_WATCH_GREY.dark : NO_WATCH_GREY.light)
+        : (isDark ? 'rgba(255, 107, 107, 0.7)' : 'rgba(239, 68, 68, 0.6)');
+
     const data = useMemo(() => ({
         datasets: [
             {
                 label: 'Heart Rate',
                 data: hrPoints.map(p => ({ x: p.minuteOfDay, y: p.bpm })),
-                backgroundColor: isDark ? 'rgba(255, 107, 107, 0.7)' : 'rgba(239, 68, 68, 0.6)',
+                backgroundColor: pointColor,
                 pointRadius: 2.5,
                 pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#FF6B6B',
+                pointHoverBackgroundColor: noWatch ? (isDark ? NO_WATCH_GREY.borderDark : NO_WATCH_GREY.borderLight) : '#FF6B6B',
                 pointHitRadius: 20, // Increased for easier touch
             },
         ],
-    }), [hrPoints, isDark]);
+    }), [hrPoints, isDark, pointColor, noWatch]);
 
     // Stable Activity Plugin - Reads from Refs
     const activityPlugin = useMemo(() => ({

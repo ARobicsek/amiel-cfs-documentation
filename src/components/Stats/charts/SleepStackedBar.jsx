@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { isNoWatchDay } from '../../../utils/noWatchDays';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -21,16 +22,18 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
  *   isFullscreen: boolean
  */
 export default function SleepStackedBar({ days = [], isDark, isFullscreen }) {
-  const { labels, deepData, remData, coreData, awakeData } = useMemo(() => {
+  const { labels, deepData, remData, coreData, awakeData, noWatchFlags } = useMemo(() => {
     const labels = [];
     const deepData = [];
     const remData = [];
     const coreData = [];
     const awakeData = [];
+    const noWatchFlags = [];
 
     for (const day of days) {
       const [, m, d] = day.date.split('-');
       labels.push(`${parseInt(m)}/${parseInt(d)}`);
+      noWatchFlags.push(isNoWatchDay(day.date));
 
       if (day.sleep) {
         // Convert minutes to hours for display
@@ -46,8 +49,33 @@ export default function SleepStackedBar({ days = [], isDark, isFullscreen }) {
       }
     }
 
-    return { labels, deepData, remData, coreData, awakeData };
+    return { labels, deepData, remData, coreData, awakeData, noWatchFlags };
   }, [days]);
+
+  // Per-bar colors: grey shades for no-watch days, normal colors otherwise
+  const barColors = useMemo(() => {
+    // Normal colors per stage
+    const normal = {
+      deep:  isDark ? 'rgba(59, 130, 246, 0.8)'  : 'rgba(37, 99, 235, 0.7)',
+      rem:   isDark ? 'rgba(139, 92, 246, 0.8)'   : 'rgba(124, 58, 237, 0.7)',
+      core:  isDark ? 'rgba(107, 141, 181, 0.7)'   : 'rgba(147, 181, 213, 0.7)',
+      awake: isDark ? 'rgba(251, 191, 36, 0.6)'    : 'rgba(245, 158, 11, 0.5)',
+    };
+    // Grey shades for no-watch days (different opacities to preserve stacking visibility)
+    const grey = {
+      deep:  isDark ? 'rgba(107, 114, 128, 0.6)' : 'rgba(156, 163, 175, 0.5)',
+      rem:   isDark ? 'rgba(107, 114, 128, 0.45)' : 'rgba(156, 163, 175, 0.38)',
+      core:  isDark ? 'rgba(107, 114, 128, 0.3)' : 'rgba(156, 163, 175, 0.25)',
+      awake: isDark ? 'rgba(107, 114, 128, 0.2)' : 'rgba(156, 163, 175, 0.15)',
+    };
+
+    return {
+      deep:  noWatchFlags.map(nw => nw ? grey.deep : normal.deep),
+      rem:   noWatchFlags.map(nw => nw ? grey.rem : normal.rem),
+      core:  noWatchFlags.map(nw => nw ? grey.core : normal.core),
+      awake: noWatchFlags.map(nw => nw ? grey.awake : normal.awake),
+    };
+  }, [isDark, noWatchFlags]);
 
   const data = useMemo(() => ({
     labels,
@@ -55,7 +83,7 @@ export default function SleepStackedBar({ days = [], isDark, isFullscreen }) {
       {
         label: 'Deep',
         data: deepData,
-        backgroundColor: isDark ? 'rgba(59, 130, 246, 0.8)' : 'rgba(37, 99, 235, 0.7)',
+        backgroundColor: barColors.deep,
         borderWidth: 0,
         barPercentage: 0.7,
         categoryPercentage: 0.8,
@@ -63,7 +91,7 @@ export default function SleepStackedBar({ days = [], isDark, isFullscreen }) {
       {
         label: 'REM',
         data: remData,
-        backgroundColor: isDark ? 'rgba(139, 92, 246, 0.8)' : 'rgba(124, 58, 237, 0.7)',
+        backgroundColor: barColors.rem,
         borderWidth: 0,
         barPercentage: 0.7,
         categoryPercentage: 0.8,
@@ -71,7 +99,7 @@ export default function SleepStackedBar({ days = [], isDark, isFullscreen }) {
       {
         label: 'Core',
         data: coreData,
-        backgroundColor: isDark ? 'rgba(107, 141, 181, 0.7)' : 'rgba(147, 181, 213, 0.7)',
+        backgroundColor: barColors.core,
         borderWidth: 0,
         barPercentage: 0.7,
         categoryPercentage: 0.8,
@@ -79,13 +107,13 @@ export default function SleepStackedBar({ days = [], isDark, isFullscreen }) {
       {
         label: 'Awake',
         data: awakeData,
-        backgroundColor: isDark ? 'rgba(251, 191, 36, 0.6)' : 'rgba(245, 158, 11, 0.5)',
+        backgroundColor: barColors.awake,
         borderWidth: 0,
         barPercentage: 0.7,
         categoryPercentage: 0.8,
       },
     ],
-  }), [labels, deepData, remData, coreData, awakeData, isDark]);
+  }), [labels, deepData, remData, coreData, awakeData, barColors]);
 
   const options = useMemo(() => ({
     responsive: true,

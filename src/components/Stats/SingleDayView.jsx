@@ -3,6 +3,7 @@ import CombinedChart from './charts/CombinedChart';
 import FullscreenChart from './FullscreenChart';
 import { processSingleDayData, formatMinutes } from '../../utils/statsDataService';
 import { getHourlyData } from '../../utils/api';
+import { isNoWatchDay } from '../../utils/noWatchDays';
 
 /**
  * Single Day Stats view.
@@ -54,6 +55,7 @@ export default function SingleDayView({ isDark }) {
 
   const isToday = selectedDate === formatDateISO(new Date());
   const displayDate = formatDisplayDate(selectedDate);
+  const noWatch = isNoWatchDay(selectedDate);
 
   return (
     <div className="single-day-view">
@@ -119,12 +121,13 @@ export default function SingleDayView({ isDark }) {
                   sleepSessions={data.sleepSessions}
                   isDark={isDark}
                   isFullscreen={isFullscreen}
+                  noWatch={noWatch}
                 />
               )}
             </FullscreenChart>
 
             {/* Summary Stats */}
-            <div className="stats-summary">
+            <div className={`stats-summary${noWatch ? ' no-watch-day' : ''}`}>
               <div className="stats-summary-item">
                 <span className="stats-summary-label">Sleep</span>
                 <span className="stats-summary-value">{formatMinutes(data.summary.totalSleepMin)}</span>
