@@ -9,6 +9,7 @@ import {
   Tooltip,
   Filler,
 } from 'chart.js';
+import { isNoWatchDay, NO_WATCH_GREY } from '../../../utils/noWatchDays';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
@@ -27,6 +28,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
  *   formatValue: function(value) => string - optional formatter for tooltip
  *   tooltipExtra: function(day) => string|null - optional extra line for tooltip
  *   pointsOnly: boolean - if true, show only points (no connecting line or fill)
+ *   isDeviceData: boolean - if true, grey out Fri/Sat points and use dashed segments
  */
 export default function MetricLineChart({
   days = [],
@@ -40,10 +42,12 @@ export default function MetricLineChart({
   formatValue,
   tooltipExtra,
   pointsOnly = false,
+  isDeviceData = false,
 }) {
-  const { labels, values } = useMemo(() => {
+  const { labels, values, noWatchFlags } = useMemo(() => {
     const labels = [];
     const values = [];
+    const noWatchFlags = [];
 
     for (const day of days) {
       const [, m, d] = day.date.split('-');
@@ -56,20 +60,27 @@ export default function MetricLineChart({
         val = day[valueKey];
       }
       values.push(val);
+      noWatchFlags.push(isDeviceData && isNoWatchDay(day.date));
     }
 
-    return { labels, values };
-  }, [days, valueKey, valueExtractor]);
+    return { labels, values, noWatchFlags };
+  }, [days, valueKey, valueExtractor, isDeviceData]);
 
-  const data = useMemo(() => ({
-    labels,
-    datasets: [{
+  // Per-point colors: grey for no-watch days, normal color otherwise
+  const pointColors = useMemo(() => {
+    if (!isDeviceData) return color;
+    const grey = isDark ? NO_WATCH_GREY.dark : NO_WATCH_GREY.light;
+    return noWatchFlags.map(nw => nw ? grey : color);
+  }, [isDeviceData, isDark, noWatchFlags, color]);
+
+  const data = useMemo(() => {
+    const dataset = {
       label,
       data: values,
       borderColor: pointsOnly ? 'transparent' : color,
       backgroundColor: pointsOnly ? 'transparent' : (color + '33'), // 20% opacity fill
-      pointBackgroundColor: color,
-      pointBorderColor: color,
+      pointBackgroundColor: pointColors,
+      pointBorderColor: pointColors,
       pointRadius: pointsOnly ? 5 : (values.length > 60 ? 1 : (values.length > 30 ? 2 : 3)),
       pointHoverRadius: 8,
       pointHitRadius: 15,
@@ -78,8 +89,29 @@ export default function MetricLineChart({
       fill: !pointsOnly,
       spanGaps: false, // Gaps for missing days
       showLine: !pointsOnly,
-    }],
-  }), [labels, values, label, color, pointsOnly]);
+    };
+
+    // Add segment styling for dashed lines to/from no-watch days
+    if (isDeviceData && !pointsOnly) {
+      const greyBorder = isDark ? NO_WATCH_GREY.borderDark : NO_WATCH_GREY.borderLight;
+      dataset.segment = {
+        borderColor: (ctx) => {
+          const i0 = ctx.p0DataIndex;
+          const i1 = ctx.p1DataIndex;
+          if (noWatchFlags[i0] || noWatchFlags[i1]) return greyBorder;
+          return undefined; // use default
+        },
+        borderDash: (ctx) => {
+          const i0 = ctx.p0DataIndex;
+          const i1 = ctx.p1DataIndex;
+          if (noWatchFlags[i0] || noWatchFlags[i1]) return [6, 3];
+          return undefined; // solid
+        },
+      };
+    }
+
+    return { labels, datasets: [dataset] };
+  }, [labels, values, label, color, pointsOnly, pointColors, isDeviceData, isDark, noWatchFlags]);
 
   const options = useMemo(() => ({
     responsive: true,

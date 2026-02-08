@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getEntries } from '../utils/api';
+import { isNoWatchDay } from '../utils/noWatchDays';
 import './EntryHistory.css';
 
 /**
@@ -83,6 +84,7 @@ export default function EntryHistory() {
  */
 function EntryCard({ entry, previousEntry, medications }) {
   const hasAnyData = entry.hasEntryData || entry.hasECGData;
+  const noWatch = isNoWatchDay(entry.normalizedDate || entry.date);
 
   // Collect all medications that were taken (not "Off")
   const medsTaken = [];
@@ -177,7 +179,7 @@ function EntryCard({ entry, previousEntry, medications }) {
 
       {/* Row 3: Health Data (Auto-Imported) */}
       {entry.hasHealthData && entry.health && (
-        <div className="entry-health-metrics">
+        <div className={`entry-health-metrics${noWatch ? ' no-watch-day' : ''}`}>
           <div className="health-section-title">Health Data (Auto)</div>
           <div className="health-grid">
 

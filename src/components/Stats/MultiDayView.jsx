@@ -227,6 +227,7 @@ export default function MultiDayView({ isDark }) {
                   isDark={isDark}
                   isFullscreen={isFullscreen}
                   formatValue={(v) => Math.round(v).toLocaleString()}
+                  isDeviceData
                 />
               )}
             </FullscreenChart>
@@ -289,6 +290,7 @@ export default function MultiDayView({ isDark }) {
                   isDark={isDark}
                   isFullscreen={isFullscreen}
                   formatValue={(v) => `${v.toFixed(1)} ms`}
+                  isDeviceData
                 />
               )}
             </FullscreenChart>

@@ -152,6 +152,17 @@
   font-weight: 500;
 }
 
+/* No-watch day (Fri/Sat) — grey out device-derived summary stats */
+.stats-summary.no-watch-day .stats-summary-value {
+  color: #9ca3af;
+}
+
+@media (prefers-color-scheme: dark) {
+  .stats-summary.no-watch-day .stats-summary-value {
+    color: #6b7280;
+  }
+}
+
 /* Fullscreen Chart Wrapper */
 .fullscreen-chart-container {
   position: relative;
