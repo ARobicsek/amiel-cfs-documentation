@@ -38,6 +38,7 @@ Track completed features and current status here. Update after completing each f
 | 17 | Stats Tab - Multi Day View | DONE | 6 charts: HR box plots, sleep stacked bars, steps/HRV/feet on ground/brain time line charts. Date range nav + 7D/30D/3M/6M presets. Fullscreen per chart. |
 | 18 | Streak animations | TODO | ON HOLD - Motivation feature |
 | 19 | Sleep session validation (HR/step-based) | DONE | HR/step awake-score validation for picking best session from nested Apple Watch clusters. Handles nested, sequential, and cross-midnight sessions. Sparse-data guard prevents false parent expansion. Step count tooltip added. |
+| 20 | Weekend data gap indicators | DONE | Fri/Sat device-derived data (HR, HRV, Steps, Sleep) shown in grey across all views. Dashed line segments on line charts. Manual fields unaffected. |
 
 ### Phase 4: ECG Integration (COMPLETE - Fully Automatic)
 
@@ -68,31 +69,50 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 66)
+## Next Session Priority (Session 67)
 
 **Goal**: Monitor production and verify Health_Daily sleep totals are accurate going forward.
 
-**Context**: Session 64 fixed Health_Daily sleep totals. Session 65 fixed duplicate daily entries caused by date format mismatch.
+**Context**: Session 64 fixed Health_Daily sleep totals. Session 65 fixed duplicate daily entries. Session 66 added visual indicators for Fri/Sat weekend data gaps.
 
 **Tasks**:
 1. Verify no new duplicate entries appear in Sheet1 after the Session 65 fix.
 2. Clean up any remaining duplicate rows in Sheet1 (keep the most recent entry per date).
 3. Trigger a health data sync and verify Health_Daily updates correctly.
 4. Check that visualizations still match Health_Daily values.
+5. Visually verify the weekend grey styling looks correct on a real device (Fri/Sat data in History, Stats single-day, and Stats multi-day charts).
 
 **Starting Prompt**:
 ```
-Session 65 fixed duplicate daily entries by normalizing date comparisons in submit-entry.js.
+Session 66 added grey styling for Fri/Sat device data (weekend no-watch indicators).
 
 Please:
 1. Check Sheet1 in Google Sheets - verify no new duplicates are appearing.
 2. If old duplicates remain, help me clean them up (keep latest entry per date).
 3. Trigger a health sync and confirm data is processed correctly.
+4. Verify the weekend grey styling visually on Fri/Sat data across all views.
 ```
 
 ---
 
 ## Completed Features Log
+
+### 2026-02-08 - Weekend Data Gap Indicators (Session 66)
+
+**Session Summary:**
+Added visual distinction for Friday/Saturday device-derived data across all app views. Since the Apple Watch is not worn from Friday evening through Saturday, device data (HR, HRV, Steps, Sleep) is less reliable on those days.
+
+**Changes:**
+- Created `src/utils/noWatchDays.js` utility with `isNoWatchDay()` function and shared grey color constants
+- **History tab**: Health metric values and icons render in muted grey on Fri/Sat
+- **Single-day view**: Summary stats (Sleep, Steps, HR, HRV) grey; HR scatter points grey
+- **Multi-day line charts** (Steps, HRV): Grey points + dashed line segments to/from Fri/Sat
+- **Sleep stacked bars**: All sleep stages render in shades of grey on Fri/Sat
+- **HR box plots**: Grey boxes, whiskers, and median lines on Fri/Sat
+- Manual-entry fields (Hours Upright, Brain Time, Feet on Ground, R/S Ratio) are NOT greyed out since they don't depend on the watch
+- Supports both light and dark mode
+
+**Files modified:** 1 new + 9 modified (see commit `1c30384`)
 
 ### 2026-02-06 - Fixed Duplicate Daily Entries (Session 65)
 
