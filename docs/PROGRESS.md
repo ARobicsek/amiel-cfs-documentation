@@ -68,31 +68,61 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 66)
+## Next Session Priority (Session 67)
 
-**Goal**: Monitor production and verify Health_Daily sleep totals are accurate going forward.
+**Goal**: Implement HR-Awake and HR-Asleep metrics across all views.
 
-**Context**: Session 64 fixed Health_Daily sleep totals. Session 65 fixed duplicate daily entries caused by date format mismatch.
+**Context**: Session 66 completed a full codebase analysis and produced a detailed implementation plan. No code was changed. The plan covers 8 files across client, API, and UI layers.
 
-**Tasks**:
-1. Verify no new duplicate entries appear in Sheet1 after the Session 65 fix.
-2. Clean up any remaining duplicate rows in Sheet1 (keep the most recent entry per date).
-3. Trigger a health data sync and verify Health_Daily updates correctly.
-4. Check that visualizations still match Health_Daily values.
+**Implementation Plan**: See `.gemini/antigravity/brain/6019290c-983e-40c8-a85d-674fe749782a/implementation_plan.md` for the full plan.
+
+**Tasks** (in order):
+1. **Fix Fri/Sat HR point coloring** (quick win): In `CombinedChart.jsx`, remove grey coloring from individual HR scatter points on Friday/Saturday. Keep points red always.
+2. **Client-side HR-awake/asleep computation**: In `statsDataService.js`, after computing `hrPoints` and `activityMinutes`, cross-reference them to compute `avgHR_awake` and `avgHR_asleep`. Add to `summary` object.
+3. **Single-Day View display**: In `SingleDayView.jsx`, show HR-Awake and HR-Asleep in the summary stats section.
+4. **Server-side storage**: In `health-webhook.js`, add columns P (Avg HR Awake) and Q (Avg HR Asleep) to Health_Daily. Compute by cross-referencing HR timestamps with validated sleep periods.
+5. **API updates**: Update `get-hourly-data.js` and `get-entries.js` to read and return the new Health_Daily columns.
+6. **Multi-Day View**: Add `hrAwake` and `hrAsleep` to `METRIC_CONFIGS` in `MultiDayView.jsx` (default OFF), render as `MetricLineChart` with `isDeviceData`.
+7. **History View**: Update `EntryHistory.jsx` to show HR breakdown (All / Awake / Asleep) in the health card.
+
+**Key Design Decisions**:
+- "Awake" HR = any HR reading where `activityMinutes[minuteOfDay] !== 'ASLEEP'` (all non-sleep time)
+- "Asleep" HR = any HR reading where `activityMinutes[minuteOfDay] === 'ASLEEP'`
+- Historical Health_Daily rows will have blank P/Q columns until webhook re-processes
 
 **Starting Prompt**:
 ```
-Session 65 fixed duplicate daily entries by normalizing date comparisons in submit-entry.js.
+Session 66 produced a detailed implementation plan for HR-Awake/HR-Asleep metrics.
+Plan is at .gemini/antigravity/brain/6019290c-983e-40c8-a85d-674fe749782a/implementation_plan.md
 
-Please:
-1. Check Sheet1 in Google Sheets - verify no new duplicates are appearing.
-2. If old duplicates remain, help me clean them up (keep latest entry per date).
-3. Trigger a health sync and confirm data is processed correctly.
+Please implement the plan in order:
+1. Fix CombinedChart.jsx - remove grey from individual HR scatter points on Fri/Sat
+2. statsDataService.js - compute avgHR_awake and avgHR_asleep 
+3. SingleDayView.jsx - display the new metrics in summary
+4. health-webhook.js - add columns P & Q to Health_Daily
+5. get-hourly-data.js + get-entries.js - read new columns
+6. MultiDayView.jsx - add HR Awake/Asleep toggles
+7. EntryHistory.jsx - show HR breakdown in health card
 ```
 
 ---
 
 ## Completed Features Log
+
+### 2026-02-09 - HR-Awake/Asleep Metrics Planning (Session 66)
+
+**Session Summary:**
+Planning-only session. Analyzed 12+ files across the codebase to design the HR-Awake/Asleep metrics feature. Produced a detailed implementation plan covering:
+- Client-side computation in `statsDataService.js` (cross-reference `hrPoints` with `activityMinutes`)
+- Display in `SingleDayView.jsx` summary stats
+- Server-side storage in Health_Daily columns P & Q via `health-webhook.js`
+- Multi-day line charts in `MultiDayView.jsx` (default off, with Fri/Sat dashed lines)
+- History view breakdown in `EntryHistory.jsx`
+- Fix for Fri/Sat individual HR scatter point coloring in `CombinedChart.jsx`
+
+**Files analyzed**: `statsDataService.js`, `CombinedChart.jsx`, `MetricLineChart.jsx`, `HRBoxPlotChart.jsx`, `MultiDayView.jsx`, `SingleDayView.jsx`, `EntryHistory.jsx`, `get-hourly-data.js`, `get-entries.js`, `health-webhook.js`, `sleepValidation.js`, `noWatchDays.js`
+
+**No code changes made** — all outputs are planning artifacts.
 
 ### 2026-02-06 - Fixed Duplicate Daily Entries (Session 65)
 
