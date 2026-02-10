@@ -9,7 +9,6 @@ import {
     Title
 } from 'chart.js';
 import { formatTime } from '../../../utils/statsDataService';
-import { NO_WATCH_GREY } from '../../../utils/noWatchDays';
 
 ChartJS.register(LinearScale, PointElement, Tooltip, TimeScale, Title);
 
@@ -55,10 +54,8 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
         }
     }, [isFullscreen]);
 
-    // Memoize chart data
-    const pointColor = noWatch
-        ? (isDark ? NO_WATCH_GREY.dark : NO_WATCH_GREY.light)
-        : (isDark ? 'rgba(255, 107, 107, 0.7)' : 'rgba(239, 68, 68, 0.6)');
+    // Memoize chart data — always use red for HR points, even on Fri/Sat (noWatch days)
+    const pointColor = isDark ? 'rgba(255, 107, 107, 0.7)' : 'rgba(239, 68, 68, 0.6)';
 
     const data = useMemo(() => ({
         datasets: [
@@ -68,11 +65,11 @@ export default function CombinedChart({ hrPoints = [], activityMinutes = [], wal
                 backgroundColor: pointColor,
                 pointRadius: 2.5,
                 pointHoverRadius: 6,
-                pointHoverBackgroundColor: noWatch ? (isDark ? NO_WATCH_GREY.borderDark : NO_WATCH_GREY.borderLight) : '#FF6B6B',
+                pointHoverBackgroundColor: '#FF6B6B',
                 pointHitRadius: 20, // Increased for easier touch
             },
         ],
-    }), [hrPoints, isDark, pointColor, noWatch]);
+    }), [hrPoints, isDark, pointColor]);
 
     // Stable Activity Plugin - Reads from Refs
     const activityPlugin = useMemo(() => ({

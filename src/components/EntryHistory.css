@@ -237,6 +237,12 @@
   color: var(--text-secondary);
 }
 
+.health-sub-detail {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
 /* No-watch day (Fri/Sat) — grey out device-derived health data */
 .entry-health-metrics.no-watch-day .health-value {
   color: #9ca3af;

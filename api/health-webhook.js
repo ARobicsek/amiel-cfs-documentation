@@ -230,6 +230,61 @@ export default async function handler(req, res) {
                 }
             });
 
+            // --- COMPUTE HR AWAKE / ASLEEP ---
+            // Build sleep period ranges from sleep_stage rows for this date,
+            // then classify each HR reading as awake or asleep.
+            const sleepPeriods = []; // [{ startMs, endMs }]
+            for (const row of daysRows) {
+                const metric = row[3];
+                if (metric === 'sleep_stage') {
+                    try {
+                        const raw = JSON.parse(row[8] || '{}');
+                        if (raw.startDate && raw.endDate) {
+                            const stage = (raw.stage || '').toLowerCase();
+                            // Only count actual sleep stages (not awake/inBed)
+                            if (stage === 'awake' || stage === 'inbed' || stage === 'inBed') continue;
+                            const sMs = new Date(raw.startDate).getTime();
+                            const eMs = new Date(raw.endDate).getTime();
+                            if (!isNaN(sMs) && !isNaN(eMs)) {
+                                sleepPeriods.push({ startMs: sMs, endMs: eMs });
+                            }
+                        }
+                    } catch (e) { /* skip bad rows */ }
+                }
+            }
+
+            let hrAwakeSum = 0, hrAwakeCount = 0;
+            let hrAsleepSum = 0, hrAsleepCount = 0;
+            for (const row of daysRows) {
+                const metric = row[3];
+                if (metric !== 'heart_rate') continue;
+                const val = Number(row[4]);
+                if (isNaN(val)) continue;
+                // Get HR timestamp from raw data
+                let hrTs = null;
+                try {
+                    const raw = JSON.parse(row[8] || '{}');
+                    if (raw.date) hrTs = new Date(raw.date).getTime();
+                } catch (e) { /* use fallback */ }
+                if (!hrTs) {
+                    // Fallback: parse the row timestamp (column 0)
+                    hrTs = new Date(row[0]).getTime();
+                }
+                if (isNaN(hrTs)) continue;
+
+                const isDuringSleep = sleepPeriods.some(p => hrTs >= p.startMs && hrTs < p.endMs);
+                if (isDuringSleep) {
+                    hrAsleepSum += val;
+                    hrAsleepCount++;
+                } else {
+                    hrAwakeSum += val;
+                    hrAwakeCount++;
+                }
+            }
+
+            const finalHrAwake = hrAwakeCount > 0 ? Math.round(hrAwakeSum / hrAwakeCount) : '';
+            const finalHrAsleep = hrAsleepCount > 0 ? Math.round(hrAsleepSum / hrAsleepCount) : '';
+
             const rowValues = [
                 dateStr,
                 finalSteps,
@@ -245,7 +300,9 @@ export default async function handler(req, res) {
                 new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
                 hrCount !== 0 ? hrCount : '',
                 hrvCount !== 0 ? hrvCount : '',
-                finalAwake !== 0 ? finalAwake : ''
+                finalAwake !== 0 ? finalAwake : '',
+                finalHrAwake,
+                finalHrAsleep
             ];
 
             if (matchingIndices.length === 0) {
@@ -256,7 +313,7 @@ export default async function handler(req, res) {
                 // index + 2 because we fetched A2:A (index 0 = sheet row 2)
                 const sheetRow = matchingIndices[0] + 2;
                 dailyUpdates.push({
-                    range: `Health_Daily!A${sheetRow}:O${sheetRow}`,
+                    range: `Health_Daily!A${sheetRow}:Q${sheetRow}`,
                     values: [rowValues]
                 });
 
@@ -265,8 +322,8 @@ export default async function handler(req, res) {
                     for (let k = 1; k < matchingIndices.length; k++) {
                         const dupSheetRow = matchingIndices[k] + 2;
                         dailyUpdates.push({
-                            range: `Health_Daily!A${dupSheetRow}:O${dupSheetRow}`,
-                            values: [Array(15).fill('')]
+                            range: `Health_Daily!A${dupSheetRow}:Q${dupSheetRow}`,
+                            values: [Array(17).fill('')]
                         });
                     }
                 }
@@ -288,7 +345,7 @@ export default async function handler(req, res) {
         if (newDailyRows.length > 0) {
             await sheets.spreadsheets.values.append({
                 spreadsheetId: SHEET_ID,
-                range: 'Health_Daily!A:O',
+                range: 'Health_Daily!A:Q',
                 valueInputOption: 'USER_ENTERED',
                 insertDataOption: 'INSERT_ROWS',
                 requestBody: { values: newDailyRows }
@@ -297,7 +354,7 @@ export default async function handler(req, res) {
 
         // 7. SORT SHEETS by date descending (most recent first)
         await sortSheetByDateDesc(sheets, SHEET_ID, 'Health_Hourly', 9);
-        await sortSheetByDateDesc(sheets, SHEET_ID, 'Health_Daily', 15);
+        await sortSheetByDateDesc(sheets, SHEET_ID, 'Health_Daily', 17);
 
         return res.status(200).json({
             success: true,

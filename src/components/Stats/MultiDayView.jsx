@@ -48,6 +48,8 @@ const METRIC_CONFIGS = [
   { key: 'steps', label: 'Steps', defaultOn: true },
   { key: 'sleep', label: 'Sleep', defaultOn: true },
   { key: 'hr', label: 'HR', defaultOn: true },
+  { key: 'hrAwake', label: 'HR Awake', defaultOn: false },
+  { key: 'hrAsleep', label: 'HR Asleep', defaultOn: false },
   { key: 'hrv', label: 'HRV', defaultOn: true },
   { key: 'rsRatio', label: 'R/S Ratio', defaultOn: true },
   { key: 'brainTime', label: 'Brain Time', defaultOn: true },
@@ -266,6 +268,56 @@ export default function MultiDayView({ isDark }) {
                   days={days}
                   isDark={isDark}
                   isFullscreen={isFullscreen}
+                />
+              )}
+            </FullscreenChart>
+          )}
+
+          {/* 4b. HR Awake */}
+          {visibleMetrics.hrAwake && (
+            <FullscreenChart
+              title="HR Awake"
+              date={dateRangeStr}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              canNext={canNext}
+            >
+              {({ isFullscreen }) => (
+                <MetricLineChart
+                  days={days}
+                  valueKey="avgHR_awake"
+                  label="HR Awake"
+                  unit="bpm"
+                  color="#f97316"
+                  isDark={isDark}
+                  isFullscreen={isFullscreen}
+                  formatValue={(v) => `${Math.round(v)} bpm`}
+                  isDeviceData
+                />
+              )}
+            </FullscreenChart>
+          )}
+
+          {/* 4c. HR Asleep */}
+          {visibleMetrics.hrAsleep && (
+            <FullscreenChart
+              title="HR Asleep"
+              date={dateRangeStr}
+              onPrev={navigatePrev}
+              onNext={navigateNext}
+              canNext={canNext}
+            >
+              {({ isFullscreen }) => (
+                <MetricLineChart
+                  days={days}
+                  valueKey="avgHR_asleep"
+                  label="HR Asleep"
+                  unit="bpm"
+                  color="#6366f1"
+                  isDark={isDark}
+                  isFullscreen={isFullscreen}
+                  formatValue={(v) => `${Math.round(v)} bpm`}
+                  isDeviceData
                 />
               )}
             </FullscreenChart>

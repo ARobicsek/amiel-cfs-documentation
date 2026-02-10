@@ -183,13 +183,23 @@ function EntryCard({ entry, previousEntry, medications }) {
           <div className="health-section-title">Health Data (Auto)</div>
           <div className="health-grid">
 
-            {/* Heart Rate */}
+            {/* Heart Rate (with Awake/Asleep breakdown) */}
             {(entry.health.avgHR > 0) && (
               <div className="health-item">
                 <span className="health-icon">❤️</span>
                 <div className="health-details">
                   <span className="health-value">{Math.round(entry.health.avgHR)} <small>bpm</small></span>
-                  <span className="health-sub">Avg HR</span>
+                  <span className="health-sub">
+                    {(entry.health.avgHR_awake || entry.health.avgHR_asleep)
+                      ? 'HR All'
+                      : 'Avg HR'}
+                  </span>
+                  {entry.health.avgHR_awake > 0 && (
+                    <span className="health-sub-detail">Awake: {Math.round(entry.health.avgHR_awake)}</span>
+                  )}
+                  {entry.health.avgHR_asleep > 0 && (
+                    <span className="health-sub-detail">Asleep: {Math.round(entry.health.avgHR_asleep)}</span>
+                  )}
                 </div>
               </div>
             )}

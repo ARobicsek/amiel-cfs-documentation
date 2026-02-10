@@ -283,7 +283,7 @@ async function handleMultiDay(req, res, startDate, endDate) {
       }),
       sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: 'Health_Daily!A2:O',
+        range: 'Health_Daily!A2:Q',
       }),
       sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
@@ -352,6 +352,8 @@ async function handleMultiDay(req, res, startDate, endDate) {
         hrCount: row[12] ? parseInt(row[12], 10) : null,
         hrvCount: row[13] ? parseInt(row[13], 10) : null,
         awakeMinutes: row[14] ? parseFloat(row[14]) : null,
+        avgHR_awake: row[15] ? parseFloat(row[15]) : null,
+        avgHR_asleep: row[16] ? parseFloat(row[16]) : null,
       };
     }
 
@@ -465,6 +467,8 @@ async function handleMultiDay(req, res, startDate, endDate) {
         feetOnGround: manual.feetOnGround,
         brainTime: manual.brainTime,
         ecg,
+        avgHR_awake: daily.avgHR_awake,
+        avgHR_asleep: daily.avgHR_asleep,
       });
     }
 

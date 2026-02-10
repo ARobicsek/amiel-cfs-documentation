@@ -12,7 +12,7 @@
       "Bash(where:*)",
       "Bash(copy:*)",
       "Bash(del:*)",
-      "Bash(timeout:*)"
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

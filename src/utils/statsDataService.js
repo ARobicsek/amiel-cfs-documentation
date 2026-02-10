@@ -563,6 +563,17 @@ export function processSingleDayData(rows, dateStr) {
     ? Math.round(hrPoints.reduce((sum, p) => sum + p.bpm, 0) / hrPoints.length)
     : null;
 
+  // Split HR into awake vs asleep using activityMinutes
+  const hrAwakePoints = hrPoints.filter(p => activityMinutes[p.minuteOfDay] !== 'ASLEEP');
+  const hrAsleepPoints = hrPoints.filter(p => activityMinutes[p.minuteOfDay] === 'ASLEEP');
+
+  const avgHR_awake = hrAwakePoints.length > 0
+    ? Math.round(hrAwakePoints.reduce((s, p) => s + p.bpm, 0) / hrAwakePoints.length)
+    : null;
+  const avgHR_asleep = hrAsleepPoints.length > 0
+    ? Math.round(hrAsleepPoints.reduce((s, p) => s + p.bpm, 0) / hrAsleepPoints.length)
+    : null;
+
   // Parse HRV data
   let hrvValues = [];
   rows.forEach(row => {
@@ -588,6 +599,8 @@ export function processSingleDayData(rows, dateStr) {
       totalSteps: Math.round(totalSteps),
       totalWalkingMin,
       avgHR,
+      avgHR_awake,
+      avgHR_asleep,
       avgHRV,
       hrCount: hrPoints.length,
       hrvCount: hrvValues.length,

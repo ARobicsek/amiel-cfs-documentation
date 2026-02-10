@@ -149,7 +149,7 @@ export default async function handler(req, res) {
       }).catch(() => ({ data: { values: [] } })), // Handle if ECG sheet doesn't exist
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'Health_Daily!A:O', // Date, Steps, AvgHR, RestHR, MinHR, MaxHR, HRV, SleepDur, Eff, Deep, REM, LastUpd, HRCount, HRVCount, Awake
+        range: 'Health_Daily!A:Q', // Date, Steps, AvgHR, RestHR, MinHR, MaxHR, HRV, SleepDur, Eff, Deep, REM, LastUpd, HRCount, HRVCount, Awake, HRAwake, HRAsleep
       }).catch(() => ({ data: { values: [] } })), // Handle if Health sheet doesn't exist
       sheets.spreadsheets.values.get({
         spreadsheetId,
@@ -260,6 +260,8 @@ export default async function handler(req, res) {
           hrCount: row[12] ? parseInt(row[12]) : null,
           hrvCount: row[13] ? parseInt(row[13]) : null,
           awakeMinutes: row[14] ? parseFloat(row[14]) : null,
+          avgHR_awake: row[15] ? parseFloat(row[15]) : null,
+          avgHR_asleep: row[16] ? parseFloat(row[16]) : null,
         };
       }
     }
@@ -330,7 +332,9 @@ export default async function handler(req, res) {
           sleepEff: health.sleepEff,
           awakeMinutes: health.awakeMinutes,
           hrCount: health.hrCount,
-          hrvCount: health.hrvCount
+          hrvCount: health.hrvCount,
+          avgHR_awake: health.avgHR_awake,
+          avgHR_asleep: health.avgHR_asleep
         },
 
         // Flags

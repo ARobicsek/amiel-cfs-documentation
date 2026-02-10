@@ -144,6 +144,18 @@ export default function SingleDayView({ isDark }) {
                   {data.summary.avgHR != null ? `${data.summary.avgHR} bpm` : '--'}
                 </span>
               </div>
+              {data.summary.avgHR_awake != null && (
+                <div className="stats-summary-item">
+                  <span className="stats-summary-label">HR Awake</span>
+                  <span className="stats-summary-value">{data.summary.avgHR_awake} bpm</span>
+                </div>
+              )}
+              {data.summary.avgHR_asleep != null && (
+                <div className="stats-summary-item">
+                  <span className="stats-summary-label">HR Asleep</span>
+                  <span className="stats-summary-value">{data.summary.avgHR_asleep} bpm</span>
+                </div>
+              )}
               <div className="stats-summary-item">
                 <span className="stats-summary-label">HRV</span>
                 <span className="stats-summary-value">
