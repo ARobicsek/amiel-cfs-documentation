@@ -68,46 +68,57 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 67)
+## Next Session Priority (Session 68)
 
-**Goal**: Implement HR-Awake and HR-Asleep metrics across all views.
+**Goal**: TBD — all planned HR-Awake/Asleep work is complete.
 
-**Context**: Session 66 completed a full codebase analysis and produced a detailed implementation plan. No code was changed. The plan covers 8 files across client, API, and UI layers.
-
-**Implementation Plan**: See `.gemini/antigravity/brain/6019290c-983e-40c8-a85d-674fe749782a/implementation_plan.md` for the full plan.
-
-**Tasks** (in order):
-1. **Fix Fri/Sat HR point coloring** (quick win): In `CombinedChart.jsx`, remove grey coloring from individual HR scatter points on Friday/Saturday. Keep points red always.
-2. **Client-side HR-awake/asleep computation**: In `statsDataService.js`, after computing `hrPoints` and `activityMinutes`, cross-reference them to compute `avgHR_awake` and `avgHR_asleep`. Add to `summary` object.
-3. **Single-Day View display**: In `SingleDayView.jsx`, show HR-Awake and HR-Asleep in the summary stats section.
-4. **Server-side storage**: In `health-webhook.js`, add columns P (Avg HR Awake) and Q (Avg HR Asleep) to Health_Daily. Compute by cross-referencing HR timestamps with validated sleep periods.
-5. **API updates**: Update `get-hourly-data.js` and `get-entries.js` to read and return the new Health_Daily columns.
-6. **Multi-Day View**: Add `hrAwake` and `hrAsleep` to `METRIC_CONFIGS` in `MultiDayView.jsx` (default OFF), render as `MetricLineChart` with `isDeviceData`.
-7. **History View**: Update `EntryHistory.jsx` to show HR breakdown (All / Awake / Asleep) in the health card.
-
-**Key Design Decisions**:
-- "Awake" HR = any HR reading where `activityMinutes[minuteOfDay] !== 'ASLEEP'` (all non-sleep time)
-- "Asleep" HR = any HR reading where `activityMinutes[minuteOfDay] === 'ASLEEP'`
-- Historical Health_Daily rows will have blank P/Q columns until webhook re-processes
-
-**Starting Prompt**:
-```
-Session 66 produced a detailed implementation plan for HR-Awake/HR-Asleep metrics.
-Plan is at .gemini/antigravity/brain/6019290c-983e-40c8-a85d-674fe749782a/implementation_plan.md
-
-Please implement the plan in order:
-1. Fix CombinedChart.jsx - remove grey from individual HR scatter points on Fri/Sat
-2. statsDataService.js - compute avgHR_awake and avgHR_asleep 
-3. SingleDayView.jsx - display the new metrics in summary
-4. health-webhook.js - add columns P & Q to Health_Daily
-5. get-hourly-data.js + get-entries.js - read new columns
-6. MultiDayView.jsx - add HR Awake/Asleep toggles
-7. EntryHistory.jsx - show HR breakdown in health card
-```
+**Possible next steps**:
+- Streak animations (Phase 3, item 18 — currently ON HOLD)
+- Any UI polish or new features the user identifies
+- Address any issues surfaced from production use of HR-Awake/Asleep metrics
 
 ---
 
 ## Completed Features Log
+
+### 2026-02-09 - HR-Awake/Asleep Metrics Implementation (Session 67)
+
+**Session Summary:**
+Full implementation of HR-Awake and HR-Asleep metrics across all views, plus a Fri/Sat HR coloring fix. Implemented the plan from Session 66 across 8 files, created a backfill script, and populated existing Health_Daily data.
+
+**Accomplishments:**
+
+1. **Fixed Fri/Sat HR Point Coloring** — Removed grey coloring from individual HR scatter points on Fridays/Saturdays in `CombinedChart.jsx`. Points now always display red.
+
+2. **Client-Side HR-Awake/Asleep Computation** — Added `avgHR_awake` and `avgHR_asleep` calculation to `statsDataService.js` by cross-referencing `hrPoints` with `activityMinutes`. HR during non-ASLEEP periods = awake, HR during ASLEEP = asleep.
+
+3. **Single-Day View Display** — Updated `SingleDayView.jsx` to show HR Awake and HR Asleep in the summary stats section alongside existing Avg HR.
+
+4. **Server-Side Storage** — Extended `health-webhook.js` to compute HR-Awake/Asleep by building sleep period ranges from `sleep_stage` rows, classifying each HR reading. Added columns P (HR Awake) and Q (HR Asleep) to Health_Daily. Updated all range references O→Q.
+
+5. **API Updates** — Updated `get-hourly-data.js` (range A2:O→A2:Q) and `get-entries.js` (range A:O→A:Q) to read and return the new columns.
+
+6. **Multi-Day View Toggles** — Added "HR Awake" (orange, #f97316) and "HR Asleep" (indigo, #6366f1) to `METRIC_CONFIGS` in `MultiDayView.jsx`, default OFF. Renders as `MetricLineChart` with `isDeviceData` for Fri/Sat dashed lines.
+
+7. **History View Breakdown** — Updated `EntryHistory.jsx` HR health card to show "HR All" label with Awake/Asleep sub-details when data is available. Added `.health-sub-detail` CSS class.
+
+8. **Backfill Script** — Created `scripts/backfill_hr_awake_asleep.js` to populate columns P & Q for all existing Health_Daily dates. Ran successfully: 37 of 52 dates updated.
+
+**Files Modified:**
+- `src/components/Stats/charts/CombinedChart.jsx` — Removed grey Fri/Sat HR points
+- `src/utils/statsDataService.js` — Added avgHR_awake/avgHR_asleep computation
+- `src/components/Stats/SingleDayView.jsx` — Display new metrics in summary
+- `api/health-webhook.js` — Server-side HR-awake/asleep + columns P & Q
+- `api/get-hourly-data.js` — Read new columns for multi-day view
+- `api/get-entries.js` — Read new columns for history view
+- `src/components/Stats/MultiDayView.jsx` — HR Awake/Asleep toggle charts
+- `src/components/EntryHistory.jsx` — HR breakdown display
+- `src/components/EntryHistory.css` — health-sub-detail styling
+
+**Files Created:**
+- `scripts/backfill_hr_awake_asleep.js` — One-off backfill for Health_Daily P & Q
+
+---
 
 ### 2026-02-09 - HR-Awake/Asleep Metrics Planning (Session 66)
 
