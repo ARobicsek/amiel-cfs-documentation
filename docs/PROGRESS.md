@@ -68,25 +68,31 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 69)
+## Next Session Priority (Session 70)
 
-**Goal**: Investigate and fix discrepancy in avg HR-Awake/Asleep between the single-day summary and the multi-day graphs. The same day shows different values in each view.
-
-**Context**:
-- Single-day HR-Awake/Asleep is computed client-side in `statsDataService.js` using the corrected `activityMinutes` array
-- Multi-day HR-Awake/Asleep is read from pre-stored Health_Daily columns P & Q (written by `health-webhook.js` at sync time, or backfilled)
-- The discrepancy is likely because Health_Daily columns P & Q were computed before the sleep-overlap bug was fixed — the stored values used the old (overcounted) sleep windows to classify HR readings
-- Possible fix: recompute HR-Awake/Asleep server-side in real time from hourly data (like sleep now does), OR re-run the backfill script after the sleep fix
-
-**Files to look at**:
-- `api/health-webhook.js` — how HR-awake/asleep is computed and stored at sync time
-- `api/get-hourly-data.js` — how multi-day returns avgHR_awake/avgHR_asleep (currently from Health_Daily, not recomputed)
-- `src/utils/statsDataService.js` — client-side HR-awake/asleep computation (uses activityMinutes)
-- `scripts/backfill_hr_awake_asleep.js` — may need to re-run after sleep fix
+**Goal**: TBD — no outstanding bugs. Good candidates:
+- Streak animations (Feature 18, currently ON HOLD)
+- Any new discrepancies or data quality issues discovered during use
 
 ---
 
 ## Completed Features Log
+
+### 2026-02-18 - HR-Awake/Asleep Multi-Day Discrepancy Fix (Session 69)
+
+**Problem**: Multi-day graph and single-day summary showed different HR-Awake/Asleep values for the same day (e.g. 2/16: multi-day Awake 85/Asleep 73 vs single-day Awake 87/Asleep 72).
+
+**Root Cause**: The multi-day view read pre-stored Health_Daily columns P & Q (written by `backfill_hr_awake_asleep.js`). That script only looked at `sleep_stage` rows stored under the exact date being processed. It missed overnight sleep stages stored under the *previous* day (e.g. a stage from 11PM on 2/15 → 7AM on 2/16 is stored under 2/15). Early-morning HR readings during sleep were therefore misclassified as "awake," pulling the awake average down and the asleep average up.
+
+**Fix**:
+- Added `computeHRAwakeAsleepByDate` to `lib/sleepValidation.js` — uses the same cross-midnight sleep stage attribution already present in `computeValidatedSleepByDate`, deduplicates stages, and classifies each HR reading's absolute timestamp against the (non-clipped) sleep windows
+- Updated `api/get-hourly-data.js` multi-day handler to call the new function and use the real-time computed values, falling back to Health_Daily P & Q only if no hourly data exists
+
+**Files changed**:
+- `lib/sleepValidation.js` — new exported function `computeHRAwakeAsleepByDate`
+- `api/get-hourly-data.js` — import + call new function; use `vHR?.avgHR_awake ?? daily.avgHR_awake` pattern
+
+---
 
 ### 2026-02-18 - Sleep Total Calculation Bug Fix (Session 68)
 
