@@ -68,18 +68,53 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 68)
+## Next Session Priority (Session 69)
 
-**Goal**: TBD — all planned HR-Awake/Asleep work is complete.
+**Goal**: Investigate and fix discrepancy in avg HR-Awake/Asleep between the single-day summary and the multi-day graphs. The same day shows different values in each view.
 
-**Possible next steps**:
-- Streak animations (Phase 3, item 18 — currently ON HOLD)
-- Any UI polish or new features the user identifies
-- Address any issues surfaced from production use of HR-Awake/Asleep metrics
+**Context**:
+- Single-day HR-Awake/Asleep is computed client-side in `statsDataService.js` using the corrected `activityMinutes` array
+- Multi-day HR-Awake/Asleep is read from pre-stored Health_Daily columns P & Q (written by `health-webhook.js` at sync time, or backfilled)
+- The discrepancy is likely because Health_Daily columns P & Q were computed before the sleep-overlap bug was fixed — the stored values used the old (overcounted) sleep windows to classify HR readings
+- Possible fix: recompute HR-Awake/Asleep server-side in real time from hourly data (like sleep now does), OR re-run the backfill script after the sleep fix
+
+**Files to look at**:
+- `api/health-webhook.js` — how HR-awake/asleep is computed and stored at sync time
+- `api/get-hourly-data.js` — how multi-day returns avgHR_awake/avgHR_asleep (currently from Health_Daily, not recomputed)
+- `src/utils/statsDataService.js` — client-side HR-awake/asleep computation (uses activityMinutes)
+- `scripts/backfill_hr_awake_asleep.js` — may need to re-run after sleep fix
 
 ---
 
 ## Completed Features Log
+
+### 2026-02-18 - Sleep Total Calculation Bug Fix (Session 68)
+
+**Session Summary:**
+Investigated and fixed a sleep time calculation bug causing inflated totals (e.g., 12h10m shown instead of ~9.5h actual). Also fixed a discrepancy between the single-day total and the multi-day/history totals for the same day.
+
+**Root Cause Identified:**
+Apple Watch and iPhone both report the same sleep sessions to Health Auto Export, with timestamps differing by a few seconds. These pairs survive exact-duplicate deduplication (which requires millisecond-level match) but represent the same sleep minutes. The old algorithm summed each stage's duration independently, double- or triple-counting overlapping regions. The visual chart was unaffected (it sets `activityMinutes[m] = 'ASLEEP'` — immune to duplicates), but the total was wrong.
+
+**Fixes Applied:**
+
+1. **Client-side total (`statsDataService.js`)** — Replaced the per-stage duration sum loop with `activityMinutes.filter(m => m === 'ASLEEP').length`. Now directly reads the deduplicated visual representation, guaranteeing the total always matches what's shown in the chart.
+
+2. **Server-side total (`sleepValidation.js`)** — Replaced per-stage duration sum with minute-resolution `Set` objects (`sleepMinSet`, `deepMinSet`, `remMinSet`, `coreMinSet`, `awakeMinSet`). Each minute is added to the set at most once regardless of how many overlapping stages cover it. Used by both multi-day view and history.
+
+3. **Day boundary fix (`sleepValidation.js`)** — Changed `dayEndUTC` from `23:59:59.999 ET` to exact next-day midnight, matching the client's `dayStartMs + 1440*60000`. Eliminates a ~1-second boundary inconsistency.
+
+4. **Next-day sleep_stage fetch (`get-hourly-data.js`)** — Added fetching of sleep_stage rows stored under date+1. These capture stages that start just before midnight on the target day but are logged under the next day, closing a ~10-minute gap between single-day and history totals.
+
+**Diagnostic added and removed:**
+Temporary `[SleepDiag]` console.log was added to `statsDataService.js` to confirm the granular path was active and visualize the overlapping stage pairs. Removed before final commit.
+
+**Files Modified:**
+- `src/utils/statsDataService.js` — Granular total: per-stage sum → activityMinutes count
+- `lib/sleepValidation.js` — Granular total: per-stage sum → minute Sets; dayEndUTC boundary fix
+- `api/get-hourly-data.js` — Also fetch next-day sleep_stage rows for single-day view
+
+---
 
 ### 2026-02-09 - HR-Awake/Asleep Metrics Implementation (Session 67)
 
