@@ -529,20 +529,11 @@ export function processSingleDayData(rows, dateStr) {
   // This ensures Single Day and Multi-Day produce identical totals
   let totalSleepMin = 0;
   if (hasGranularData) {
-    // Sum clipped fractional durations for actual sleep stages
-    for (const stage of granularStages) {
-      const s = stage.stage?.toLowerCase() || '';
-      // Count only actual sleep stages (exclude awake/inBed)
-      if (s.includes('asleep') || s === 'deep' || s === 'rem' || s === 'core') {
-        // Clip to day boundaries (same as Multi-Day)
-        const sStart = Math.max(stage.startDate.getTime(), dayStartMs);
-        const sEnd = Math.min(stage.endDate.getTime(), dayEndMs);
-        if (sStart < sEnd) {
-          totalSleepMin += (sEnd - sStart) / 60000;
-        }
-      }
-    }
-    totalSleepMin = Math.round(totalSleepMin);
+    // Count unique ASLEEP minutes from activityMinutes (already built in step 3b).
+    // This correctly handles overlapping/duplicate stages from multiple data sources
+    // (e.g., Apple Watch + iPhone both reporting the same sleep session with
+    // slightly different timestamps that survive deduplication).
+    totalSleepMin = activityMinutes.filter(m => m === 'ASLEEP').length;
   } else {
     // OLD PATH: Sum validated session durations, excluding awake
     for (const best of validatedClusters) {

@@ -180,6 +180,7 @@ async function handleSingleDay(req, res, date) {
     const prevDay = prevDate.getDate();
 
     const prevDaySleepStageRows = [];
+    const nextDaySleepStageRows = [];
 
     for (const row of allRows) {
       const dateStr = row[1];
@@ -205,11 +206,14 @@ async function handleSingleDay(req, res, date) {
           }
         } catch { /* skip unparseable rows */ }
       }
-      // NEW: Previous Day Sleep Stages (granular data)
+      // Previous Day Sleep Stages (granular data): stages that start on prev day and end on target day.
       else if (row[3] === 'sleep_stage' && rowMatchesDate(dateStr, prevMonth, prevDay, prevYear)) {
-        // Optimization: could check if endDate falls on targetDate, but simpler to return all 
-        // and let client statsDataService handle the clipping/filtering.
         prevDaySleepStageRows.push(row);
+      }
+      // Next Day Sleep Stages (granular data): stages stored under next day that may start before midnight.
+      // The client clips these to [dayStart, dayEnd], capturing any minutes on the target day.
+      else if (row[3] === 'sleep_stage' && rowMatchesDate(dateStr, nextMonth, nextDay, nextYear)) {
+        nextDaySleepStageRows.push(row);
       }
     }
 
@@ -245,6 +249,7 @@ async function handleSingleDay(req, res, date) {
       ...matchingRows.map(row => mapRow(row)),
       ...spilloverRows.map(row => mapRow(row, true)),
       ...prevDaySleepStageRows.map(row => mapRow(row)),
+      ...nextDaySleepStageRows.map(row => mapRow(row)),
     ];
 
     return res.status(200).json({ date, rows, count: rows.length });
