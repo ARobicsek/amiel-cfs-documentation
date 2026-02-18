@@ -18,7 +18,7 @@
  */
 
 import { google } from 'googleapis';
-import { computeValidatedSleepByDate } from '../lib/sleepValidation.js';
+import { computeValidatedSleepByDate, computeHRAwakeAsleepByDate } from '../lib/sleepValidation.js';
 
 // ── Shared helpers ──
 
@@ -330,6 +330,11 @@ async function handleMultiDay(req, res, startDate, endDate) {
     };
     const rangeFilterFn = (dateStr) => isInRange(dateStr, startDate, endDate);
     const validatedSleep = computeValidatedSleepByDate(hourlyRows, rangeFilterFn, rangeParseDateFn);
+    // Compute HR-Awake/Asleep in real time from hourly data, using the same
+    // cross-midnight sleep stage attribution as computeValidatedSleepByDate.
+    // This replaces reading pre-stored Health_Daily columns P & Q, which were
+    // computed by the backfill script without cross-midnight stage awareness.
+    const computedHRSleep = computeHRAwakeAsleepByDate(hourlyRows, rangeFilterFn, rangeParseDateFn);
 
     // --- 2. Sleep/Steps/HRV from Health_Daily ---
     const dailyRows = dailyResponse.data.values || [];
@@ -426,6 +431,7 @@ async function handleMultiDay(req, res, startDate, endDate) {
       const daily = dailyByDate[date] || {};
       const manual = manualByDate[date] || {};
       const vSleep = validatedSleep[date];
+      const vHR = computedHRSleep[date];
       const ecgData = ecgByDate[date];
 
       // Use validated sleep from hourly data (accurate), falling back to Health_Daily
@@ -472,8 +478,8 @@ async function handleMultiDay(req, res, startDate, endDate) {
         feetOnGround: manual.feetOnGround,
         brainTime: manual.brainTime,
         ecg,
-        avgHR_awake: daily.avgHR_awake,
-        avgHR_asleep: daily.avgHR_asleep,
+        avgHR_awake: vHR?.avgHR_awake ?? daily.avgHR_awake,
+        avgHR_asleep: vHR?.avgHR_asleep ?? daily.avgHR_asleep,
       });
     }
 
