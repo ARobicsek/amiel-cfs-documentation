@@ -9,6 +9,9 @@
  * This guarantees at least 28 days of backup coverage with only 25 total
  * backup sheets (vs. the old approach of up to 150 date-stamped sheets).
  *
+ * Large sheets (Health_Hourly) use incremental backups — each slot only
+ * stores the last 7 days of data, keeping cell usage bounded as data grows.
+ *
  * Also handles monthly email backups on the 1st of each month.
  *
  * Response:
@@ -18,12 +21,14 @@
 
 import { google } from 'googleapis';
 
-// Source sheets and their backup prefixes
+// Source sheets and their backup prefixes.
+// incrementalDays + dateCol: only back up rows from the last N days (by column index).
+// Sheets without these fields get full-snapshot backups.
 const BACKUP_SOURCES = [
     { source: 'Sheet1', range: 'Sheet1!A:Z', prefix: 'Backup_Sheet1' },
     { source: 'ECG_Readings', range: 'ECG_Readings!A:Z', prefix: 'Backup_ECG' },
     { source: 'ECG_Waveforms', range: 'ECG_Waveforms!A:Z', prefix: 'Backup_Waveforms' },
-    { source: 'Health_Hourly', range: 'Health_Hourly!A:I', prefix: 'Backup_HealthHourly' },
+    { source: 'Health_Hourly', range: 'Health_Hourly!A:I', prefix: 'Backup_HealthHourly', incrementalDays: 7, dateCol: 1 },
     { source: 'Health_Daily', range: 'Health_Daily!A:Q', prefix: 'Backup_HealthDaily' },
 ];
 
@@ -114,7 +119,21 @@ export default async function handler(req, res) {
         const backupSheetNames = [];
         for (const s of BACKUP_SOURCES) {
             const sheetName = `${s.prefix}_W${weekSlot}`;
-            const rows = sourceData[s.source];
+            let rows = sourceData[s.source];
+
+            // For incremental sources, filter to header + last N days only
+            if (s.incrementalDays && s.dateCol != null && rows.length > 1) {
+                const cutoff = new Date(etDate);
+                cutoff.setDate(cutoff.getDate() - s.incrementalDays);
+                const header = rows[0];
+                const filtered = rows.slice(1).filter(row => {
+                    const d = new Date(row[s.dateCol]);
+                    return !isNaN(d.getTime()) && d >= cutoff;
+                });
+                rows = [header, ...filtered];
+                console.log(`${s.source}: incremental backup ${filtered.length} rows (last ${s.incrementalDays} days)`);
+            }
+
             if (rows.length > 0) {
                 // Clear existing content first (handles case where new data is shorter)
                 await sheets.spreadsheets.values.clear({
