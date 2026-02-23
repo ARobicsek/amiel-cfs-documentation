@@ -1,34 +1,48 @@
 /**
  * GET /api/backup-data
  *
- * Creates a daily backup of Sheet1 data to a timestamped backup sheet.
+ * Creates daily backups using 5 rotating weekly slots per source sheet.
  * Called by Vercel cron job daily.
- * 
+ *
+ * Strategy: 5 fixed backup sheets per source, rotating on a 35-day cycle.
+ * Each slot is overwritten daily for 7 days, then advances to the next.
+ * This guarantees at least 28 days of backup coverage with only 25 total
+ * backup sheets (vs. the old approach of up to 150 date-stamped sheets).
+ *
  * Also handles monthly email backups on the 1st of each month.
  *
- * Features:
- * - Creates backup sheets named "Backup_YYYY-MM-DD"
- * - Prunes backups older than 30 days
- * - Sends monthly email backup on the 1st of each month
- * - Includes row count validation to detect anomalies
- *
  * Response:
- *   200: { success: true, backupSheet: string, rowCount: number }
+ *   200: { success: true, weekSlot: number, ... }
  *   500: { error: string }
  */
 
 import { google } from 'googleapis';
 
+// Source sheets and their backup prefixes
+const BACKUP_SOURCES = [
+    { source: 'Sheet1', range: 'Sheet1!A:Z', prefix: 'Backup_Sheet1' },
+    { source: 'ECG_Readings', range: 'ECG_Readings!A:Z', prefix: 'Backup_ECG' },
+    { source: 'ECG_Waveforms', range: 'ECG_Waveforms!A:Z', prefix: 'Backup_Waveforms' },
+    { source: 'Health_Hourly', range: 'Health_Hourly!A:I', prefix: 'Backup_HealthHourly' },
+    { source: 'Health_Daily', range: 'Health_Daily!A:Q', prefix: 'Backup_HealthDaily' },
+];
+
+/**
+ * Compute which weekly slot (1-5) to use for a given date.
+ * Same slot for 7 consecutive days, then advances. 35-day cycle.
+ */
+function getWeekSlot(etDate) {
+    const daysSinceEpoch = Math.floor(etDate.getTime() / 86400000);
+    return Math.floor((daysSinceEpoch % 35) / 7) + 1;
+}
+
 export default async function handler(req, res) {
-    // Vercel cron jobs use GET
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Optional: Verify cron secret for additional security
     const cronSecret = req.headers['x-vercel-cron-secret'];
     if (process.env.CRON_SECRET && cronSecret !== process.env.CRON_SECRET) {
-        // Log but don't block - allows manual testing
         console.log('Note: Cron secret mismatch or missing');
     }
 
@@ -44,83 +58,48 @@ export default async function handler(req, res) {
         // Get current date in Eastern Time
         const now = new Date();
         const etDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-        const year = etDate.getFullYear();
-        const month = String(etDate.getMonth() + 1).padStart(2, '0');
-        const day = String(etDate.getDate()).padStart(2, '0');
-        const backupSheetName = `Backup_${year}-${month}-${day}`;
-        const ecgBackupSheetName = `ECG_Backup_${year}-${month}-${day}`;
-        const waveformBackupSheetName = `Waveform_Backup_${year}-${month}-${day}`;
-        const healthHourlyBackupName = `HealthHourly_Backup_${year}-${month}-${day}`;
-        const healthDailyBackupName = `HealthDaily_Backup_${year}-${month}-${day}`;
+        const weekSlot = getWeekSlot(etDate);
 
-        console.log(`Starting backup: ${backupSheetName}, ${ecgBackupSheetName}, ${waveformBackupSheetName}, ${healthHourlyBackupName}, ${healthDailyBackupName}`);
+        console.log(`Starting rotating backup, week slot W${weekSlot}`);
 
-        // Step 1: Fetch all data from Sheet1, ECG_Readings, ECG_Waveforms, and Health sheets
-        const [sourceData, ecgData, waveformData, healthHourlyData, healthDailyData] = await Promise.all([
-            sheets.spreadsheets.values.get({
-                spreadsheetId,
-                range: 'Sheet1!A:Z', // Get all columns
-            }),
-            sheets.spreadsheets.values.get({
-                spreadsheetId,
-                range: 'ECG_Readings!A:Z',
-            }).catch(() => ({ data: { values: [] } })), // Handle if sheet doesn't exist
-            sheets.spreadsheets.values.get({
-                spreadsheetId,
-                range: 'ECG_Waveforms!A:Z',
-            }).catch(() => ({ data: { values: [] } })), // Handle if sheet doesn't exist
-            sheets.spreadsheets.values.get({
-                spreadsheetId,
-                range: 'Health_Hourly!A:I',
-            }).catch(() => ({ data: { values: [] } })), // Handle if sheet doesn't exist
-            sheets.spreadsheets.values.get({
-                spreadsheetId,
-                range: 'Health_Daily!A:O',
-            }).catch(() => ({ data: { values: [] } })) // Handle if sheet doesn't exist
-        ]);
+        // Step 1: Fetch all source data
+        const fetchResults = await Promise.all(
+            BACKUP_SOURCES.map(s =>
+                sheets.spreadsheets.values.get({
+                    spreadsheetId,
+                    range: s.range,
+                }).catch(() => ({ data: { values: [] } }))
+            )
+        );
 
-        const rows = sourceData.data.values || [];
-        const ecgRows = ecgData.data.values || [];
-        const waveformRows = waveformData.data.values || [];
-        const healthHourlyRows = healthHourlyData.data.values || [];
-        const healthDailyRows = healthDailyData.data.values || [];
-        const rowCount = rows.length;
-        const ecgRowCount = ecgRows.length;
-        const waveformRowCount = waveformRows.length;
-        const healthHourlyRowCount = healthHourlyRows.length;
-        const healthDailyRowCount = healthDailyRows.length;
-
-        console.log(`Fetched ${rowCount} rows from Sheet1, ${ecgRowCount} from ECG_Readings, ${waveformRowCount} from ECG_Waveforms, ${healthHourlyRowCount} from Health_Hourly, ${healthDailyRowCount} from Health_Daily`);
-
-        // Anomaly detection: Alert if row count suddenly dropped
-        // (This could indicate accidental deletion)
-        if (rowCount < 5) {
-            console.warn(`⚠️ WARNING: Sheet1 has only ${rowCount} rows. This may indicate data loss.`);
-        }
-
-        // Step 2: Get spreadsheet metadata to check for existing backup sheets
-        const spreadsheet = await sheets.spreadsheets.get({
-            spreadsheetId,
+        const sourceData = {};
+        const rowCounts = {};
+        BACKUP_SOURCES.forEach((s, i) => {
+            sourceData[s.source] = fetchResults[i].data.values || [];
+            rowCounts[s.source] = sourceData[s.source].length;
         });
 
-        const existingSheets = spreadsheet.data.sheets.map(s => s.properties.title);
+        console.log(`Fetched: ${BACKUP_SOURCES.map(s => `${s.source}=${rowCounts[s.source]}`).join(', ')}`);
 
-        // Step 3: Create backup sheets if they don't exist
+        if (rowCounts['Sheet1'] < 5) {
+            console.warn(`WARNING: Sheet1 has only ${rowCounts['Sheet1']} rows. This may indicate data loss.`);
+        }
+
+        // Step 2: Get spreadsheet metadata
+        const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+        const existingSheetNames = spreadsheet.data.sheets.map(s => s.properties.title);
+        const existingSheetMap = {};
+        spreadsheet.data.sheets.forEach(s => {
+            existingSheetMap[s.properties.title] = s.properties.sheetId;
+        });
+
+        // Step 3: Create any missing backup sheets for the current week slot
         const sheetsToCreate = [];
-        if (!existingSheets.includes(backupSheetName)) {
-            sheetsToCreate.push({ addSheet: { properties: { title: backupSheetName } } });
-        }
-        if (!existingSheets.includes(ecgBackupSheetName) && ecgRowCount > 0) {
-            sheetsToCreate.push({ addSheet: { properties: { title: ecgBackupSheetName } } });
-        }
-        if (!existingSheets.includes(waveformBackupSheetName) && waveformRowCount > 0) {
-            sheetsToCreate.push({ addSheet: { properties: { title: waveformBackupSheetName } } });
-        }
-        if (!existingSheets.includes(healthHourlyBackupName) && healthHourlyRowCount > 0) {
-            sheetsToCreate.push({ addSheet: { properties: { title: healthHourlyBackupName } } });
-        }
-        if (!existingSheets.includes(healthDailyBackupName) && healthDailyRowCount > 0) {
-            sheetsToCreate.push({ addSheet: { properties: { title: healthDailyBackupName } } });
+        for (const s of BACKUP_SOURCES) {
+            const sheetName = `${s.prefix}_W${weekSlot}`;
+            if (!existingSheetNames.includes(sheetName) && rowCounts[s.source] > 0) {
+                sheetsToCreate.push({ addSheet: { properties: { title: sheetName } } });
+            }
         }
 
         if (sheetsToCreate.length > 0) {
@@ -128,136 +107,75 @@ export default async function handler(req, res) {
                 spreadsheetId,
                 requestBody: { requests: sheetsToCreate },
             });
-            console.log(`Created backup sheets: ${sheetsToCreate.map(s => s.addSheet.properties.title).join(', ')}`);
+            console.log(`Created: ${sheetsToCreate.map(s => s.addSheet.properties.title).join(', ')}`);
         }
 
-        // Step 4: Write data to backup sheets
-        const writePromises = [];
-
-        if (rows.length > 0) {
-            writePromises.push(
-                sheets.spreadsheets.values.update({
+        // Step 4: Clear and write data to the current week slot's backup sheets
+        const backupSheetNames = [];
+        for (const s of BACKUP_SOURCES) {
+            const sheetName = `${s.prefix}_W${weekSlot}`;
+            const rows = sourceData[s.source];
+            if (rows.length > 0) {
+                // Clear existing content first (handles case where new data is shorter)
+                await sheets.spreadsheets.values.clear({
                     spreadsheetId,
-                    range: `${backupSheetName}!A1`,
+                    range: `${sheetName}!A:Z`,
+                }).catch(() => {}); // Ignore if sheet was just created
+
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: `${sheetName}!A1`,
                     valueInputOption: 'RAW',
                     requestBody: { values: rows },
-                })
-            );
-        }
-
-        if (ecgRows.length > 0) {
-            writePromises.push(
-                sheets.spreadsheets.values.update({
-                    spreadsheetId,
-                    range: `${ecgBackupSheetName}!A1`,
-                    valueInputOption: 'RAW',
-                    requestBody: { values: ecgRows },
-                })
-            );
-        }
-
-        if (waveformRows.length > 0) {
-            writePromises.push(
-                sheets.spreadsheets.values.update({
-                    spreadsheetId,
-                    range: `${waveformBackupSheetName}!A1`,
-                    valueInputOption: 'RAW',
-                    requestBody: { values: waveformRows },
-                })
-            );
-        }
-
-        if (healthHourlyRows.length > 0) {
-            writePromises.push(
-                sheets.spreadsheets.values.update({
-                    spreadsheetId,
-                    range: `${healthHourlyBackupName}!A1`,
-                    valueInputOption: 'RAW',
-                    requestBody: { values: healthHourlyRows },
-                })
-            );
-        }
-
-        if (healthDailyRows.length > 0) {
-            writePromises.push(
-                sheets.spreadsheets.values.update({
-                    spreadsheetId,
-                    range: `${healthDailyBackupName}!A1`,
-                    valueInputOption: 'RAW',
-                    requestBody: { values: healthDailyRows },
-                })
-            );
-        }
-
-        await Promise.all(writePromises);
-        console.log(`Wrote ${rowCount} to ${backupSheetName}, ${ecgRowCount} to ${ecgBackupSheetName}, ${waveformRowCount} to ${waveformBackupSheetName}, ${healthHourlyRowCount} to ${healthHourlyBackupName}, ${healthDailyRowCount} to ${healthDailyBackupName}`);
-
-        // Step 5: Prune old backups (keep last 30 days)
-        const RETENTION_DAYS = 30;
-        const cutoffDate = new Date(etDate);
-        cutoffDate.setDate(cutoffDate.getDate() - RETENTION_DAYS);
-
-        const sheetsToDelete = [];
-        for (const sheet of spreadsheet.data.sheets) {
-            const title = sheet.properties.title;
-            // Match all backup sheet patterns
-            const backupPrefixes = ['Backup_', 'ECG_Backup_', 'Waveform_Backup_', 'HealthHourly_Backup_', 'HealthDaily_Backup_'];
-            const isBackupSheet = backupPrefixes.some(prefix => title.startsWith(prefix));
-
-            if (isBackupSheet) {
-                // Parse date from sheet name (handles all prefixes)
-                const dateMatch = title.match(/(?:ECG_|Waveform_|HealthHourly_|HealthDaily_)?Backup_(\d{4})-(\d{2})-(\d{2})/);
-                if (dateMatch) {
-                    const backupDate = new Date(dateMatch[1], dateMatch[2] - 1, dateMatch[3]);
-                    if (backupDate < cutoffDate) {
-                        sheetsToDelete.push({
-                            sheetId: sheet.properties.sheetId,
-                            title: title,
-                        });
-                    }
-                }
+                });
+                backupSheetNames.push(sheetName);
             }
         }
 
-        // Delete old backup sheets
-        if (sheetsToDelete.length > 0) {
-            const deleteRequests = sheetsToDelete.map(s => ({
-                deleteSheet: { sheetId: s.sheetId }
-            }));
+        console.log(`Wrote to: ${backupSheetNames.join(', ')}`);
 
+        // Step 5: One-time migration — delete old date-stamped backup sheets
+        const oldBackupPattern = /^(?:ECG_|Waveform_|HealthHourly_|HealthDaily_)?Backup_\d{4}-\d{2}-\d{2}$/;
+        const oldBackups = spreadsheet.data.sheets.filter(s =>
+            oldBackupPattern.test(s.properties.title)
+        );
+
+        if (oldBackups.length > 0) {
             await sheets.spreadsheets.batchUpdate({
                 spreadsheetId,
-                requestBody: { requests: deleteRequests },
+                requestBody: {
+                    requests: oldBackups.map(s => ({
+                        deleteSheet: { sheetId: s.properties.sheetId }
+                    })),
+                },
             });
-
-            console.log(`Pruned ${sheetsToDelete.length} old backup(s): ${sheetsToDelete.map(s => s.title).join(', ')}`);
+            console.log(`Migrated: deleted ${oldBackups.length} old date-stamped backup sheet(s)`);
         }
 
-        // Step 6: Check if today is the 1st - send monthly email backup
+        // Step 6: Check if today is the 1st — send monthly email backup
         let emailSent = false;
         if (etDate.getDate() === 1) {
             try {
-                emailSent = await sendMonthlyEmailBackup(rows, ecgRows, waveformRows, healthHourlyRows, healthDailyRows, etDate);
+                emailSent = await sendMonthlyEmailBackup(
+                    sourceData['Sheet1'],
+                    sourceData['ECG_Readings'],
+                    sourceData['ECG_Waveforms'],
+                    sourceData['Health_Hourly'],
+                    sourceData['Health_Daily'],
+                    etDate
+                );
             } catch (emailError) {
                 console.error('Failed to send monthly email backup:', emailError.message);
-                // Don't fail the whole backup just because email failed
             }
         }
 
         return res.status(200).json({
             success: true,
-            backupSheet: backupSheetName,
-            ecgBackupSheet: ecgBackupSheetName,
-            waveformBackupSheet: waveformBackupSheetName,
-            healthHourlyBackupSheet: healthHourlyBackupName,
-            healthDailyBackupSheet: healthDailyBackupName,
-            rowCount: rowCount,
-            ecgRowCount: ecgRowCount,
-            waveformRowCount: waveformRowCount,
-            healthHourlyRowCount: healthHourlyRowCount,
-            healthDailyRowCount: healthDailyRowCount,
-            prunedBackups: sheetsToDelete.length,
-            emailSent: emailSent,
+            weekSlot,
+            backupSheets: backupSheetNames,
+            rowCounts,
+            oldBackupsCleaned: oldBackups.length,
+            emailSent,
             timestamp: now.toISOString(),
         });
 
