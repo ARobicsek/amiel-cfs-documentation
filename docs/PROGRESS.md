@@ -68,7 +68,7 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 70)
+## Next Session Priority (Session 71)
 
 **Goal**: TBD — no outstanding bugs. Good candidates:
 - Streak animations (Feature 18, currently ON HOLD)
@@ -77,6 +77,26 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-02-23 - Backup System Overhaul: Fix Google Sheets 10M Cell Limit (Session 70)
+
+**Problem**: Health Auto Export was failing to sync data with error "This action would increase the number of cells in the workbook above the limit of 10000000 cells." The daily backup system in `backup-data.js` created 5 new date-stamped sheets per day × 30 days retention = up to 150 backup tabs, consuming the entire cell budget.
+
+**Fix**: Complete rewrite of the backup strategy:
+- Replaced date-stamped daily backups with **5 rotating weekly slots** per source sheet (25 fixed tabs total vs. 150)
+- Each slot is overwritten daily for 7 days, then the cycle advances (35-day rotation, guaranteeing 28+ days of coverage)
+- **Incremental backups** for Health_Hourly: each slot only stores the last 7 days of data (~3,500 rows) instead of the full history (~19K+ rows), keeping cell usage bounded permanently
+- Reordered logic to delete old backups *before* creating new ones (prevents failure when already at cell limit)
+- One-time migration auto-deletes all old `Backup_YYYY-MM-DD` style sheets (cleaned up 131 on first run)
+- Monthly email backup still sends complete data for all sheets
+
+**Week slot schedule** (deterministic, based on days-since-epoch mod 35):
+- W5: Feb 23–25 → W1: Feb 26–Mar 4 → W2: Mar 5–11 → W3: Mar 12–18 → W4: Mar 19–25 → W5: Mar 26–Apr 1 → ...
+
+**Files changed**:
+- `api/backup-data.js` — full rewrite of backup naming, creation, writing, pruning, and migration logic
+
+---
 
 ### 2026-02-18 - HR-Awake/Asleep Multi-Day Discrepancy Fix (Session 69)
 
