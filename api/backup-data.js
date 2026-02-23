@@ -98,7 +98,25 @@ export default async function handler(req, res) {
             existingSheetMap[s.properties.title] = s.properties.sheetId;
         });
 
-        // Step 3: Create any missing backup sheets for the current week slot
+        // Step 3: Delete old date-stamped backup sheets FIRST (frees cells before creating new ones)
+        const oldBackupPattern = /^(?:ECG_|Waveform_|HealthHourly_|HealthDaily_)?Backup_\d{4}-\d{2}-\d{2}$/;
+        const oldBackups = spreadsheet.data.sheets.filter(s =>
+            oldBackupPattern.test(s.properties.title)
+        );
+
+        if (oldBackups.length > 0) {
+            await sheets.spreadsheets.batchUpdate({
+                spreadsheetId,
+                requestBody: {
+                    requests: oldBackups.map(s => ({
+                        deleteSheet: { sheetId: s.properties.sheetId }
+                    })),
+                },
+            });
+            console.log(`Migrated: deleted ${oldBackups.length} old date-stamped backup sheet(s)`);
+        }
+
+        // Step 4: Create any missing backup sheets for the current week slot
         const sheetsToCreate = [];
         for (const s of BACKUP_SOURCES) {
             const sheetName = `${s.prefix}_W${weekSlot}`;
@@ -115,7 +133,7 @@ export default async function handler(req, res) {
             console.log(`Created: ${sheetsToCreate.map(s => s.addSheet.properties.title).join(', ')}`);
         }
 
-        // Step 4: Clear and write data to the current week slot's backup sheets
+        // Step 5: Clear and write data to the current week slot's backup sheets
         const backupSheetNames = [];
         for (const s of BACKUP_SOURCES) {
             const sheetName = `${s.prefix}_W${weekSlot}`;
@@ -153,23 +171,6 @@ export default async function handler(req, res) {
 
         console.log(`Wrote to: ${backupSheetNames.join(', ')}`);
 
-        // Step 5: One-time migration — delete old date-stamped backup sheets
-        const oldBackupPattern = /^(?:ECG_|Waveform_|HealthHourly_|HealthDaily_)?Backup_\d{4}-\d{2}-\d{2}$/;
-        const oldBackups = spreadsheet.data.sheets.filter(s =>
-            oldBackupPattern.test(s.properties.title)
-        );
-
-        if (oldBackups.length > 0) {
-            await sheets.spreadsheets.batchUpdate({
-                spreadsheetId,
-                requestBody: {
-                    requests: oldBackups.map(s => ({
-                        deleteSheet: { sheetId: s.properties.sheetId }
-                    })),
-                },
-            });
-            console.log(`Migrated: deleted ${oldBackups.length} old date-stamped backup sheet(s)`);
-        }
 
         // Step 6: Check if today is the 1st — send monthly email backup
         let emailSent = false;
