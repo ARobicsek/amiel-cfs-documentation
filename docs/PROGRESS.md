@@ -68,7 +68,7 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 71)
+## Next Session Priority (Session 72)
 
 **Goal**: TBD — no outstanding bugs. Good candidates:
 - Streak animations (Feature 18, currently ON HOLD)
@@ -77,6 +77,21 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-03-02 - Webhook Timezone Date Mapping Bug Fix (Session 71)
+
+**Problem**: The graph was displaying data points for wrong days (e.g. data from late March 1st (PST) showing up on March 2nd) because Apple Health data coming from different timezones was being shifted unconditionally into the API server's timezone (EST/EDT) leading to cross-midnight miscategorization into the next day bucket.
+
+**Fix**:
+- Updated `health-webhook.js` and `ecg-webhook.js` to explicitly parse the true local timestamp datestrings directly from Apple Health rather than defaulting to the server's New York timezone. 
+- Created `fix_timezone_data.js` to scan, backfill, and repair rows in the data spreadsheet where original timestamp local hours and dates didn't match the Google Sheet bucket date.
+
+**Files changed**:
+- `api/health-webhook.js` — Changed timezone extraction pattern.
+- `api/ecg-webhook.js` — Changed timezone extraction pattern.
+- `scripts/fix_timezone_data.js` (Created) — One-off backfill to fix misaligned dates.
+
+---
 
 ### 2026-02-23 - Backup System Overhaul: Fix Google Sheets 10M Cell Limit (Session 70)
 
