@@ -264,10 +264,10 @@ export default async function handler(req, res) {
 
     // Check if this is CSV or multipart form-data (which contains CSV)
     const isCSV = contentType.includes('text/csv') ||
-                  contentType.includes('text/plain') ||
-                  contentType.includes('multipart/form-data') ||
-                  rawBody.trim().startsWith('--Boundary-') ||
-                  (!contentType.includes('json') && rawBody.trim().split('\n')[0].includes(','));
+      contentType.includes('text/plain') ||
+      contentType.includes('multipart/form-data') ||
+      rawBody.trim().startsWith('--Boundary-') ||
+      (!contentType.includes('json') && rawBody.trim().split('\n')[0].includes(','));
 
     if (isCSV) {
       console.log('Detected CSV/multipart format');
@@ -354,13 +354,30 @@ export default async function handler(req, res) {
         hrValid = hrDiff <= 10; // Within 10 BPM = valid
       }
 
-      // Use ECG's actual date/time, not current time
+      // Use ECG's actual date/time, maintaining local time rather than forcing EST/EDT
+      // The payload comes like "2026-03-01 21:29:10 -0800"
       const now = new Date();
       const etOptions = { timeZone: 'America/New_York' };
       const receivedTimestamp = now.toLocaleString('en-US', etOptions);
 
-      // Format the ECG date for display (ecgDate and ecgId already defined above)
-      const ecgDateStr = ecgDate.toLocaleString('en-US', etOptions);
+      // Extract local date correctly for displaying "March 1 9:10 PM" as "3/1/2026 21:10"
+      let ecgDateStr = ecgDate.toLocaleString('en-US', etOptions); // Fallback to EST 
+
+      const rawDateStr = ecg.date || ecgDate.toISOString();
+      const localMatch = rawDateStr.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+      if (localMatch) {
+        const parts = localMatch[1].split('-');
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        const y = parts[0];
+        let h = parseInt(localMatch[2], 10);
+        const min = localMatch[3];
+        const sec = localMatch[4];
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12;
+        ecgDateStr = `${m}/${d}/${y}, ${h}:${min}:${sec} ${ampm}`;
+      }
 
       // Store metadata in ECG_Readings sheet
       await sheets.spreadsheets.values.append({
@@ -726,18 +743,18 @@ function findRPeaks(voltages, samplingRate) {
   const maxV = Math.max(...voltages);
   const threshold = maxV * 0.30;
 
-  console.log(`Peak detection: maxV=${maxV.toFixed(4)}, threshold=${threshold.toFixed(4)}, minDist=${minDistance} samples (${(minDistance/samplingRate*1000).toFixed(0)}ms)`);
+  console.log(`Peak detection: maxV=${maxV.toFixed(4)}, threshold=${threshold.toFixed(4)}, minDist=${minDistance} samples (${(minDistance / samplingRate * 1000).toFixed(0)}ms)`);
 
   let lastPeakIdx = -minDistance;
 
   for (let i = 2; i < voltages.length - 2; i++) {
     // Simple local maximum check
     if (voltages[i] > voltages[i - 1] &&
-        voltages[i] > voltages[i - 2] &&
-        voltages[i] > voltages[i + 1] &&
-        voltages[i] > voltages[i + 2] &&
-        voltages[i] > threshold &&
-        i - lastPeakIdx >= minDistance) {
+      voltages[i] > voltages[i - 2] &&
+      voltages[i] > voltages[i + 1] &&
+      voltages[i] > voltages[i + 2] &&
+      voltages[i] > threshold &&
+      i - lastPeakIdx >= minDistance) {
       peaks.push(i);
       lastPeakIdx = i;
     }

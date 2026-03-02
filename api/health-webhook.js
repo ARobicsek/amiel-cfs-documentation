@@ -91,9 +91,24 @@ export default async function handler(req, res) {
                 dateObj = new Date(item.raw.sleepEnd);
             }
 
-            const dateStr = dateObj.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
-            const timeStr = dateObj.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false });
-            const hourStr = timeStr.split(':')[0];
+            // Extract the local date and time from the item's raw date string
+            // Health Auto Export dates look like "2026-03-01 21:29:10 -0800"
+            const rawDateStr = item.date || item.raw?.date || item.raw?.startDate || dateObj.toISOString();
+
+            // Default to the forced EST conversion if parsing fails
+            let dateStr = dateObj.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
+            let hourStr = dateObj.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false }).split(':')[0];
+
+            // Try to extract the true local time from the string
+            // Match pattern: YYYY-MM-DD HH:mm:ss
+            const localMatch = rawDateStr.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+            if (localMatch) {
+                // Convert "2026-03-01" to "3/1/2026" to match existing sheet format
+                const parts = localMatch[1].split('-');
+                dateStr = `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}/${parts[0]}`;
+                hourStr = localMatch[2];
+            }
+
             const timestampET = dateObj.toLocaleString('en-US', { timeZone: 'America/New_York' });
 
             const signature = `${item.date}_${item.name}_${item.value}_${item.source || 'Auto'}`;
@@ -390,6 +405,10 @@ function parseDateToIso(dateStr) {
         const year = parts[2];
         return `${year}-${month}-${day}`;
     }
+    // Handle format that starts with ISO date string (we extracted this format earlier)
+    const match = dateStr.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+
     return dateStr;
 }
 
