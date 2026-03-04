@@ -69,21 +69,26 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ### Next Up
-1. **Timezone Retroactive Fix Script**: Create a temporary `/api/fix-timezones` endpoint or script to retroactively scan `Health_Hourly` and `Health_Daily` tabs, parsing the `-0800` offset out of the `Raw Data` column, and cleanly rewriting the respective `Timestamp` or `LastUpdated` columns with the correct local time from the recent Seattle trip.
-2. **Dashboard Analytics:** Implement "time in bed" vs "time asleep" ratio.
-3. Streak animations (Feature 18, currently ON HOLD)
-4. Any new discrepancies or data quality issues discovered during use
+1. **Dashboard Analytics:** Implement "time in bed" vs "time asleep" ratio.
+2. Streak animations (Feature 18, currently ON HOLD)
+3. Any new discrepancies or data quality issues discovered during use
 
 ---
 
-## Next Session Priority (Session 73)
+## Next Session Priority (Session 74)
 
-**Goal**: Ensure that the time and date stamps in all Google Sheets (e.g., via `ecg-webhook.js`, `submit-entry.js`, etc.) also properly reflect the local time experienced by the person wearing the watch/holding the phone.
-- Audit all other webhook and API endpoints for timezone consistency.
+**Goal**: Implement "time in bed" vs "time asleep" ratio analytics.
+- Determine the best location in the UI for this new analytic.
+- Update data processing to calculate this ratio securely and accurately.
 
 ---
 
 ## Completed Features Log
+
+### 2026-03-04 - Seattle Timezone Deduplication & Fix (Session 73)
+- **Problem**: Sleep and activity records logged during the Seattle trip contained forced EST timestamps rather than the correct Pacific Time (-0800) local hour.
+- **Fix**: Created and executed `scripts/fix_timezone_seattle.js` which parsed the `-0800` offset from the raw JSON payload strings and rewrote the Timestamp, Date, and Hour columns for 1803 rows in the `Health_Hourly` Google Sheet.
+- **Files**: `scripts/fix_timezone_seattle.js`
 
 ### 2026-03-04 - Standardized Timezone Handling Across All API Endpoints
 - **Problem**: Google Sheets entries were recording time in forced Eastern Standard Time (`America/New_York`), causing inaccurate time tracking when the user travels outside of EST.
