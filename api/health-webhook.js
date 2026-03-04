@@ -102,14 +102,20 @@ export default async function handler(req, res) {
             // Try to extract the true local time from the string
             // Match pattern: YYYY-MM-DD HH:mm:ss
             const localMatch = rawDateStr.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+            let timestampDevice = dateObj.toLocaleString('en-US', { timeZone: 'America/New_York' });
+
             if (localMatch) {
                 // Convert "2026-03-01" to "3/1/2026" to match existing sheet format
                 const parts = localMatch[1].split('-');
                 dateStr = `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}/${parts[0]}`;
                 hourStr = localMatch[2];
-            }
 
-            const timestampET = dateObj.toLocaleString('en-US', { timeZone: 'America/New_York' });
+                // Assemble a local timestamp for column A to match the true device time
+                const hourNum = parseInt(hourStr, 10);
+                const isPM = hourNum >= 12;
+                const h12 = hourNum % 12 || 12;
+                timestampDevice = `${dateStr}, ${h12}:${localMatch[3]}:${localMatch[4]} ${isPM ? 'PM' : 'AM'}`;
+            }
 
             const signature = `${item.date}_${item.name}_${item.value}_${item.source || 'Auto'}`;
 
@@ -118,7 +124,7 @@ export default async function handler(req, res) {
             }
 
             const row = [
-                timestampET,
+                timestampDevice,
                 dateStr,
                 hourStr,
                 item.name,

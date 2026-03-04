@@ -47,30 +47,15 @@ function parseTimestamp(str) {
 }
 
 /**
- * Get minute-of-day (0-1439) from a Date object, using the date's local timezone.
- * We extract the hour/minute from the timestamp string directly to avoid timezone issues.
+ * Get minute-of-day relative to a specific day boundary (dayStartMs).
+ * Using absolute ms calculations ensures we account for timezone offsets and day crossovers,
+ * rather than just blind string parsing which ignores the date entirely.
  */
-function minuteOfDayFromTimestamp(timestampStr) {
-  if (!timestampStr) return null;
-
-  // Try to extract time from formats like "2026-01-28 06:49:53 -0500"
-  const match = timestampStr.match(/(\d{2}):(\d{2}):(\d{2})/);
-  if (match) {
-    return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-  }
-
-  // Try to extract from "1/28/2026, 4:26:57 PM" format
-  const match2 = timestampStr.match(/(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)/i);
-  if (match2) {
-    let hour = parseInt(match2[1], 10);
-    const min = parseInt(match2[2], 10);
-    const ampm = match2[4].toUpperCase();
-    if (ampm === 'PM' && hour !== 12) hour += 12;
-    if (ampm === 'AM' && hour === 12) hour = 0;
-    return hour * 60 + min;
-  }
-
-  return null;
+function minuteOfDayFromTimestampAbsolute(timestampStr, dayStartMs) {
+  const ts = parseTimestamp(timestampStr);
+  if (!ts) return null;
+  // Floor the division to handle minutes logically (e.g. -0.5 becomes -1)
+  return Math.floor((ts.getTime() - dayStartMs) / 60000);
 }
 
 /**
@@ -382,7 +367,25 @@ export function processSingleDayData(rows, dateStr) {
   // 3a. Determine if we have granular sleep data
   const hasGranularData = granularStages.length > 0;
 
-  const dayStartMs = targetDate.getTime();
+  // 2b. Determine timezone offset from the source data
+  let tzOffset = null;
+  for (const row of rows) {
+    if (row.rawData) {
+      // Look for a timezone offset at the end like "2026-03-04 12:02:16 -0800"
+      const match = row.rawData.match(/([+-]\d{2})(\d{2})["|}]/);
+      if (match) {
+        tzOffset = `${match[1]}:${match[2]}`; // convert to ISO offset like "-08:00"
+        break;
+      }
+    }
+  }
+
+  // 2c. Define exact day boundaries mapped to the device's timezone
+  const tzDayStartMs = tzOffset
+    ? new Date(`${dateStr}T00:00:00${tzOffset}`).getTime()
+    : targetDate.getTime();
+
+  const dayStartMs = tzDayStartMs;
   const dayEndMs = dayStartMs + 1440 * 60000;
 
   // Initialize validatedClusters at outer scope (used by OLD path)
@@ -475,20 +478,22 @@ export function processSingleDayData(rows, dateStr) {
       const parsed = parseStepRawData(row.rawData);
       if (!parsed) return;
 
-      const min = minuteOfDayFromTimestamp(parsed.dateStr);
+      const min = minuteOfDayFromTimestampAbsolute(parsed.dateStr, dayStartMs);
       const qty = parsed.qty ?? row.value ?? 0;
       totalSteps += qty;
 
       if (min === null) return;
+      const mFloor = Math.floor(min);
 
-      // Accumulate step count for this minute
-      stepCounts[min] += qty;
+      // Only overlay on the chart if within this 24-hour boundary window
+      if (mFloor >= 0 && mFloor < 1440) {
+        stepCounts[mFloor] += qty;
 
-      // Layer 2: Suppress steps < 2 per minute (sensor noise)
-      if (qty < 2) return;
-
-      // Mark as WALKING in the overlay layer
-      walkingMinutes[min] = true;
+        // Layer 2: Suppress steps < 2 per minute (sensor noise)
+        if (qty >= 2) {
+          walkingMinutes[mFloor] = true;
+        }
+      }
     }
   });
 
@@ -502,17 +507,20 @@ export function processSingleDayData(rows, dateStr) {
       const bpm = parsed?.avg ?? row.value;
       if (bpm === null || bpm === undefined) return;
 
-      const min = minuteOfDayFromTimestamp(parsed?.dateStr || '');
-      // Fallback: use the hour from the row
+      const min = minuteOfDayFromTimestampAbsolute(parsed?.dateStr || '', dayStartMs);
+      // Fallback: use the hour from the row relative to midnight
       const minuteOfDay = min !== null ? min : (row.hour !== null ? row.hour * 60 : null);
       if (minuteOfDay === null) return;
+      const mFloor = Math.floor(minuteOfDay);
 
-      if (!hrMap.has(minuteOfDay)) {
-        hrMap.set(minuteOfDay, { sum: 0, count: 0 });
+      if (mFloor >= 0 && mFloor < 1440) {
+        if (!hrMap.has(mFloor)) {
+          hrMap.set(mFloor, { sum: 0, count: 0 });
+        }
+        const entry = hrMap.get(mFloor);
+        entry.sum += bpm;
+        entry.count += 1;
       }
-      const entry = hrMap.get(minuteOfDay);
-      entry.sum += bpm;
-      entry.count += 1;
     }
   });
 

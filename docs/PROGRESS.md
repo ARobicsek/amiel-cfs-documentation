@@ -68,7 +68,7 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
-## Next Session Priority (Session 72)
+## Next Session Priority (Session 73)
 
 **Goal**: TBD — no outstanding bugs. Good candidates:
 - Streak animations (Feature 18, currently ON HOLD)
@@ -77,6 +77,20 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ## Completed Features Log
+
+### 2026-03-04 - Timezone Visualization & Webhook Timestamp Fix (Session 72)
+
+**Problem**: 
+1. The Single Day chart displayed sleep overlapping with daytime walking activities. This happened because `statsDataService.js` converted sleep timestamps to minutes-of-day relative to the viewer's local browser timezone, but HR/steps were anchored blindly to the string's text, causing a 3-hour shift when viewing PST data from an EST browser.
+2. The `Health_Hourly` sheet's Timestamp column showed future dates (e.g. 3:00 PM EST when it was 12:00 PM PST) because `health-webhook.js` strictly converted all timestamps to New York time.
+
+**Fix**:
+- **Client (statsDataService.js)**: Extracted the true device timezone offset (e.g., `-0800`) directly from the Health Auto Export payloads. Computed day boundaries using this offset and rewrote `minuteOfDayFromTimestamp` to use absolute math, ensuring all metrics (HR, Steps, Sleep) precisely align to the device's local midnight regardless of the viewer's timezone.
+- **Server (health-webhook.js)**: Replaced strict EST formatting with a reconstructed localized timestamp (`timestampDevice`) that reflects the Apple Watch's true local hour and AM/PM when writing to the Google Sheet. 
+
+**Files changed**:
+- `src/utils/statsDataService.js` — Switched `minuteOfDayFromTimestamp` to absolute ms math and built timezone-aware `dayStartMs`.
+- `api/health-webhook.js` — Changed spreadsheet Timestamp column to log the true local time.
 
 ### 2026-03-02 - Webhook Timezone Date Mapping Bug Fix (Session 71)
 
