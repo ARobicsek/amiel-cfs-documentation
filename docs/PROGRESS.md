@@ -69,21 +69,24 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 ---
 
 ### Next Up
-1. **Dashboard Analytics:** Implement "time in bed" vs "time asleep" ratio.
-2. Streak animations (Feature 18, currently ON HOLD)
-3. Any new discrepancies or data quality issues discovered during use
+1. Streak animations (Feature 18, currently ON HOLD)
+2. Any new discrepancies or data quality issues discovered during use
 
 ---
 
 ## Next Session Priority (Session 74)
 
-**Goal**: Implement "time in bed" vs "time asleep" ratio analytics.
-- Determine the best location in the UI for this new analytic.
-- Update data processing to calculate this ratio securely and accurately.
+**Goal**: To be determined.
 
 ---
 
 ## Completed Features Log
+
+### 2026-03-04 - ECG Sync Investigation & Scope Adjustment (Session 74)
+- **Problem**: ECG data manually deleted from Google Sheets was repopulating on every sync.
+- **Investigation**: Discovered that Health Auto Export continuously pushes the same data from Apple Health if the reading still exists on the phone. The `existingIds` deduplication check in `ecg-webhook.js` fails once the row is deleted, causing the webhook to treat it as a new reading.
+- **Resolution**: Advised the user to permanently delete the reading from the Apple Health app directly prior to removing it from the Google Sheets backend.
+- **Scope Adjustment**: Discarded the previously planned "time in bed vs time asleep ratio" feature per user request, leaving the dashboard unaltered.
 
 ### 2026-03-04 - Seattle Timezone Deduplication & Fix (Session 73)
 - **Problem**: Sleep and activity records logged during the Seattle trip contained forced EST timestamps rather than the correct Pacific Time (-0800) local hour.
