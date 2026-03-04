@@ -82,6 +82,7 @@ export default async function handler(req, res) {
         const incomingData = normalizePayload(data);
         const newRows = [];
         const affectedDates = new Set();
+        let globalOffsetString = null;
 
         for (const item of incomingData) {
             let dateObj = new Date(item.date);
@@ -101,7 +102,7 @@ export default async function handler(req, res) {
 
             // Try to extract the true local time from the string
             // Match pattern: YYYY-MM-DD HH:mm:ss
-            const localMatch = rawDateStr.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+            const localMatch = rawDateStr.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\s+([+-]\d{4}))?/);
             let timestampDevice = dateObj.toLocaleString('en-US', { timeZone: 'America/New_York' });
 
             if (localMatch) {
@@ -115,6 +116,10 @@ export default async function handler(req, res) {
                 const isPM = hourNum >= 12;
                 const h12 = hourNum % 12 || 12;
                 timestampDevice = `${dateStr}, ${h12}:${localMatch[3]}:${localMatch[4]} ${isPM ? 'PM' : 'AM'}`;
+
+                if (localMatch[5] && !globalOffsetString) {
+                    globalOffsetString = localMatch[5];
+                }
             }
 
             const signature = `${item.date}_${item.name}_${item.value}_${item.source || 'Auto'}`;
@@ -167,6 +172,30 @@ export default async function handler(req, res) {
             range: 'Health_Daily!A2:A',
         });
         const dailyDates = (dailySheetRes.data.values || []).map(r => r[0]);
+
+        let lastUpdatedStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+        if (globalOffsetString) {
+            const now = new Date();
+            const sign = globalOffsetString[0] === '+' ? 1 : -1;
+            const hoursOffset = parseInt(globalOffsetString.slice(1, 3), 10);
+            const minsOffset = parseInt(globalOffsetString.slice(3, 5), 10);
+            const totalOffsetMs = sign * (hoursOffset * 60 + minsOffset) * 60 * 1000;
+
+            // UTC Date shifted by offset
+            const localNow = new Date(now.getTime() + totalOffsetMs);
+
+            const lm = localNow.getUTCMonth() + 1;
+            const ld = localNow.getUTCDate();
+            const ly = localNow.getUTCFullYear();
+            let lh = localNow.getUTCHours();
+            const lmin = String(localNow.getUTCMinutes()).padStart(2, '0');
+            const lsec = String(localNow.getUTCSeconds()).padStart(2, '0');
+            const lampm = lh >= 12 ? 'PM' : 'AM';
+            lh = lh % 12;
+            lh = lh ? lh : 12;
+
+            lastUpdatedStr = `${lm}/${ld}/${ly}, ${lh}:${lmin}:${lsec} ${lampm}`;
+        }
 
         for (const dateStr of affectedDates) {
             const daysRows = rowsByDate[dateStr] || [];
@@ -318,7 +347,7 @@ export default async function handler(req, res) {
                 finalEfficiency,
                 finalDeep !== 0 ? finalDeep : '',
                 finalRem !== 0 ? finalRem : '',
-                new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+                lastUpdatedStr,
                 hrCount !== 0 ? hrCount : '',
                 hrvCount !== 0 ? hrvCount : '',
                 finalAwake !== 0 ? finalAwake : '',

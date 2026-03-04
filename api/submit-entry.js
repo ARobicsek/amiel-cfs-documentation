@@ -74,7 +74,7 @@ export default async function handler(req, res) {
   // Default: submit entry
   // Parse and validate body
   const {
-    dateFor, hours, comments, oxaloacetate, exercise, brainTime, modafinil, willDoECG
+    dateFor, hours, comments, oxaloacetate, exercise, brainTime, modafinil, willDoECG, localTimeZone
   } = req.body;
 
   if (hours === undefined || hours === null) {
@@ -98,10 +98,11 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
 
-    // Get current time in US Eastern Time (this is when the entry was SUBMITTED)
+    // Get current time in user's local timezone (this is when the entry was SUBMITTED)
     const now = new Date();
+    const timeZone = localTimeZone || 'America/New_York';
     const timestamp = now.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
+      timeZone: timeZone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -114,7 +115,7 @@ export default async function handler(req, res) {
     // If no dateFor provided by client, fall back to server's current date
     if (!entryDateFor) {
       entryDateFor = now.toLocaleDateString('en-US', {
-        timeZone: 'America/New_York',
+        timeZone: timeZone,
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
@@ -213,7 +214,7 @@ export default async function handler(req, res) {
 
     // Get today's date (documentation date) for willDoECG attribution
     const todayDate = now.toLocaleDateString('en-US', {
-      timeZone: 'America/New_York',
+      timeZone: timeZone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'

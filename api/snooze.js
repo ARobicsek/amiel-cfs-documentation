@@ -30,15 +30,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { duration = 60 } = req.body;
+    const { duration = 60, localTimeZone } = req.body;
 
     // Calculate snooze until time
     const now = new Date();
     const snoozeUntil = new Date(now.getTime() + duration * 60 * 1000);
 
-    // Format in Eastern Time for storage
-    const snoozeUntilET = snoozeUntil.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
+    // Format in requested Timezone for storage
+    const timeZone = localTimeZone || 'America/New_York';
+    const snoozeUntilLocal = snoozeUntil.toLocaleString('en-US', {
+      timeZone: timeZone,
       hour12: false,
       year: 'numeric',
       month: '2-digit',
@@ -96,15 +97,15 @@ export default async function handler(req, res) {
       range: 'UserSettings!E2',
       valueInputOption: 'RAW',
       resource: {
-        values: [[snoozeUntilET]],
+        values: [[snoozeUntilLocal]],
       },
     });
 
-    console.log(`Snoozed until ${snoozeUntilET}`);
+    console.log(`Snoozed until ${snoozeUntilLocal} (${timeZone})`);
 
     return res.status(200).json({
       success: true,
-      snoozeUntil: snoozeUntilET,
+      snoozeUntil: snoozeUntilLocal,
       message: `Snoozed for ${duration} minutes`
     });
 

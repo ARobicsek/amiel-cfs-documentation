@@ -36,25 +36,22 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = process.env.GOOGLE_SHEET_ID.trim();
 
-    // Get current time in Eastern Time
+    // We will get current time AFTER fetching use settings so we know their timezone
     const now = new Date();
-    const etDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const currentHour = etDate.getHours();
-    const currentMinute = etDate.getMinutes();
-    const todayDateString = etDate.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
 
     // Fetch user settings
     let settings = {
       firstReminderTime: '20:00',
       repeatInterval: 60,
       stopAfterLog: true,
-      snoozeUntil: null
+      snoozeUntil: null,
+      localTimeZone: 'America/New_York'
     };
 
     try {
       const settingsResponse = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'UserSettings!A2:E2',
+        range: 'UserSettings!A2:F2',
       });
 
       const row = settingsResponse.data.values?.[0];
@@ -64,17 +61,24 @@ export default async function handler(req, res) {
         settings.repeatInterval = !isNaN(parsedInterval) ? parsedInterval : 60;
         settings.stopAfterLog = row[2] === 'true';
         settings.snoozeUntil = row[4] || null;  // Column E
+        settings.localTimeZone = row[5] || 'America/New_York'; // Column F
       }
     } catch (error) {
       console.log('Using default settings (UserSettings tab not found)');
     }
 
+    // Now calculate time variables in User's timezone
+    const userDate = new Date(now.toLocaleString('en-US', { timeZone: settings.localTimeZone }));
+    const currentHour = userDate.getHours();
+    const currentMinute = userDate.getMinutes();
+    const todayDateString = userDate.toLocaleDateString('en-US', { timeZone: settings.localTimeZone });
+
     // Check if currently snoozed
     if (settings.snoozeUntil) {
       const snoozeDate = new Date(settings.snoozeUntil);
-      const nowET = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const nowUser = new Date(now.toLocaleString('en-US', { timeZone: settings.localTimeZone }));
 
-      if (nowET < snoozeDate) {
+      if (nowUser < snoozeDate) {
         // Still snoozed
         return res.status(200).json({
           triggered: false,
@@ -160,7 +164,7 @@ export default async function handler(req, res) {
     }
 
     // Send the notification!
-    console.log(`Cron triggered at ${currentHour}:${String(currentMinute).padStart(2, '0')} ET - sending notification`);
+    console.log(`Cron triggered at ${currentHour}:${String(currentMinute).padStart(2, '0')} ${settings.localTimeZone} - sending notification`);
 
     const mockReq = {
       method: 'POST',

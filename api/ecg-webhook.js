@@ -357,14 +357,13 @@ export default async function handler(req, res) {
       // Use ECG's actual date/time, maintaining local time rather than forcing EST/EDT
       // The payload comes like "2026-03-01 21:29:10 -0800"
       const now = new Date();
-      const etOptions = { timeZone: 'America/New_York' };
-      const receivedTimestamp = now.toLocaleString('en-US', etOptions);
 
-      // Extract local date correctly for displaying "March 1 9:10 PM" as "3/1/2026 21:10"
-      let ecgDateStr = ecgDate.toLocaleString('en-US', etOptions); // Fallback to EST 
+      let ecgDateStr = ecgDate.toLocaleString('en-US', { timeZone: 'America/New_York' }); // Fallback
+      let receivedTimestamp = now.toLocaleString('en-US', { timeZone: 'America/New_York' }); // Fallback
 
       const rawDateStr = ecg.date || ecgDate.toISOString();
-      const localMatch = rawDateStr.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+      const localMatch = rawDateStr.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\s+([+-]\d{4}))?/);
+
       if (localMatch) {
         const parts = localMatch[1].split('-');
         const m = parseInt(parts[1], 10);
@@ -377,6 +376,30 @@ export default async function handler(req, res) {
         h = h % 12;
         h = h ? h : 12;
         ecgDateStr = `${m}/${d}/${y}, ${h}:${min}:${sec} ${ampm}`;
+
+        // If an offset is provided, reconstruct the received time in local time
+        if (localMatch[5]) {
+          const offsetString = localMatch[5]; // e.g. "-0800"
+          const sign = offsetString[0] === '+' ? 1 : -1;
+          const hoursOffset = parseInt(offsetString.slice(1, 3), 10);
+          const minsOffset = parseInt(offsetString.slice(3, 5), 10);
+          const totalOffsetMs = sign * (hoursOffset * 60 + minsOffset) * 60 * 1000;
+
+          // UTC Date shifted by offset
+          const localNow = new Date(now.getTime() + totalOffsetMs);
+
+          const lm = localNow.getUTCMonth() + 1;
+          const ld = localNow.getUTCDate();
+          const ly = localNow.getUTCFullYear();
+          let lh = localNow.getUTCHours();
+          const lmin = String(localNow.getUTCMinutes()).padStart(2, '0');
+          const lsec = String(localNow.getUTCSeconds()).padStart(2, '0');
+          const lampm = lh >= 12 ? 'PM' : 'AM';
+          lh = lh % 12;
+          lh = lh ? lh : 12;
+
+          receivedTimestamp = `${lm}/${ld}/${ly}, ${lh}:${lmin}:${lsec} ${lampm}`;
+        }
       }
 
       // Store metadata in ECG_Readings sheet

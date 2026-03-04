@@ -68,15 +68,31 @@ ECG_ID, Sampling_Freq, Voltage_1, Voltage_2, Voltage_3, Voltage_4
 
 ---
 
+### Next Up
+1. **Timezone Retroactive Fix Script**: Create a temporary `/api/fix-timezones` endpoint or script to retroactively scan `Health_Hourly` and `Health_Daily` tabs, parsing the `-0800` offset out of the `Raw Data` column, and cleanly rewriting the respective `Timestamp` or `LastUpdated` columns with the correct local time from the recent Seattle trip.
+2. **Dashboard Analytics:** Implement "time in bed" vs "time asleep" ratio.
+3. Streak animations (Feature 18, currently ON HOLD)
+4. Any new discrepancies or data quality issues discovered during use
+
+---
+
 ## Next Session Priority (Session 73)
 
-**Goal**: TBD — no outstanding bugs. Good candidates:
-- Streak animations (Feature 18, currently ON HOLD)
-- Any new discrepancies or data quality issues discovered during use
+**Goal**: Ensure that the time and date stamps in all Google Sheets (e.g., via `ecg-webhook.js`, `submit-entry.js`, etc.) also properly reflect the local time experienced by the person wearing the watch/holding the phone.
+- Audit all other webhook and API endpoints for timezone consistency.
 
 ---
 
 ## Completed Features Log
+
+### 2026-03-04 - Standardized Timezone Handling Across All API Endpoints
+- **Problem**: Google Sheets entries were recording time in forced Eastern Standard Time (`America/New_York`), causing inaccurate time tracking when the user travels outside of EST.
+- **Fix**: Replaced forced EST formatting with localized timezone structures.
+    - Updated client-led webhook payloads (`src/utils/api.js` and `public/sw-custom.js`) to include the user's inferred `localTimeZone`.
+    - Updated `submit-entry.js`, `snooze.js`, `subscribe.js`, and `notification-settings.js` to parse this timezone and formulate local timestamps.
+    - Added a mechanism to save/read the explicit Timezone to/from `UserSettings!F` for dynamic triggering in `cron-trigger.js`.
+    - Modified `ecg-webhook.js` and `health-webhook.js` to parse Apple's `+xxxx` offset from device-sent timestamps to maintain strict local-time parity.
+- **Files**: `src/utils/api.js`, `public/sw-custom.js`, `api/submit-entry.js`, `api/snooze.js`, `api/subscribe.js`, `api/notification-settings.js`, `api/cron-trigger.js`, `api/ecg-webhook.js`, `api/health-webhook.js`
 
 ### 2026-03-04 - Timezone Visualization & Webhook Timestamp Fix (Session 72)
 

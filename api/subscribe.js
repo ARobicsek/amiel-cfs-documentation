@@ -47,9 +47,9 @@ export default async function handler(req, res) {
     credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
   } catch (parseError) {
     console.error('Configuration Error: GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON', parseError);
-    return res.status(500).json({ 
-      error: 'Server Configuration Error', 
-      details: 'GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON. Check Vercel environment variables.' 
+    return res.status(500).json({
+      error: 'Server Configuration Error',
+      details: 'GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON. Check Vercel environment variables.'
     });
   }
 
@@ -73,9 +73,9 @@ export default async function handler(req, res) {
       console.log('Spreadsheet found. Title:', spreadsheet.properties.title);
     } catch (sheetError) {
       console.error('Failed to find spreadsheet:', sheetError.message);
-      return res.status(404).json({ 
-        error: 'Google Sheet Not Found', 
-        details: `Could not find spreadsheet with ID: ${process.env.GOOGLE_SHEET_ID}. Check permissions or ID.` 
+      return res.status(404).json({
+        error: 'Google Sheet Not Found',
+        details: `Could not find spreadsheet with ID: ${process.env.GOOGLE_SHEET_ID}. Check permissions or ID.`
       });
     }
 
@@ -112,10 +112,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get current timestamp in Eastern Time
+    // Get current timestamp in local timezone
     const now = new Date();
+    const timeZone = req.body.localTimeZone || 'America/New_York';
     const timestamp = now.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
+      timeZone: timeZone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -196,7 +197,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Failed to save subscription:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Failed to save subscription',
       details: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined

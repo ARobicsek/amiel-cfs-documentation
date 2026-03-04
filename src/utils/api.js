@@ -52,9 +52,10 @@ async function apiRequest(endpoint, options = {}) {
  * Submit a daily entry
  */
 export async function submitEntry(entry) {
+  const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return apiRequest('/api/submit-entry', {
     method: 'POST',
-    body: JSON.stringify(entry),
+    body: JSON.stringify({ ...entry, localTimeZone }),
   });
 }
 
@@ -83,9 +84,10 @@ export async function getHourlyData(dateStr) {
  * Subscribe to push notifications
  */
 export async function subscribeToPush(subscription) {
+  const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return apiRequest('/api/subscribe', {
     method: 'POST',
-    body: JSON.stringify(subscription),
+    body: JSON.stringify({ ...subscription, localTimeZone }),
   });
 }
 
@@ -93,11 +95,13 @@ export async function subscribeToPush(subscription) {
  * Add a new medication to Sheet1
  */
 export async function addMedication(name) {
+  const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return apiRequest('/api/submit-entry', {
     method: 'POST',
     body: JSON.stringify({
       action: 'add-medication',
-      name
+      name,
+      localTimeZone
     }),
   });
 }
@@ -113,9 +117,10 @@ export async function getNotificationSettings() {
  * Save notification settings
  */
 export async function saveNotificationSettings(settings) {
+  const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return apiRequest('/api/notification-settings', {
     method: 'POST',
-    body: JSON.stringify(settings),
+    body: JSON.stringify({ ...settings, localTimeZone }),
   });
 }
 

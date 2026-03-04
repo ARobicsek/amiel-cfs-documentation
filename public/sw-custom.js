@@ -58,6 +58,9 @@ self.addEventListener('notificationclick', (event) => {
     // Get token from notification data
     const token = event.notification.data?.token || 'dev-secret-token-12345';
 
+    // Attempt to get timezone if possible in service worker
+    const localTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     event.waitUntil(
       fetch('/api/snooze', {
         method: 'POST',
@@ -65,24 +68,24 @@ self.addEventListener('notificationclick', (event) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ duration: 60 })
+        body: JSON.stringify({ duration: 60, localTimeZone })
       })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Snooze successful:', data);
+        .then(response => response.json())
+        .then(data => {
+          console.log('Snooze successful:', data);
 
-        // Show a confirmation notification
-        return self.registration.showNotification('Snoozed for 1 hour', {
-          body: 'You\'ll be reminded again in 1 hour.',
-          icon: '/pwa-192x192.png',
-          badge: '/favicon.svg',
-          tag: 'snooze-confirmation',
-          requireInteraction: false
-        });
-      })
-      .catch(error => {
-        console.error('Snooze failed:', error);
-      })
+          // Show a confirmation notification
+          return self.registration.showNotification('Snoozed for 1 hour', {
+            body: 'You\'ll be reminded again in 1 hour.',
+            icon: '/pwa-192x192.png',
+            badge: '/favicon.svg',
+            tag: 'snooze-confirmation',
+            requireInteraction: false
+          });
+        })
+        .catch(error => {
+          console.error('Snooze failed:', error);
+        })
     );
 
     return;
