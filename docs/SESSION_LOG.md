@@ -1,4 +1,20 @@
 
+### 2026-03-09 - Add Medication UX Improvement (Session 76)
+
+**Session Summary:**
+Improved the "Add New Medication" UX in the Settings tab. The static `<h4>` heading was not clickable and confused the user. Replaced it with a collapsible toggle button matching the "+ Add details" pattern from the Today tab.
+
+**Accomplishments:**
+1. **Collapsible toggle button** — Replaced the static "Add New Medication" heading with a `<button>` styled with a dashed blue border and `+` prefix. Tapping reveals the medication entry form with a slide-down animation.
+2. **Added form border** — Added a solid blue border around the revealed form area so the input field is visually distinct.
+3. **Cancel collapses** — The cancel button now also closes the form (in addition to clearing fields).
+
+**Files Modified:**
+- `src/components/Settings.jsx` — Added `showAddMed` state, converted h4 to toggle button, cancel closes form
+- `src/components/Settings.css` — Added `.add-med-toggle` styles, border on `.add-medication-form`, slide-down keyframe animation
+
+---
+
 ### 2026-03-09 - Session Management System Redesign (Session 75)
 
 **Session Summary:**
