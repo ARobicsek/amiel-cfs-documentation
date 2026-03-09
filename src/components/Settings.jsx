@@ -46,6 +46,7 @@ export default function Settings() {
   const [medPreview, setMedPreview] = useState(null);
   const [medAdding, setMedAdding] = useState(false);
   const [medMessage, setMedMessage] = useState({ type: '', text: '' });
+  const [showAddMed, setShowAddMed] = useState(false);
 
   useEffect(() => {
     checkPushStatus();
@@ -91,6 +92,7 @@ export default function Settings() {
     setMedPreview(null);
     setNewMedName('');
     setMedMessage({ type: '', text: '' });
+    setShowAddMed(false);
   }
 
   async function handleMedAdd() {
@@ -535,69 +537,76 @@ export default function Settings() {
           )}
         </div>
 
-        {/* Add New Medication */}
-        <div className="add-medication-form">
-          <h4 className="subsection-title">Add New Medication</h4>
+        {/* Add New Medication - Collapsible */}
+        <button
+          className="add-med-toggle"
+          onClick={() => setShowAddMed(!showAddMed)}
+        >
+          {showAddMed ? '− Close' : '+ Add New Medication'}
+        </button>
 
-          {!medPreview ? (
-            <>
-              <div className="form-group">
-                <label htmlFor="newMedName">Medication Name</label>
-                <input
-                  type="text"
-                  id="newMedName"
-                  value={newMedName}
-                  onChange={(e) => setNewMedName(e.target.value)}
-                  placeholder="e.g., Vitamin B-12"
-                  className="text-input"
-                  maxLength={50}
-                />
+        {showAddMed && (
+          <div className="add-medication-form">
+            {!medPreview ? (
+              <>
+                <div className="form-group">
+                  <label htmlFor="newMedName">Medication Name</label>
+                  <input
+                    type="text"
+                    id="newMedName"
+                    value={newMedName}
+                    onChange={(e) => setNewMedName(e.target.value)}
+                    placeholder="e.g., Vitamin B-12"
+                    className="text-input"
+                    maxLength={50}
+                  />
+                  <p className="help-text">
+                    Enter the medication name exactly as you want it to appear.
+                  </p>
+                </div>
+                <div className="settings-actions">
+                  <button
+                    onClick={handleMedPreview}
+                    disabled={!newMedName.trim()}
+                    className="btn-primary"
+                  >
+                    Preview
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="medication-preview">
+                <p className="preview-label">Will add medication:</p>
+                <p className="preview-name">{medPreview}</p>
                 <p className="help-text">
-                  Enter the medication name exactly as you want it to appear.
+                  Please verify the spelling is correct before adding.
                 </p>
+                <div className="settings-actions preview-actions">
+                  <button
+                    onClick={handleMedCancel}
+                    disabled={medAdding}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleMedAdd}
+                    disabled={medAdding}
+                    className="btn-primary"
+                  >
+                    {medAdding ? 'Adding...' : 'Add Medication'}
+                  </button>
+                </div>
               </div>
-              <div className="settings-actions">
-                <button
-                  onClick={handleMedPreview}
-                  disabled={!newMedName.trim()}
-                  className="btn-primary"
-                >
-                  Preview
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="medication-preview">
-              <p className="preview-label">Will add medication:</p>
-              <p className="preview-name">{medPreview}</p>
-              <p className="help-text">
-                Please verify the spelling is correct before adding.
-              </p>
-              <div className="settings-actions preview-actions">
-                <button
-                  onClick={handleMedCancel}
-                  disabled={medAdding}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleMedAdd}
-                  disabled={medAdding}
-                  className="btn-primary"
-                >
-                  {medAdding ? 'Adding...' : 'Add Medication'}
-                </button>
-              </div>
-            </div>
-          )}
+            )}
 
-          {medMessage.text && (
-            <div className={`settings-message ${medMessage.type}`}>
-              {medMessage.text}
-            </div>
-          )}
-        </div>
+            {medMessage.text && (
+              <div className={`settings-message ${medMessage.type}`}>
+                {medMessage.text}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Push Notifications Section */}
