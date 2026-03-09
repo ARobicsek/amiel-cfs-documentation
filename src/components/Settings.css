@@ -406,8 +406,9 @@
 }
 
 .add-medication-form {
-  padding: 1rem;
+  padding: 1.25rem;
   background: var(--bg-primary);
+  border: 2px solid var(--accent, #3b82f6);
   border-radius: 0.5rem;
   animation: slideDown 0.2s ease-out;
 }
