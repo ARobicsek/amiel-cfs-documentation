@@ -60,7 +60,10 @@ export default async function handler(req, res) {
                 if (rawJsonStr && rawJsonStr !== '{}') {
                     const raw = JSON.parse(rawJsonStr);
                     const metricName = row[3];
-                    const val = row[4];
+                    // Round numeric values to 10 significant digits to match
+                    // incoming precision after Google Sheets truncation
+                    const numVal = parseFloat(row[4]);
+                    const val = !isNaN(numVal) ? parseFloat(numVal.toPrecision(10)) : row[4];
                     const src = row[7];
                     signature = `${raw.date || row[0]}_${metricName}_${val}_${src}`;
                 } else {
@@ -122,7 +125,9 @@ export default async function handler(req, res) {
                 }
             }
 
-            const signature = `${item.date}_${item.name}_${item.value}_${item.source || 'Auto'}`;
+            // Round numeric values to 10 significant digits to match Google Sheets storage precision
+            const sigValue = typeof item.value === 'number' ? parseFloat(item.value.toPrecision(10)) : item.value;
+            const signature = `${item.date}_${item.name}_${sigValue}_${item.source || 'Auto'}`;
 
             if (existingSignatures.has(signature)) {
                 continue;
@@ -209,12 +214,17 @@ export default async function handler(req, res) {
             let restingHrValues = [];
             let hrvSum = 0;
             let hrvCount = 0;
+            const stepDedupKeys = new Set(); // Prevent duplicate step rows from inflating total
 
             for (const row of daysRows) {
                 const metric = row[3];
                 const val = Number(row[4]);
 
                 if (metric === 'step_count' && !isNaN(val)) {
+                    // Deduplicate: skip rows with same timestamp + value
+                    const stepKey = `${row[0]}|${val}`;
+                    if (stepDedupKeys.has(stepKey)) continue;
+                    stepDedupKeys.add(stepKey);
                     totalSteps += val;
                 } else if (metric === 'heart_rate' && !isNaN(val)) {
                     hrSum += val;
