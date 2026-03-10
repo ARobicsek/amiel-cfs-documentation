@@ -1,4 +1,25 @@
 
+### 2026-03-09 - Step Count Deduplication Fix (Session 77)
+
+**Session Summary:**
+Investigated and fixed a step count discrepancy between the app and Apple Health. March 8 showed 11,660 steps in-app vs 5,159 on-phone (2.26x inflation), while March 3 showed 3,392 vs 5,048 (under-count).
+
+**Root Cause:**
+Google Sheets truncates float precision (e.g. `16.451867316895836` → `16.45186732`). When Health Auto Export re-sent the same data, the webhook's deduplication signatures didn't match (full precision vs truncated), allowing duplicate rows. March 8 had 76 entries duplicated 5× each.
+
+**Accomplishments:**
+1. **Signature precision fix** — Rounded dedup signature values to 10 significant digits (via `toPrecision(10)`) for both incoming and stored data, ensuring signatures match after Google Sheets truncation.
+2. **Daily aggregation dedup** — Added a `Set`-based dedup guard during step_count daily aggregation so even if duplicates exist in Health_Hourly, the Health_Daily total is correct.
+3. **Historical cleanup** — Created and ran `scripts/cleanup_hourly_duplicates.js` which removed 2,949 duplicate rows across all dates (Dec 2025 – Mar 2026) and re-aggregated 35 Health_Daily rows.
+
+**Files Modified:**
+- `api/health-webhook.js` — Signature rounding + step aggregation dedup
+
+**Files Created:**
+- `scripts/cleanup_hourly_duplicates.js` — One-off cleanup script for historical duplicates
+
+---
+
 ### 2026-03-09 - Add Medication UX Improvement (Session 76)
 
 **Session Summary:**
